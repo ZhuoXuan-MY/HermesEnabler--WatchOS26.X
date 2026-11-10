@@ -1,138 +1,111 @@
-# HermesEnabler RO23 — Apple Watch Ultra 1 / watchOS 26.6.1 Research Fork
+# HermesEnabler RO23
 
-**English** · [简体中文 (complete Chinese documentation)](README.zh-CN.md) · [Original HermesEnabler project](https://github.com/pookjw/HermesEnabler) · [Research Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
+*Apple Watch Ultra (1st generation) · watchOS 26.6.1 · build 23U95*
 
-> [!IMPORTANT]
-> **RESEARCH ONLY · NOT A WORKING UNLOCK · NO VERIFIED watchOS 26.6.1 SUPPORT.**
+**English** · [简体中文](README.zh-CN.md) · [Original HermesEnabler](https://github.com/pookjw/HermesEnabler) · [Research discussion — Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
+
+> **Work in progress — this does not unlock Hermès watch faces on watchOS 26.6.1.**
 >
-> This is an **unofficial, experimental derivative** of **[HermesEnabler / HermesEnabler 2](https://github.com/pookjw/HermesEnabler)**, originally developed by **Jinwoo Kim ([@pookjw](https://github.com/pookjw))**. The RO23 branch documents independently performed on-device experiments and offline firmware analysis by **[@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)**, with AI-assisted diagnostic code and technical reporting. On the tested Apple Watch Ultra (first generation), **the protected MobileGestalt cache was not modified and genuine Hermès watch faces were not unlocked**.
->
-> **Historical warning (original local archive, identified November 11, 2026):** The supplied original modified archive contained a historical `BQWriteHermes23U95()` path in `HermesEnabler2/BQCore.m` that still hard-codes the **incorrect** `0x670`/`0x16B6` cache offsets. The corrected DeviceBrand offsets are `0x338`/`0x164F`. The old values refer to **another descriptor**. **That forced-write path is not present in the sanitized source accompanying this README; never reintroduce it as a working function or distribute an unverified IPA.** Replacing the offsets alone does not solve the sandbox or face-availability restrictions.
-
-> **Public-source snapshot (11 November 2026):** The repository package accompanying this README is a **sanitized, system-cache-write-disabled research build**. The historical `BQWriteHermes23U95()` implementation, including its incorrect `0x670` offset, has been **removed from the distributed code**, and `BQSaveGestalt`, restore, and enable operations are blocked. Auto-running RO23 diagnostics were replaced by an opt-in button. The detailed sections below retain descriptions of the **original uploaded experimental snapshot** as research history. The app has **not been compiled or run on an Apple Watch from this package**; building requires your own signing settings.
+> RO23 is my independent research fork of Jinwoo Kim's HermesEnabler. I'm sharing the tests, the code I used to investigate the problem, and what I've been able to verify so far. There is **no confirmed native Hermès face activation**, no tested 23U95 unlock IPA, and no claim that the original developer supports this fork.
 
 ## Contents
 
-1. [Project overview](#1-project-overview)
-2. [Original author, provenance, and contribution](#2-original-author-provenance-and-contribution)
-3. [Device and support matrix](#3-device-and-support-matrix)
-4. [What is actually modified in the local snapshot](#4-what-is-actually-modified-in-the-local-snapshot)
-5. [Complete RO23 V1–V12 investigation](#5-complete-ro23-v1v12-investigation)
-6. [DeviceBrand correction and cache format](#6-devicebrand-correction-and-cache-format)
-7. [Why the MobileGestaltHelper XPC requests return error 9](#7-why-the-mobilegestalthelper-xpc-requests-return-error-9)
-8. [Native Hermès 2025 face bundle and device restrictions](#8-native-hermès-2025-face-bundle-and-device-restrictions)
-9. [RO23 V12: matching ClockKit evidence](#9-ro23-v12-matching-clockkit-evidence)
-10. [Results and unresolved limitations](#10-results-and-unresolved-limitations)
-11. [Source layout and building for research](#11-source-layout-and-building-for-research)
-12. [Public release safety checklist](#12-public-release-safety-checklist)
-13. [Reproducibility and binary provenance](#13-reproducibility-and-binary-provenance)
-14. [Roadmap](#14-roadmap)
-15. [License and acknowledgements](#15-license-and-acknowledgements)
-16. [Research links and disclaimer](#16-research-links-and-disclaimer)
+1. [Why I started RO23](#1-why-i-started-ro23)
+2. [Where this project comes from](#2-where-this-project-comes-from)
+3. [The watch and the results so far](#3-the-watch-and-the-results-so-far)
+4. [What's in this repository](#4-whats-in-this-repository)
+5. [RO23 V1–V12: the investigation](#5-ro23-v1v12-the-investigation)
+6. [The DeviceBrand offset mistake](#6-the-devicebrand-offset-mistake)
+7. [Why MobileGestaltHelper returned error 9](#7-why-mobilegestalthelper-returned-error-9)
+8. [The Hermès 2025 face is in the firmware — so what's stopping it?](#8-the-hermès-2025-face-is-in-the-firmware--so-whats-stopping-it)
+9. [What V12 told us about ClockKit](#9-what-v12-told-us-about-clockkit)
+10. [What we know and what we don't](#10-what-we-know-and-what-we-dont)
+11. [Opening the project in Xcode](#11-opening-the-project-in-xcode)
+12. [Research files and checksums](#12-research-files-and-checksums)
+13. [Where I'm going next](#13-where-im-going-next)
+14. [Credits and license](#14-credits-and-license)
+15. [Useful links and a final note](#15-useful-links-and-a-final-note)
 
-## 1. Project overview
+## 1. Why I started RO23
 
-**HermesEnabler RO23** is a research branch focused on understanding whether and why **native Apple Hermès watch faces** are restricted on a **first-generation Apple Watch Ultra** (`Watch6,18`, board `n199ap`) running **watchOS 26.6.1, build `23U95`**.
+I wanted to find out whether a **first-generation Apple Watch Ultra** could use Apple's native Hermès watch faces on **watchOS 26.6.1 (23U95)**, and, if not, what was actually preventing it.
 
-The project studies:
+At first, the obvious place to look was `MobileGestalt` and its `DeviceBrand` value. That led to a much bigger question. Even if the cache could be read and its format understood, would changing one value be enough? Would the system allow the change? And would NanoTimeKit and the Hermès face bundle accept the device afterward?
 
-- How `MobileGestalt` provides and caches `DeviceBrand` on watchOS's `arm64_32` architecture.
-- Why direct MobileGestalt reads succeed while writable access to its protected SystemGroup cache fails.
-- What an MCM sandbox extension actually grants, compared with what a developer-signed process is still denied.
-- How `com.apple.mobilegestalt.xpc` and `MobileGestaltHelper` process read-only questions.
-- What native Hermès 2025 face components exist in the matching watchOS OTA.
-- Where NanoTimeKit, ClockKit, and the Hermès 2025 FaceBundle implement device, capability, and availability restrictions.
+I started testing those pieces one by one, first on the watch and then against binaries extracted from the **matching 23U95 firmware**. This README is a record of that work through **RO23 V12**.
 
-The objective is **reproducible compatibility research**, not a claim that the code currently bypasses these restrictions. The existence of an Apple-supplied face bundle does **not** imply it can be installed, enabled, or used on an unsupported watch.
+I'm interested in understanding the restrictions, not passing off a partial experiment as a finished tool. If you're here looking for a one-click unlock, **this project isn't there yet**.
 
-### What this is not
+## 2. Where this project comes from
 
-It is **not** an official release by the upstream author, Apple, or Hermès; not a jailbreak; not a confirmed entitlement bypass; not a replacement for the current upstream project; and not a distributable unlock tool for watchOS 26.6.1. No kernel exploit, remote access, cache rebuild, or successful modification of the watch's system cache is claimed.
+The original app is **[HermesEnabler / HermesEnabler 2](https://github.com/pookjw/HermesEnabler)**, created by **[Jinwoo Kim (@pookjw)](https://github.com/pookjw)**. The original application, its architecture, existing UI, MobileGestalt work, backup/restore foundation, and upstream dependencies are his work. Please credit him if you reuse it.
 
-## 2. Original author, provenance, and contribution
+RO23 is the name I've used for my own modifications and research on the Ultra 1. I ran the watch tests, worked with Xcode and the firmware files, collected logs, and documented the findings in [upstream Issue #17](https://github.com/pookjw/HermesEnabler/issues/17). I also used AI tools to help with experimental code, commands, and analysis notes; the successful and failed device tests described here come from the actual watch, not a simulation.
 
-### Original software: Jinwoo Kim / @pookjw
+I keep this as a separate repository because **23U95 is outside the supported scope being claimed for the upstream project**. Nothing here should be read as a statement from, or an endorsement by, the original author.
 
-**Full credit for the original application and upstream engineering belongs to [Jinwoo Kim (@pookjw)](https://github.com/pookjw).** The original project is [pookjw/HermesEnabler](https://github.com/pookjw/HermesEnabler), also known as **HermesEnabler 2**. Its existing Watch App implementation, MobileGestalt-related capabilities, interfaces, backup and restore infrastructure, and dependencies are the foundation of this derivative.
+This fork is also **not** an Apple or Hermès project, a jailbreak, a verified entitlement bypass, or a working watchOS 26.6.1 unlock.
 
-The upstream README, checked for this documentation, states that its supported range is **watchOS 27.0 to 27.3 beta 1**. That is an **upstream support statement**, not a support promise for this RO23 research branch.
+## 3. The watch and the results so far
 
-The upstream repository is licensed under the **MIT License**, including **Copyright (c) 2026 Jinwoo Kim**. Preserve the original license and copyright notice when publishing derivative source. The original project also credits code from [Gester](https://github.com/sasobhabha/Gester); the local snapshot retains `Gester-LICENSE.txt`.
+All the on-device results below refer to **one specific setup**:
 
-### RO23 research: @ZhuoXuan-MY
-
-The RO23 investigation, local experimental modifications, data collection, and issue reports were conducted by **[@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)**, using their own Apple Watch Ultra and Mac/Xcode environment. The device owner installed local builds, ran tests on the watch, preserved logs, acquired matching firmware, and supplied the resulting binaries for offline static analysis. AI tools assisted with diagnostic scaffolding, shell commands, report drafting, and reverse-engineering interpretation. **AI-generated suggestions are not equivalent to successful on-device tests.**
-
-The research trail is documented in [the original upstream Issue #17](https://github.com/pookjw/HermesEnabler/issues/17). The issue and reports distinguish on-watch observations, public third-party findings, offline static analysis, and remaining hypotheses.
-
-### Why maintain an independent repository?
-
-The RO23 code was developed against a watchOS build outside the upstream's currently advertised supported range. An independent repository allows detailed experimental findings to be shared while preserving upstream attribution and keeping **unsupported diagnostics** clearly separate from **working upstream functionality**. The project is **not endorsed by or affiliated with** the upstream maintainer.
-
-## 3. Device and support matrix
-
-| Property | Observed / documented value |
+| Item | Details |
 |---|---|
-| Physical test device | Apple Watch Ultra, first generation |
-| Machine identifier | `Watch6,18` |
+| Watch | Apple Watch Ultra, first generation |
+| Model identifier | `Watch6,18` |
 | Board | `n199ap` |
-| OS/build | watchOS `26.6.1` / `23U95` |
-| Relevant ABI | `arm64_32` / ILP32 |
-| On-device environment | Locally modified HermesEnabler2, Xcode development signing, custom App Group |
-| `MobileGestalt` read | **Success** |
-| MG cache backup and parsing | **Success** |
-| MG protected cache write | **Denied: `EPERM`** |
-| Class 13 sandbox token | **Obtained and consumed; write access remained denied** |
-| MobileGestaltHelper XPC | **Connection and reply succeeded; tested questions returned `error=9`** |
-| Native Hermès 2025 FaceBundle | **Found and extracted from matching firmware** |
-| Face-specific availability checks | **Found in static analysis; runtime results unresolved** |
-| Native Hermès activation on this Ultra | **Not achieved** |
-| Tested working public IPA for 23U95 | **None** |
+| OS | watchOS `26.6.1` |
+| Build | `23U95` |
+| Architecture | `arm64_32` (ILP32) |
+| Test environment | Locally modified HermesEnabler2, Xcode development signing, custom App Group |
+| Reading MobileGestalt | Worked |
+| Backing up and parsing the cache | Worked |
+| Writing to the protected cache | Blocked with `EPERM` |
+| Class 13 sandbox extension | Token obtained and consumed; still no write permission |
+| MobileGestaltHelper XPC | Connected and replied, but tested queries returned `error=9` |
+| Native Hermès 2025 bundle | Found in the matching OTA |
+| Actual native Hermès face activation | **Not achieved** |
 
-Findings are **build- and device-specific**. Other Apple Watch hardware and watchOS versions can have different descriptors, restrictions, entitlements, and resources. A method found in a Series 8 report or iOS decompilation is **not automatically proven on Ultra 1**.
+These aren't universal results for every Apple Watch. A finding from a Series 8, another watchOS build, or an iOS binary can be useful background, but it doesn't count as a successful Ultra 1 test.
 
-## 4. What is actually modified in the local snapshot
+## 4. What's in this repository
 
-The uploaded local archive `HermesEnabler(1).zip` was reviewed directly, including `HermesEnabler2/BQCore.m`, `BQCore.h`, `ContentView.swift`, entitlements, and Xcode project settings. It is an **experimental local snapshot**, containing both inherited upstream code and RO23 additions, not a cleaned or release-tested distribution.
+There's an important distinction between **my older local experiments** and **the public research source**.
 
-| Area | Code or behavior found in this snapshot | Research interpretation |
-|---|---|---|
-| MCM and sandbox-extension infrastructure | Runtime symbol loading, container queries, token handling, optional fallback paths | Inherited/experimental mix; does not establish write privileges |
-| MG backup and parsing | Reads MG plist and validates `CacheUUID`, `CacheData`, `CacheExtra` | Corresponds to confirmed device observations |
-| `BQProbeClass7Flags23U95` | Three Class 7 flag configurations and restoration of temporary app-owned Caches state | All tested configurations failed to obtain usable tokens |
-| Geod MCM test | `BQGeodOpen23U95` probes an alternative container route | Required object unavailable on tested build |
-| Forced 23U95 writer | `BQWriteHermes23U95` validates/backs up before attempting a protected writable open | **Unsafe historic experiment; uses superseded offsets and must be disabled** |
-| RO23 V1 | Read-only MobileGestalt key/reference and Mach-O cache candidate analysis | No system writes |
-| RO23 V2 | Reads plain and hashed DeviceBrand via local `MGCopyAnswer` | No system writes |
-| RO23 V3 | Descriptor stride, record boundary, and corrected index analysis | Corrects previous false association |
-| RO23 V4 | Runtime entitlements, MCM Class 13, before/after `sandbox_check` | Token acquired, write permission not granted |
-| RO23 V5 | Bootstrap lookup of `com.apple.mobilegestalt.xpc` | Mach service discovery only |
-| RO23 V6 | Single read-only `DeviceBrand` Helper XPC query | `error=9` |
-| RO23 V7 | Four read-only local-versus-XPC queries | Local values present; XPC returned only error 9 |
-| UI diagnostics | Added compatibility, MG access and Class 7 reporting paths in `ContentView.swift` | Diagnostic UI does not mean activation is successful |
+The original local archive used during the investigation included experimental paths for MCM access, a forced MobileGestalt write attempt, and diagnostics that ran automatically after launch. One of those old paths, `BQWriteHermes23U95()`, contained **incorrect DeviceBrand offsets**. That experiment is part of the history below, not something I want anyone to treat as a working method.
 
-The snapshot also registers multiple `__attribute__((constructor))` callbacks, scheduling diagnostic steps after launch (about **3, 5, 7, 10, 13, and 26 seconds**). A public build should make research diagnostics opt-in and document their behavior explicitly.
+The public source is the **sanitized, research-only version**: the historical forced writer has been removed; MobileGestalt save/restore and face-enabling operations are blocked; and the RO23 diagnostics are started from an explicit button rather than automatically. The app also labels itself as research-only.
 
-**Critical code finding:** `BQWriteHermes23U95()` in the uploaded snapshot still contains `valueOffset=0x670` and `presentOffset=0x16B6`. Later RO23 V3 and V9 evidence **disproved these as DeviceBrand offsets**. Even though the watch denied `O_RDWR` in the recorded experiment, an unsafe pointer/offset must not be left in a public, potentially future-writable code path. Do not assume swapping in the corrected offsets would make the feature work.
+The code still includes useful parts of the original application and diagnostic work, including:
 
-## 5. Complete RO23 V1–V12 investigation
+- Reading MobileGestalt information and making an **app-local** backup when permitted.
+- Compatibility and cache-access checks.
+- Read-only RO23 probes covering cache records, sandbox permissions, and MobileGestaltHelper queries.
+- Logging to the app's own Documents directory.
 
-### Initial device trials: cache access and the first failed write
+**This public package has not been verified by a fresh on-watch build and test.** You'll need to review and sign it yourself. The historical measurements in this README are from the earlier locally modified build, not proof that this GitHub snapshot performs every old experiment unchanged.
 
-The locally modified Watch App launched, detected its own App Group, and successfully performed a direct read of the live MobileGestalt plist on `23U95`.
+## 5. RO23 V1–V12: the investigation
+
+This is the path I followed, including the dead ends. I have left the unsuccessful results in because they're just as useful as the parts that worked.
+
+### Before V1 — reading the cache and trying to open it for writing
+
+The first local build could read the live MobileGestalt plist and create a matching backup. The data on 23U95 looked like this:
 
 ```text
-Live plist size:       13,328 bytes
+Plist size:            13,328 bytes
 CacheUUID:             3BE19A76-F253-4CE4-AAC1-DF6D801CAAB1
-CacheData length:      6,309 bytes (0x18A5)
-CacheData slot count:  701, using 9 bytes per slot
-CacheExtra entries:    72
+CacheData:             6,309 bytes (0x18A5)
+Cache layout:          701 slots × 9 bytes
+CacheExtra:            72 entries
 Local DeviceBrand:     0
 ```
 
-An older watchOS 26.5 backup was 13,329 bytes and had a different CacheUUID. It was **not** restored onto the `23U95` installation. A separate matching `OriginalGestalt-23U95.plist` backup was created and verified.
+I also had a backup from watchOS 26.5, but its UUID and size were different. **I did not restore that older backup to 23U95.** Instead, I kept a verified `OriginalGestalt-23U95.plist` backup.
 
-The first descriptor hypothesis incorrectly assigned `DeviceBrand` to **index 206**, value offset `0x670`, presence offset `0x16B6`. This is superseded. A special 23U95 write attempt reached the new code path and verified its backup, but the protected file could not be opened for writing:
+An early attempt used a supposed DeviceBrand record at index `206`. That later turned out to be wrong. On the watch, the write attempt stopped before any data could be written:
 
 ```text
 MG FORCE: entering 23U95 write path
@@ -140,108 +113,132 @@ MG FORCE: 23U95 backup verified
 MG FORCE: WRITE DENIED errno=1 (Operation not permitted)
 ```
 
-Therefore, the attempted write **never reached `pwrite`**. Geod-MCM Class 12 did not yield the required container object. Class 7 flags `0x0800000000`, `0x8000000000`, and `0x8100000000` each failed to return a usable sandbox token, and the diagnostic reported restoration of the temporary app-owned Caches structure.
+The protected file could not be opened with writable access, so execution **never reached `pwrite`**. Three Class 7 flag combinations (`0x0800000000`, `0x8000000000`, `0x8100000000`) also failed to return usable sandbox tokens. The Geod-MCM Class 12 route didn't provide the required container object.
 
-### V1 — Read-only Mach-O and hashed-key examination
+### V1 — looking for DeviceBrand inside MobileGestalt
 
-The research scanned mapped `libMobileGestalt.dylib` Mach-O sections in the on-watch `arm64_32` process, searching for the exact DeviceBrand hashed key (`fuKL2rMywRgQF1wowOA/cg`). Key and pointer references were found in string and data sections. However, an early interpretation erroneously read the **previous descriptor's tail** as if it belonged to the DeviceBrand record.
-
-### V2 — Verify the local API and numeric type
-
-The investigation used the correct two-argument `MGCopyAnswer(CFStringRef, CFDictionaryRef)` calling convention for both `DeviceBrand` and the hashed key. Both returned **CFNumber 0**. A Core Foundation numeric type and a MobileGestalt internal descriptor type are different enums and must not be confused.
-
-### V3 — Correct the DeviceBrand descriptor boundary
-
-The matching `arm64_32` MobileGestalt descriptor was examined with a **100-byte (`0x64`) record stride**. The DeviceBrand record's own metadata yields:
+I inspected mapped `libMobileGestalt.dylib` sections on the watch, looking for the hashed key:
 
 ```text
-flags = 12 (0x0C)
-index = 103
-type  = 5
-value offset    = 103 * 8 = 0x338
-validity offset = (701 * 8) + 103 = 0x164F
-cached value = 0
-validity = 1
+DeviceBrand → fuKL2rMywRgQF1wowOA/cg
 ```
 
-The previously reported `flags=13, index=206, type=11` values came from the **preceding descriptor**, not DeviceBrand. The coincidence that `206 / 2 = 103` is not a data-format rule.
+I found relevant strings and pointer references, but I initially matched DeviceBrand to the **end of the preceding descriptor**. That mistake matters because it affected the first offset calculation.
 
-### V4 — Class 13 token is not writable access
+### V2 — checking the value returned by the real API
 
-A direct Class 13 MCM query using flags `0x0800000000` returned and consumed a sandbox extension (reported `handle=2` in this particular run). The on-watch `sandbox_check` calls still denied protected cache writing and creation both before and after consumption:
+I used the two-argument `MGCopyAnswer(CFStringRef, CFDictionaryRef)` call to query both `DeviceBrand` and its hashed form. Both gave a **CFNumber containing 0**.
+
+One detail worth keeping straight: a Core Foundation number type isn't the same thing as MobileGestalt's internal descriptor type. Treating them as interchangeable leads to bad conclusions.
+
+### V3 — fixing the descriptor boundary
+
+Rechecking the `arm64_32` layout showed a descriptor stride of **100 bytes (`0x64`)**. The actual DeviceBrand record was:
 
 ```text
-MobileGestalt file-read-data     before=ALLOW  after=ALLOW
-MobileGestalt file-write-data    before=DENY   after=DENY
-MobileGestalt file-write-create  before=DENY   after=DENY
+flags                 12 (0x0C)
+index                 103
+internal type         5
+value offset          0x338
+validity offset       0x164F
+cached value          0
+validity              1
 ```
 
-The development-signed process had the regular application-groups entitlement but not the queried private `com.apple.security.system-groups` or `com.apple.security.system-group-containers` entitlements. A separate metadata permission check returned `-1` (**an error, not a valid policy-denial result**). The V4 test made **no system writes**.
+The older `index=206` / `0x670` / `0x16B6` interpretation belonged to a different descriptor. This correction is one of the clearest concrete outcomes of RO23.
 
-### V5 — Mach service lookup
+### V4 — a sandbox token didn't grant write access
 
-`task_get_special_port` and `bootstrap_look_up` successfully resolved `com.apple.mobilegestalt.xpc` (`kr=0`; valid Mach right). A valid service lookup is not authorization to modify the system cache.
+A Class 13 MCM request with flags `0x0800000000` returned a sandbox extension. I consumed it successfully; one run reported `handle=2`. I then compared access before and after:
 
-### V6 — Initial MobileGestaltHelper XPC query
-
-The locally signed Watch App established an `NSXPCConnection`, invoked `getServerAnswerForQuestion:reply:` for `DeviceBrand`, and received a reply containing **`error=9` but no `answer`**. No cache-management function was called.
-
-### V7 — Compare four local questions to XPC responses
-
-| Question | Local `MGCopyAnswer` | Helper XPC reply |
+| Sandbox check | Before | After |
 |---|---|---|
-| `DeviceBrand` | `CFNumber(0)` | `error=9`, no answer |
-| `fuKL2rMywRgQF1wowOA/cg` | `CFNumber(0)` | Same |
-| `BuildVersion` | String | Same |
-| `ProductType` | String | Same |
+| MobileGestalt file read | Allow | Allow |
+| MobileGestalt file write | Deny | Deny |
+| MobileGestalt file creation | Deny | Deny |
 
-All four reply dictionaries contained **only the `error` key** (no `answer` or `logString`). This error is not POSIX `EPERM`, a Mach bootstrap return code, or an MCM token error; these must be reported separately.
+The process had its ordinary application-groups entitlement, but not the Apple-private system-group entitlements being investigated. A separate metadata check returned `-1`, which is an **error**, not a reliable policy verdict.
 
-### V8 — Matching AEA OTA and native MobileGestaltHelper
+No system-cache write happened in V4.
 
-The investigator downloaded the correct encrypted watchOS OTA, confirmed its metadata for `Watch6,18` / `n199ap` / `23U95`, inspected `post.bom`, and extracted `usr/libexec/MobileGestaltHelper` from `payload.054`.
+### V5 — finding the Mach service
 
-The native Helper is **76,112 bytes, Mach-O `arm64_32`**. `ipsw macho info` recognized it, but its ObjC dump encountered an `__objc_protolist` EOF and its disassembler initially rejected the ABI. Using LLVM and direct Mach-O analysis, method implementations were recovered:
+`task_get_special_port` and `bootstrap_look_up` found `com.apple.mobilegestalt.xpc` (`kr=0`). That confirmed the service could be reached, **not** that it would authorize the requests I wanted to test.
 
-| Helper method | Address in analyzed binary |
-|---|---:|
+### V6 — the first Helper reply
+
+An `NSXPCConnection` to MobileGestaltHelper was established. A read-only `getServerAnswerForQuestion:reply:` request for `DeviceBrand` came back with:
+
+```text
+{ "error": 9 }
+```
+
+There was no `answer`. I did not call cache rebuilding or any cache-writing operation.
+
+### V7 — checking whether it was only DeviceBrand
+
+I repeated the comparison for four questions:
+
+| Question | Local `MGCopyAnswer` | Helper XPC |
+|---|---|---|
+| `DeviceBrand` | `CFNumber(0)` | `error=9` |
+| `fuKL2rMywRgQF1wowOA/cg` | `CFNumber(0)` | `error=9` |
+| `BuildVersion` | String returned | `error=9` |
+| `ProductType` | String returned | `error=9` |
+
+Every Helper reply had only the `error` field. The number 9 here is a **MobileGestalt server result**; it shouldn't be confused with POSIX `EPERM` or a Mach/bootstrap error.
+
+### V8 — extracting the matching MobileGestaltHelper
+
+I downloaded the watchOS OTA matching `Watch6,18 / n199ap / 23U95`, checked its metadata and `post.bom`, then extracted `MobileGestaltHelper` from `payload.054`.
+
+The binary was **76,112 bytes**, Mach-O `arm64_32`. Some tools struggled with its ABI or Objective-C metadata, so I used LLVM and direct Mach-O inspection to continue.
+
+| Method | Address in the analyzed binary |
+|---|---|
 | `getServerAnswerForQuestion:reply:` | `0x5110` |
 | `rebuildCache:` | `0x55F0` |
 | `setCacheSentinel:` | `0x5714` |
 
-At `0x51C4`, the Helper **actually calls** `_MGServerCopyAnswerWithError`. It constructs a reply containing `error` and optional `answer` / `logString` fields from the returned values. Neither cache rebuild nor sentinel operations were established as an arbitrary DeviceBrand setter. Cache rebuilding is **not a safe experiment** and was not invoked.
+At `0x51C4`, the Helper calls `_MGServerCopyAnswerWithError`. This gave me a concrete place to look for the error-9 behavior.
 
-### V9 — Matching libMobileGestalt and error 9
+I **did not call `rebuildCache:`**. Finding a method is not evidence that it can set DeviceBrand, and rebuilding the live cache would be a different, potentially disruptive operation.
 
-The investigator extracted `libMobileGestalt.dylib` (**991,764 bytes**) from the matching `arm64_32` dyld shared cache, allowing direct code-level examination rather than inferring watchOS behavior from an unrelated iOS binary.
+### V9 — checking libMobileGestalt itself
 
-`_MGServerCopyAnswerWithError` was identified at `0x215B42A8` and the server-access check in the analyzed disassembly at `0x215B4BF4`. The function has explicit error-9 paths. Three plain-key descriptors had the following metadata:
+I extracted the matching `libMobileGestalt.dylib` (**991,764 bytes**) from the watchOS dyld cache. In that binary, `_MGServerCopyAnswerWithError` was located at `0x215B42A8` and a server access check at `0x215B4BF4`.
 
-| Question | Index | Internal type | Flags |
+The descriptors I checked were:
+
+| Key | Index | Internal type | Flags |
 |---|---:|---:|---:|
-| `DeviceBrand` | 103 | 5 | 12 (`0x0C`) |
-| `BuildVersion` | 62 | 9 | 12 (`0x0C`) |
-| `ProductType` | 530 | 9 | 12 (`0x0C`) |
+| `DeviceBrand` | 103 | 5 | `0x0C` |
+| `BuildVersion` | 62 | 9 | `0x0C` |
+| `ProductType` | 530 | 9 | `0x0C` |
 
-These flags and access checks provide a **code-level explanation consistent with** the V7 results: questions available to the *local API* are not necessarily allowed through the *server-only Helper API*. This is **static reasoning**, not a complete dynamic trace of each V7 call. The matching library's DeviceBrand provider also refers to `IODeviceTree:/chosen` and its `marketing-software-behavior` property, a distinct input from the cached value.
+There are explicit error-9 paths in the server function. Together with the descriptor flags, they give a **plausible code-level explanation** for V7: a question can work through local `MGCopyAnswer` without being available through the Helper's server-facing API. I did **not** trace every V7 request dynamically through the Helper.
 
-### V10 — Native Hermès 2025 FaceBundle exists in the OTA
+Another useful clue: the DeviceBrand provider in the matching library references `IODeviceTree:/chosen` and `marketing-software-behavior`. The cache isn't necessarily the whole story.
 
-The OTA BOM and subsequent targeted extraction confirmed the following `Watch6,18`/`23U95` components:
+### V10 — finding Apple's own Hermès 2025 bundle
 
-| Native file | Approx. size | Role |
-|---|---:|---|
-| `NTKHermes2025FaceBundle.bundle/NTKHermes2025FaceBundle` | 1.2 MB | Hermès 2025 face implementation |
-| Hermès `Assets.car` | 32 KB | Bundle assets |
-| `Carousel.app/Carousel` | 185 KB | Watch face interface process |
-| `ClockFace.app/ClockFace` | 406 KB | Face-related application |
-| `NanoTimeKit.framework/nanotimekitd` | 734 KB | Face framework companion/service |
+The matching firmware contains the native face bundle and related components:
 
-`nanotimekitd` contained `com.apple.Hermes2025Face`, references to `_NTKFaceStyleIsAvailable`, and logging strings resembling `Removing unavailable faces` and `Removing face of style %@`. The static call site at `0x8260` provided concrete evidence of a general face availability filter. **Firmware inclusion does not prove this device passes availability checks or has every resource needed at runtime.**
+| Component | Approximate size |
+|---|---:|
+| `NTKHermes2025FaceBundle` executable | 1.2 MB |
+| Hermès bundle `Assets.car` | 32 KB |
+| `Carousel` | 185 KB |
+| `ClockFace` | 406 KB |
+| `nanotimekitd` | 734 KB |
 
-### V11 — NanoTimeKit and the Hermès-specific gate
+In `nanotimekitd` I found `com.apple.Hermes2025Face`, `_NTKFaceStyleIsAvailable` and strings associated with removing unavailable faces. A general face-availability filter appears at a static call site around `0x8260`.
 
-The matching `NanoTimeKit` framework binary (**11,395,800 bytes**) was extracted from the dyld cache. Selected method addresses in the analyzed Mach-O were:
+The important finding was **that the bundle exists in this OTA**. That alone says nothing about whether the Ultra 1 is allowed to show it.
+
+### V11 — finding a Hermès-specific restriction
+
+The matching NanoTimeKit framework binary was **11,395,800 bytes**. Relevant locations included:
 
 ```text
 _NTKFaceStyleIsAvailable                               0x544392B0
@@ -250,15 +247,13 @@ _NTKFaceStyleIsAvailable                               0x544392B0
                                                         0x544B0DDC
 ```
 
-Static analysis of the native Hermès bundle found `+[Hermes2025Face isRestrictedForDevice:]` at `0x3B2C` and related logic at `0x46B8`. The corresponding call sites include the selectors `deviceCategory`, `supportsFall2025FacesCapability`, and `collectionType`, with one `collectionType` comparison against `0x5`.
+Inside the Hermès 2025 bundle, `+[Hermes2025Face isRestrictedForDevice:]` appeared at `0x3B2C`, with related logic near `0x46B8`. The code references `deviceCategory`, `supportsFall2025FacesCapability` and `collectionType`, including a comparison against `0x5`.
 
-These are **additional restrictions beyond the general availability check**. The Ultra's actual runtime values for those selectors were **not measured**. We have not proved that `DeviceBrand=1` alone satisfies the Hermès 2025 checks, or that those checks are sufficient for end-to-end face activation.
+That means there are **additional face-specific checks** to understand. I hadn't yet measured those selector values on the Ultra, so I couldn't conclude that changing DeviceBrand would be sufficient.
 
-### V12 — Matching ClockKit: device data and capability plumbing
+### V12 — checking ClockKit against the same build
 
-The supplied `RO23-V12-ClockKit.zip` was directly unpacked and inspected for this README. The inner `ClockKit` is a valid **1,425,840-byte `arm64_32` Mach-O** (SHA-256 below). Symbols identify `CLKDevice`, its `_loadDeviceInfo` initializer/loader, NanoRegistry/PDR capability handling, and field accessors.
-
-The following getter instructions were independently verified from the uploaded binary:
+The `RO23-V12-ClockKit.zip` material contained a **1,425,840-byte `arm64_32` ClockKit binary**. I checked the getters for several `CLKDevice` fields:
 
 ```asm
 -[CLKDevice deviceBrand]      0x49C6F144: ldr  w0, [x0, #0x3c]
@@ -267,48 +262,49 @@ The following getter instructions were independently verified from the uploaded 
 -[CLKDevice isUltra]          0x49C6F11C: ldrb w0, [x0, #0x17]
 ```
 
-These are **instance-field accessors**, not the entire provenance of those fields or the Hermès restriction logic. `_queryAndCacheNanoRegistryDeviceCapabilities` invokes PDR-related capability processing. The string `supportsFall2025FacesCapability` was **not found as a direct definition in this ClockKit binary**; it may reside in another framework, a category, or the calling face bundle. The runtime values on this watch and the precise relationship of each capability to `DeviceBrand` remain unresolved.
+ClockKit also contains device-loading code and NanoRegistry/PDR capability processing. I did **not** find a direct definition of `supportsFall2025FacesCapability` in this particular ClockKit binary.
 
-**V12 is a successful extraction plus partial static analysis, not a completed capability override, privilege bypass, or Hermès face unlock.**
+V12 clarified the shape of the problem, but it did not solve it: **these are distinct fields, and their actual runtime values and dependencies still need to be checked**.
 
-## 6. DeviceBrand correction and cache format
+## 6. The DeviceBrand offset mistake
 
-The DeviceBrand key has a hashed representation:
-
-```text
-DeviceBrand -> fuKL2rMywRgQF1wowOA/cg
-```
-
-The corrected metadata for this **specific** `23U95` environment is:
+Because this was an important correction, here's the final cache record in one place. It is specific to the analyzed **23U95 / arm64_32** environment:
 
 ```text
-CacheData bytes:         6309 = 701 * 9
-Descriptor stride:       100 bytes in the observed arm64_32 layout
-Descriptor flags:        12
-Descriptor index:        103
-Descriptor internal type: 5
-Value offset:            0x338
-Validity offset:         0x164F
-Observed cached value:   0
-Observed validity:       1
+Key/hash:              DeviceBrand / fuKL2rMywRgQF1wowOA/cg
+CacheData:             6309 bytes = 701 × 9
+Descriptor stride:     100 bytes
+Descriptor flags:      12
+Descriptor index:      103
+Internal type:         5
+Value offset:          103 × 8 = 0x338
+Validity offset:       (701 × 8) + 103 = 0x164F
+Observed value:        0
+Observed validity:     1
 ```
 
-**Do not use `index=206`, `offset=0x670`, or `presentOffset=0x16B6` for DeviceBrand**. They were an earlier descriptor-boundary error. Both candidate slots happened to contain zero, so a matching numeric read alone was not enough to prove descriptor identity. Knowing the right slot does not provide write authorization, and write access would still not demonstrate face eligibility.
+**The old `0x670` and `0x16B6` offsets are not DeviceBrand offsets.** They resulted from reading the wrong descriptor boundary. Both locations happened to contain zero in the earlier data, which made the mistake easier to miss.
 
-## 7. Why the MobileGestaltHelper XPC requests return error 9
+Getting the record right doesn't grant permission to edit the protected cache. And even if it could be changed, the face-specific checks found in V11 would still need to be understood.
+
+## 7. Why MobileGestaltHelper returned error 9
+
+The short version:
 
 ```text
-Local MGCopyAnswer(DeviceBrand)         -> CFNumber(0)
-Helper getServerAnswerForQuestion(...)   -> { "error": 9 }
+Local MGCopyAnswer(DeviceBrand)       → CFNumber(0)
+MobileGestaltHelper XPC query         → { "error": 9 }
 ```
 
-V8 confirmed that the Helper calls `_MGServerCopyAnswerWithError`; V9 located error-9 paths and server question handling in the **matching watchOS library**. The evaluated descriptors for DeviceBrand, BuildVersion, and ProductType share `flags=0x0C` and are not automatically valid requests for the Helper's server-only path. This explains why the four tested XPC questions could fail even though local MobileGestalt reads work.
+V8 showed that MobileGestaltHelper uses `_MGServerCopyAnswerWithError`. V9 then found error-9 handling and server access checks in the **matching watchOS library**. The local read API and the Helper's server API do not necessarily expose the same questions.
 
-The same code path does **not** grant arbitrary writes or establish that `rebuildCache:` can change DeviceBrand. The latter operation may affect the live cache and was deliberately **not** called. Exact runtime branches were not dynamically traced for every earlier V7 query.
+That is consistent with all four failed Helper queries in V7. It's a strong explanation, but not a claim that I dynamically traced the exact branch for each query.
 
-## 8. Native Hermès 2025 face bundle and device restrictions
+Most importantly, **a successful XPC connection is not writable MobileGestalt access**. Neither the service lookup nor the Helper's existence provides a proven DeviceBrand setter.
 
-The matching OTA contains:
+## 8. The Hermès 2025 face is in the firmware — so what's stopping it?
+
+The OTA contains the following native files and related resources:
 
 ```text
 System/Library/NanoTimeKit/FaceBundles/
@@ -316,173 +312,157 @@ System/Library/NanoTimeKit/FaceBundles/
     NTKHermes2025FaceBundle
     Info.plist
     Assets.car
-    hermes-*.plist (additional OTA resources)
+    hermes-*.plist
 System/Library/PrivateFrameworks/NanoTimeKit.framework/
   nanotimekitd
 System/Library/CoreServices/Carousel.app/Carousel
 Applications/ClockFace.app/ClockFace
 ```
 
-The core question is no longer simply *“Is the bundle present?”* but *“Which checks let this hardware enumerate, load, add, and use the bundle?”* The current static model is:
+From the static work in V10 and V11, the checks appear to involve more than one stage:
 
-```text
-Face selection / catalog
-     ↓
-General NTK face style availability
-     ↓
-Face descriptor and bundle lookup
-     ↓
-Hermes2025Face isRestrictedForDevice:
-     ↓
-Device category / collection type / Fall 2025 capability
-     ↓
-Potential eligibility — NOT YET CONFIRMED ON ULTRA 1
-```
+1. The face has to be available in the catalog.
+2. NanoTimeKit must accept its style and descriptor for this device.
+3. The Hermès bundle runs its own `isRestrictedForDevice:` logic.
+4. Device category, collection type and Fall 2025 face capability may all matter.
+5. Passing those checks still wouldn't, by itself, prove that the face can be added and used normally.
 
-This is a **research synthesis across observed static call sites**, not a fully instrumented end-to-end runtime trace. The identified checks may have further conditions. A native Apple bundle must not be copied into this repository: Apple's binaries and assets are not covered by the upstream MIT code license.
+This is an interpretation of the inspected code, **not** a complete runtime trace on my Ultra. Apple's inclusion of a binary in the OTA doesn't mean every watch shipping that OTA is entitled to use the feature.
 
-## 9. RO23 V12: matching ClockKit evidence
+## 9. What V12 told us about ClockKit
 
-ClockKit adds information that matters when interpreting the V11 Hermès restrictions: a `CLKDevice` contains separate fields for `deviceBrand`, `deviceCategory`, `collectionType`, and `isUltra`. The getter instructions above establish these as distinct properties, **not** a single Boolean predicate.
+Before V12, it was tempting to think of the restriction as a single DeviceBrand switch. ClockKit gave a good reason not to do that.
 
-The examined binary also includes device setup and PDR/NanoRegistry capability querying. It does **not** yet establish the runtime field values for `Watch6,18` or prove how `supportsFall2025FacesCapability` is derived. This is why the RO23 roadmap prioritizes **read-only runtime value verification** over modifying a cache field based on an assumption.
+A `CLKDevice` has separate storage for `deviceBrand`, `deviceCategory`, `collectionType` and `isUltra`. The extracted getters establish that separation. What they don't establish is **where the values originally come from on this Ultra**, or precisely how the Hermès bundle interprets them.
 
-## 10. Results and unresolved limitations
+That's why the next useful experiment is a **read-only measurement of the device's real capability values**, followed by more analysis of `supportsFall2025FacesCapability`. Guessing at cache edits would skip over the unanswered part.
 
-| Investigation | Evidence | Result |
-|---|---|---|
-| MG direct read and compatible backup | Real watch logs | Success |
-| DeviceBrand correction | On-device descriptor analysis + matching library | Index 103 strongly corroborated |
-| Direct protected MG write-open | Real watch log | `EPERM`, no write |
-| Class 7 MCM flags | Real watch logs | No usable token for three configurations |
-| Geod-MCM | Real watch log | Required object not returned |
-| Class 13 token consumption | Real watch logs | Successful token consumption, protected writes still denied |
-| MobileGestaltHelper XPC request/reply | Real watch logs | Replied; error 9 for four questions |
-| Helper's call into MobileGestalt | Matching firmware static analysis | Confirmed |
-| Error-9 source and descriptor access check | Matching firmware static analysis | Code-level explanation, not individual dynamic traces |
-| DeviceBrand provider | Matching library static analysis | `marketing-software-behavior` related |
-| Hermès 2025 native bundle | OTA inventory and extracted binary | Present |
-| General and Hermès-specific availability checks | V10/V11 native binaries | Static checks found |
-| CLKDevice getter fields | V12 ClockKit native binary | Verified |
-| Ultra 1's actual Fall 2025 capability value | Not yet recorded | Unknown |
-| Hermès face activation or long-term use | No success evidence | **Not achieved** |
+## 10. What we know and what we don't
 
-## 11. Source layout and building for research
-
-The user-supplied local archive approximately contains:
-
-```text
-HermesEnabler/
-├── HermesEnabler2.xcodeproj/          # Main research Watch App project
-├── HermesEnabler2/
-│   ├── BQCore.m                       # Upstream mechanisms plus RO23 changes
-│   ├── BQCore.h
-│   ├── ContentView.swift              # Research UI / diagnostic entry points
-│   ├── HermesEnabler2App.swift
-│   ├── HermesEnabler2.entitlements
-│   ├── Gester-LICENSE.txt
-│   └── BQCore.m.before-*              # Private iteration backups; do not publish
-├── HermesEnabler.xcodeproj/           # Older project snapshot
-├── HermesEnabler/                     # Older source tree
-├── README.md
-└── local .git metadata, build/person-specific files, historic backups
-```
-
-For **research development only**: use a Mac with an appropriate Xcode/watchOS SDK, open `HermesEnabler2.xcodeproj`, review every changed source file and configuration, configure **your own** signing team, Bundle ID and App Group, and test against an appropriate paired Apple Watch. The current local snapshot must **not** be compiled as a general 23U95 unlock tool before the unsafe writer is disabled and all automatic diagnostics have been reviewed.
-
-A development signing identity or a normal App Group does **not** grant the Apple-private system-group entitlement or write permissions demonstrated absent in these tests. Upstream IPA installation instructions refer to the upstream project's supported versions and are **not** evidence of RO23 unlock support.
-
-## 12. Public release safety checklist
-
-> [!CAUTION]
-> **Do not upload the supplied `HermesEnabler(1).zip` unchanged.** Direct inspection found an embedded `.git` history, multiple large source backups, personal signing/App Group identifiers, automatic research callbacks, and a wrong-offset forced-write code path. Publishing all of that is neither a clean fork nor a safe release.
-
-- [ ] **Remove or unconditionally disable `BQWriteHermes23U95()` and any UI route calling it.** Merely swapping the old offsets for corrected ones is not a solution. The tested system still blocks writing, and face restrictions are independent.
-- [ ] Review and make RO23 constructor-based diagnostics opt-in, clearly describing which read-only requests are made at launch.
-- [ ] Replace local signing-team, Bundle ID and App Group configuration with your own **non-personal example values** or a setup guide; exclude certificates and provisioning profiles.
-- [ ] Start from a clean source tree or use GitHub **Fork**; never upload the local `.git` directory or claim the upstream code as independently authored.
-- [ ] Exclude historic `_历史备份` and `.before-*` files, `.class7-flag-probe-source-backup`, diagnostic logs, device identifiers, caches/backups, `DerivedData`, and unnecessary duplicates.
-- [ ] Keep the upstream **MIT LICENSE**, including `Copyright (c) 2026 Jinwoo Kim`, and retain all relevant third-party notices such as `Gester-LICENSE.txt`.
-- [ ] Do not redistribute Apple OTA/AEA files, extracted private frameworks, dyld caches, Hermès assets, code signatures, or Apple proprietary binaries as your own MIT-licensed repository assets.
-- [ ] Audit the repository diff for hardcoded paths, personal identifiers, local secrets, and unintended state-changing code; verify a clean Xcode build after the safety work.
-- [ ] Mark GitHub About, README, Issues, and Releases **Research-only / not working on watchOS 26.6.1**. Do not promise a native unlock or release a prebuilt 23U95 IPA without real successful validation.
-
-See also [PUBLICATION_CHECKLIST.md](PUBLICATION_CHECKLIST.md) and [NOTICE.md](NOTICE.md) included with this documentation pack.
-
-## 13. Reproducibility and binary provenance
-
-Evidence is differentiated as follows:
-
-- **On-device observation**: logs from the owner's real Ultra 1 while running the local modified Watch App.
-- **Matching firmware static analysis**: OTA, Helper, `libMobileGestalt`, FaceBundle, NanoTimeKit, ClockKit files verified against the appropriate target/build where available.
-- **Upstream/third-party material**: public projects or different Apple OS/hardware, explicitly **not equivalent to an Ultra 1 test**.
-- **Inference**: interpretation of static control flow and incomplete availability restrictions; not represented as a working bypass.
-
-Key research file hashes:
-
-| Research input | SHA-256 |
+| Area | Status |
 |---|---|
-| Downloaded Full OTA `.aea` | `8c04028c94a26eafc96e2dc50cf5c5296834ca30e0401b90fcf16d24d976c18b` |
+| Read and back up the live MG cache | **Verified on watch** |
+| Correct DeviceBrand descriptor | **Corrected and corroborated** |
+| Open the protected MG cache for writing | **Denied (`EPERM`)** |
+| Class 7 / Geod-MCM alternatives | **Didn't provide usable access** |
+| Obtain a Class 13 extension | **Yes, but no write permission** |
+| Connect to MobileGestaltHelper | **Yes** |
+| Obtain answers for tested Helper questions | **No — `error=9`** |
+| Explain error 9 from matching binaries | **Supported by static analysis** |
+| Find native Hermès 2025 bundle | **Yes** |
+| Locate general and Hermès-specific restrictions | **Yes, statically** |
+| Identify ClockKit device fields | **Yes** |
+| Measure the Ultra's relevant runtime capability values | **Not yet** |
+| Activate and use genuine native Hermès faces | **Not achieved** |
+
+I don't want to blur these categories. **An on-watch observation**, **a finding in a firmware binary**, and **a hypothesis about how the pieces connect** are different types of evidence.
+
+## 11. Opening the project in Xcode
+
+This repository is intended for people who want to **inspect or continue the research**, not people expecting a prebuilt unlock.
+
+You'll need a Mac, a suitable Xcode/watchOS SDK, a paired Apple Watch for any device testing, and your own development-signing setup.
+
+1. Clone or download this repository.
+2. Open `HermesEnabler2.xcodeproj`.
+3. Review the source, entitlements, Bundle ID, App Group and signing settings for your own environment.
+4. Build with your own signing team if your setup supports it.
+5. Use the **explicitly triggered, read-only diagnostics** and inspect logs in the app's Documents directory.
+
+The main areas involved are:
+
+```text
+HermesEnabler2.xcodeproj/
+HermesEnabler2/
+  BQCore.m                  Core functions and research diagnostics
+  BQCore.h                  Exposed interfaces
+  ContentView.swift         Watch UI and diagnostic buttons
+  HermesEnabler2App.swift
+  HermesEnabler2.entitlements
+  Gester-LICENSE.txt
+LICENSE
+NOTICE.md
+README.md
+README.zh-CN.md
+```
+
+An ordinary development certificate or App Group does **not** supply Apple-private system-group permissions. Do not treat old local write experiments, a backup file, or upstream IPA instructions as a working 23U95 activation procedure.
+
+**I haven't confirmed that the public research snapshot builds and runs successfully on a watch as published.** If you build it, please report the exact device/build and what you actually observed.
+
+## 12. Research files and checksums
+
+A lot of the later investigation depended on looking at the **correct firmware binaries**, rather than borrowing assumptions from other OS versions.
+
+These SHA-256 hashes identify the research inputs I worked with:
+
+| Input | SHA-256 |
+|---|---|
+| Downloaded full OTA `.aea` | `8c04028c94a26eafc96e2dc50cf5c5296834ca30e0401b90fcf16d24d976c18b` |
 | `MobileGestaltHelper` (V8) | `0e0c05244a3d35753e948783372f18e615ae2032cf7b750dd7a9cc57cfb3626e` |
 | `libMobileGestalt.dylib` (V9) | `383dfd64b790ba505760bb4af7a08ed2df185cbf6fffca64a13608f9bdcc2baf` |
 | `NanoTimeKit` (V11) | `bf3f7e360fe06ab7e513807bcb3b6ac695f38c6ea8cd8428b7aed579c2b58e1c` |
 | `ClockKit` (V12) | `5fc1784de78830eb83808a5663c87bf2be39bca08453b5d11ddef4dcad56cce0` |
 
-The Full OTA digest describes the investigator's **downloaded file**, not independent verification against a trusted Apple checksum. Tooling included [blacktop/ipsw](https://github.com/blacktop/ipsw), LLVM `llvm-objdump`, Xcode, Mach-O inspection, and local watch logs.
+The OTA hash is the digest of **my downloaded file**, not an independently verified Apple-published checksum. Tools used included [blacktop/ipsw](https://github.com/blacktop/ipsw), LLVM's `llvm-objdump`, Mach-O inspection, Xcode and on-device logs.
 
-All memory addresses, XPC result pointers and call sites are **binary- and build-relative evidence**, not universal instructions for arbitrary devices. No live cache rebuild or successful protected-cache write occurred during V1–V12.
+The addresses quoted throughout this README belong to the **specific binaries examined**. They aren't portable offsets for another watch or firmware.
 
-## 14. Roadmap
+For anyone trying to reproduce a result, please keep the evidence source clear:
 
-- [x] Read and preserve a build-matched 23U95 MG cache backup.
-- [x] Correct the DeviceBrand record boundary and cached slot.
-- [x] Separate MCM Class 13 token acquisition from actual sandbox write permissions.
-- [x] Compare local MobileGestalt answers against Helper XPC responses.
-- [x] Extract and reverse-engineer matching MobileGestaltHelper and libMobileGestalt binaries.
-- [x] Find the Apple-supplied Hermès 2025 FaceBundle and general NanoTimeKit filtering logic.
-- [x] Locate Hermès-specific `isRestrictedForDevice:` code and V12 CLKDevice accessors.
-- [ ] **Safely refactor the public project to disable the erroneous 23U95 writer.**
-- [ ] Locate the complete `supportsFall2025FacesCapability` implementation and dependency graph.
-- [ ] Record, through read-only diagnostics, the watch's actual `deviceCategory`, `collectionType`, and applicable capability values.
-- [ ] Distinguish catalog visibility, bundle eligibility, face addition and full runtime availability.
-- [ ] Maintain an anonymized, reproducible research log and verify a clean Xcode build.
-- [ ] Update activation status **only after a real watch successfully displays and adds genuine Hermès faces**.
+- **Watch log:** something actually happened on the tested Ultra.
+- **Firmware analysis:** a symbol, method, call site or data structure exists in an extracted binary.
+- **External report:** another researcher observed something on another setup.
+- **Inference:** an explanation that still needs a live test.
 
-## 15. License and acknowledgements
+No successful protected-cache write, live cache rebuild, or native face activation was recorded in V1–V12.
 
-### Thank you, Jinwoo Kim (@pookjw)
+## 13. Where I'm going next
 
-Sincere thanks to **[Jinwoo Kim (@pookjw)](https://github.com/pookjw)** for developing and openly sharing **[HermesEnabler / HermesEnabler 2](https://github.com/pookjw/HermesEnabler)**. The upstream project's application structure and system research made the RO23 investigation possible. This derivative is intentionally attributed to the original author and does **not** imply endorsement.
+Here's where the work stands after V12:
 
-### RO23 investigator and experimental modifications
+- [x] Read the matching MobileGestalt cache and keep a verified backup.
+- [x] Correct the DeviceBrand descriptor and offset calculation.
+- [x] Check the Class 7 and Class 13 MCM ideas against actual sandbox permissions.
+- [x] Compare local MobileGestalt results with read-only Helper XPC replies.
+- [x] Inspect the matching MobileGestaltHelper and libMobileGestalt binaries.
+- [x] Find the Hermès 2025 FaceBundle and NanoTimeKit availability checks.
+- [x] Locate the Hermès-specific restriction and the relevant ClockKit getters.
+- [x] Remove the old forced-write path from the public research source and make RO23 diagnostics opt-in.
+- [ ] Find where `supportsFall2025FacesCapability` is implemented and how its value is determined.
+- [ ] Read the Ultra 1's real `deviceCategory`, `collectionType` and related capability values without modifying the system.
+- [ ] Separate **seeing a face in the catalog**, **passing bundle checks**, **adding it**, and **actually using it**.
+- [ ] Confirm a clean Xcode build and on-watch run of the published research version.
+- [ ] Only change the unlock status after a genuine Hermès face has been demonstrated working on this watch.
 
-**[@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)** carried out the on-watch tests, Xcode experiments, local source iterations, firmware acquisition and ongoing reporting in [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17). AI-assisted suggestions and technical writing supported this work. The on-device results were generated on the owner's hardware, not on a simulated Apple Watch.
+I'll update the notes when there is another **measured result**, rather than turning each theory into a new success announcement.
 
-### Third-party and community contributors
+## 14. Credits and license
 
-- [Gester](https://github.com/sasobhabha/Gester) and its original contributors; upstream includes code from this project, so preserve `Gester-LICENSE.txt`.
-- [forcequitOS/worse_query](https://github.com/forcequitOS/worse_query), [bad_query](https://github.com/forcequitOS/bad_query), and [0xjohnnydev/Geod-MCM-PoC](https://github.com/0xjohnnydev/Geod-MCM-PoC): public MCM research background, **not confirmed successful routes on this watch**.
-- [PoomSmart/MGKeys](https://github.com/PoomSmart/MGKeys): mapping of obfuscated MobileGestalt keys.
-- [blacktop/ipsw](https://github.com/blacktop/ipsw): OTA, dyld and Mach-O tooling.
-- [EthanArbuckle's iOS 26.1 reverse engineering](https://github.com/EthanArbuckle/iPhone18-3_26.1_23B85_Restore): useful preliminary Helper/XPC background; the matching watchOS binaries were independently examined before drawing watch-specific conclusions.
-- Other researchers in [HermesEnabler Issue #7](https://github.com/pookjw/HermesEnabler/issues/7), especially the independently reported Series 8 / `23U95` findings. Their device observations are **not** presented as Ultra 1 observations.
+First, thank you to **[Jinwoo Kim (@pookjw)](https://github.com/pookjw)** for writing and open-sourcing [HermesEnabler](https://github.com/pookjw/HermesEnabler). RO23 exists because that original project exists. The core application and the original engineering belong to him.
 
-**License:** The original HermesEnabler project is **MIT licensed** and includes `Copyright (c) 2026 Jinwoo Kim`. Preserve the original copyright and permission notice in all derivative copies or substantial portions. This documentation pack provides an unmodified copy of the upstream `LICENSE` and a separate `NOTICE.md` describing the RO23 contributions. Rights to Apple's firmware and proprietary FaceBundles and to Hermès trademarks are **not** granted by that MIT license.
+My contribution as **[@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)** is the Ultra 1 / 23U95 experimental work, local modifications, logs, firmware inspection and RO23 write-ups. The discussion began in [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17).
 
-## 16. Research links and disclaimer
+Other projects and researchers that helped inform the investigation include [Gester](https://github.com/sasobhabha/Gester), [forcequitOS/worse_query](https://github.com/forcequitOS/worse_query), [forcequitOS/bad_query](https://github.com/forcequitOS/bad_query), [Geod-MCM-PoC](https://github.com/0xjohnnydev/Geod-MCM-PoC), [PoomSmart/MGKeys](https://github.com/PoomSmart/MGKeys), [blacktop/ipsw](https://github.com/blacktop/ipsw), [EthanArbuckle's iOS 26.1 research](https://github.com/EthanArbuckle/iPhone18-3_26.1_23B85_Restore), and the contributors to [upstream Issue #7](https://github.com/pookjw/HermesEnabler/issues/7). Their findings provided context; I don't present tests on other devices as tests on mine.
 
-**Main documented research:** [HermesEnabler Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
+The original HermesEnabler code is released under the **MIT License**, with **Copyright (c) 2026 Jinwoo Kim**. The original copyright and license notices remain in [LICENSE](LICENSE); see [NOTICE.md](NOTICE.md) for more about this derivative. Retain applicable third-party notices, including `Gester-LICENSE.txt`, when redistributing their code.
 
-- [Early on-watch findings and V1–V4 corrections](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913)
-- [V5–V7 Mach and XPC read-only tests](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777128180)
-- [Historical iOS 26.1 error-9 investigation](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777139375)
-- [V8 matching firmware and Helper analysis](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777949079)
-- [V9 matching libMobileGestalt analysis](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778385658)
+That MIT license does **not** cover Apple's extracted firmware, private frameworks, watch-face assets, or Hermès trademarks. Those binaries and assets are not included as redistributable project resources.
 
-V10–V12 are summarized from the locally supplied firmware binaries and research session; they are **not described as already posted Issue #17 comments**.
+## 15. Useful links and a final note
 
-This is an independent educational/research project. Use of private APIs and system modifications can cause crashes, data loss, broken installations, unsupported behavior, or service complications. **The supplied experimental build has never been shown to unlock genuine native Hermès watch faces on watchOS 26.6.1.** Do not execute unsafe legacy write paths or rebuild the live MobileGestalt cache. Public examples and logs should be anonymized before posting.
+The main public discussion is **[HermesEnabler Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)**. Relevant parts of the trail:
+
+- [First watch tests and V1–V4 corrections](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913)
+- [V5–V7: Mach service and read-only XPC tests](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777128180)
+- [Earlier iOS 26.1 error-9 background](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777139375)
+- [V8: matching firmware and MobileGestaltHelper](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777949079)
+- [V9: matching libMobileGestalt](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778385658)
+
+V10–V12 are summarized here from the local firmware analysis. I'm **not** claiming those sections were already published as separate Issue #17 comments.
+
+Finally, please be careful with experimental system code. Incorrect assumptions about private APIs, entitlements or protected caches can cause crashes and other problems. **There is currently no verified Hermès face unlock on the tested Ultra 1 / watchOS 26.6.1 setup.** That's the starting point for the next round of research, not something I want to hide behind a download button.
 
 ---
 
-*Original project: HermesEnabler by Jinwoo Kim (@pookjw). RO23 experimental research: @ZhuoXuan-MY, with AI-assisted diagnostics and documentation. Not affiliated with or endorsed by Apple, Hermès, or the upstream author.*
+*Original project by Jinwoo Kim (@pookjw). RO23 research by @ZhuoXuan-MY. Independent project; not affiliated with Apple, Hermès or the upstream maintainer.*

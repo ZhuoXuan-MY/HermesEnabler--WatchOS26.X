@@ -1,5 +1,3 @@
-# HermesEnabler--WatchOS26.X
-Unofficial HermesEnabler-derived research fork for Apple Watch Ultra 1, watchOS 26.6.1, MobileGestalt and native Hermès watch face compatibility.
 # HermesEnabler RO23 — Apple Watch Ultra 1 / watchOS 26.6.1 Research Fork
 
 **English** · [简体中文 (complete Chinese documentation)](README.zh-CN.md) · [Original HermesEnabler project](https://github.com/pookjw/HermesEnabler) · [Research Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
@@ -9,7 +7,9 @@ Unofficial HermesEnabler-derived research fork for Apple Watch Ultra 1, watchOS 
 >
 > This is an **unofficial, experimental derivative** of **[HermesEnabler / HermesEnabler 2](https://github.com/pookjw/HermesEnabler)**, originally developed by **Jinwoo Kim ([@pookjw](https://github.com/pookjw))**. The RO23 branch documents independently performed on-device experiments and offline firmware analysis by **[@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)**, with AI-assisted diagnostic code and technical reporting. On the tested Apple Watch Ultra (first generation), **the protected MobileGestalt cache was not modified and genuine Hermès watch faces were not unlocked**.
 >
-> **Critical source warning (identified November 11, 2026):** The supplied local modified archive contains a historical `BQWriteHermes23U95()` path in `HermesEnabler2/BQCore.m` that still hard-codes the **incorrect** `0x670`/`0x16B6` cache offsets. The corrected DeviceBrand offsets are `0x338`/`0x164F`. The old values refer to **another descriptor**. **Do not operate, enable, or publish that forced-write path as a working function. Disable/remove it before any public source release; do not distribute a ready-to-install IPA from this unreviewed snapshot.** Replacing the offsets alone does not solve the sandbox or face-availability restrictions.
+> **Historical warning (original local archive, identified November 11, 2026):** The supplied original modified archive contained a historical `BQWriteHermes23U95()` path in `HermesEnabler2/BQCore.m` that still hard-codes the **incorrect** `0x670`/`0x16B6` cache offsets. The corrected DeviceBrand offsets are `0x338`/`0x164F`. The old values refer to **another descriptor**. **That forced-write path is not present in the sanitized source accompanying this README; never reintroduce it as a working function or distribute an unverified IPA.** Replacing the offsets alone does not solve the sandbox or face-availability restrictions.
+
+> **Public-source snapshot (11 November 2026):** The repository package accompanying this README is a **sanitized, system-cache-write-disabled research build**. The historical `BQWriteHermes23U95()` implementation, including its incorrect `0x670` offset, has been **removed from the distributed code**, and `BQSaveGestalt`, restore, and enable operations are blocked. Auto-running RO23 diagnostics were replaced by an opt-in button. The detailed sections below retain descriptions of the **original uploaded experimental snapshot** as research history. The app has **not been compiled or run on an Apple Watch from this package**; building requires your own signing settings.
 
 ## Contents
 

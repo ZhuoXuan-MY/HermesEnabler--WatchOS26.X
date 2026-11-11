@@ -1,4 +1,4 @@
-# RO23 V25 — Definitive Poodle capability selector and ClockKit return
+# HermesEnabler · watchOS 26.x — V25 — Definitive Poodle capability selector and ClockKit return
 
 **Date:** 2026-11-11 · **Target:** Watch6,18 / watchOS 26.6.1 / 23U95  
 **Finding:** The previously unresolved Poodle call at **0x469C0** is exactly the Objective-C selector **\`supportsPDRCapability:\`**. The matching ClockKit implementation **always returns true**. The complete Poodle restriction method therefore evaluates **restricted=true** for my observed Ultra 1 values. This is **verified offline evidence**, not an observed live call or native Hermès unlock.

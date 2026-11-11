@@ -1,4 +1,4 @@
-# RO23 V22 — On-device Poodle eligibility checkpoint (read-only)
+# HermesEnabler · watchOS 26.x — V22 — On-device Poodle eligibility checkpoint (read-only)
 
 **Date:** 2026-11-11 · **Target:** Apple Watch Ultra 1 / Watch6,18 / watchOS 26.6.1 (23U95)
 

@@ -64,3 +64,8 @@ Verified FaceRead's actual .watchface JSON parser and Apple's public import erro
 ## RO23 V20.1 — real Hermès Circulaire archive decoded (2026-11-11)
 
 The owner already uploaded the authentic 249,760-byte `Hermès Circulaire(1).watchface`. Direct ZIP/CRC and JSON checks passed (SHA-256 `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`). Actual identifiers are **`bundle id=com.apple.NTKPoodleFaceBundle`, `analytics id=poodle`, `face type=bundle`, `forMigration=false`**. The Poodle gate studied in V16 depends in part on collectionType 5 or the hardware-specific face flag, while the owner's watch reports 9/false. Filza viewer decompression error did not indicate corruption of this verified copy. **No face installation or unlock**. Private complication JSON was not published. [V20.1 report](RO23-V20-Watchface-Archive-Import.md).
+
+
+## RO23 V21 — Poodle-specific restrictions with actual Circulaire target (2026-11-11)
+
+Cross-referenced the real `NTKPoodleFaceBundle` face.json against the owner's original V14 Zeus firmware research and V16 disassembly. **Poodle's earlier known category-1 exclusion must not be conflated with Hermes2025's separate {2,3,5} whitelist**; the owner has category 4, which does not hit the single known Poodle category-1 test. But given collectionType=9 and NTKShowHardwareSpecificFaces=false, the previously disassembled Poodle fallback evaluates restricted **if that branch is reached**. Added a SHA-256-gated, read-only offline Poodle disassembly script to inspect the still-unknown early path from the already-extracted 23U95 binary. No new watch install or unlock. [V21 details](RO23-V21-Poodle-Gate-Mapping.md).

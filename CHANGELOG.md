@@ -114,3 +114,10 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Verified original 249,760-byte watchface has valid ZIP central directory, 7 entries, all CRC passes, and readable JSON.
 - Confirmed actual legacy bundle com.apple.NTKPoodleFaceBundle, analytics id poodle, face type bundle, forMigration=false. Do not conflate face.json migration flag with the NanoTimeKit method argument.
 - Compared with V16 Poodle static conditions and actual Ultra1 collectionType=9/hardware-face predicate=false. No native face installation or unlock. Kept personalized manifest data out of public GitHub.
+
+
+### RO23 V21 — Poodle-specific firmware decision path (2026-11-11)
+- Joined validated owner's Hermès Circulaire bundle ID to Poodle's secondary FaceBundle registration in 23U95 NTKZeusFaceBundle.
+- Distinguished Poodle's documented category=1 exclusion from Hermes2025's different {2,3,5} whitelist; do not claim category=4 alone rejects Poodle.
+- Evaluated the known conditional Poodle fallback with real Ultra values: collectionType=9, NTKShowHardwareSpecificFaces=false -> restricted on that reached branch; earlier branches unresolved.
+- Added optional read-only offline, SHA-256-verified llvm-objdump script for Poodle's full function prologue. No watch-side code changes or unlock.

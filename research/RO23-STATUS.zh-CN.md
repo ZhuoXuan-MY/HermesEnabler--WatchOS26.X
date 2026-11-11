@@ -82,3 +82,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V20.1：已直接解析用户上传的原始 Hermès 表盘（2026-11-11）
 
 用户此前已成功上传 `Hermès Circulaire(1).watchface`，无需重复分享。直接 ZIP、全部 CRC 和 JSON 校验通过，文件 249,760 字节，SHA-256：`d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`。**真实 Bundle ID 是 `com.apple.NTKPoodleFaceBundle`，Analytics ID 是 `poodle`，Face Type 是 `bundle`，`forMigration=false`。** 文件不是 Hermes2025 Bundle，Filza 的无法解压不能作为文件损坏证明。结合原版 Zeus Poodle 限制分支和实机 `collectionType=9`、`NTKShowHardwareSpecificFaces=false`，该档案仍没有可验证的正常添加路径。没有改写系统或解锁表盘；公开仓库不存放原始文件、私人复杂功能或照片。详见 [V20.1](RO23-V20-Watchface-Archive-Import.md)。
+
+
+## RO23 V21：针对真实 Hermès Circulaire / Poodle 的独立限制分支（2026-11-11）
+
+对照用户已上传的原始表盘（`com.apple.NTKPoodleFaceBundle`）、V14 Zeus 原生固件研究及 V16 反汇编，确认 **Poodle 是 `NTKZeusFaceBundle` 共享可执行文件内的表盘类及次级标识**，不能直接沿用 Hermes2025 的 `{2,3,5}` 类别白名单。Poodle 已知的早期类别排除是类别 `1`，而 Ultra 1 为 `4`，所以不能认定类别 4 是此表盘的直接阻断条件。真正已证明的后续分支：如果执行到 `collectionType != 5` 判断，实机 `collectionType=9` 且 `NTKShowHardwareSpecificFaces=false`，该分支会计算 Restricted=true；前置完整路径仍待进一步反汇编。新增只读离线脚本 `scripts/ro23-v21-poodle-disasm.sh`，对已有固件执行 SHA-256 匹配后只打印 Poodle 相关指令，不改变手表、手机或 Xcode。**尚未解锁**。见 [V21 报告](RO23-V21-Poodle-Gate-Mapping.md)。

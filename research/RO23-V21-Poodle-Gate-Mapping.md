@@ -90,3 +90,19 @@ The script refuses an incorrect SHA-256. LLVM officially documents `--start-addr
 - **Avoid:** changing `HandFactoryCachedBuild`, `UltraFaceWasAddedToLibrary`, iPhone serial-number replicas or protected MG caches; none has demonstrated an effect on the Poodle check.
 
 **No new watch buttons. No new cloned Xcode directory. No protected or live system files were modified.**
+
+
+## V23 — Apple otool fallback for missing llvm-objdump (owner Mac log, 2026-11-11)
+
+The owner ran the V21 helper against the existing extracted **23U95 NTKZeusFaceBundle**. It **found the binary** and verified SHA-256:
+\`2b34d3d411b77ee73f3892638f419eda83b7bedc4653ecf44adf7c975bbd72e4\`.
+It then stopped with \`ERROR: llvm-objdump not found\`. Therefore **no Poodle disassembly output was obtained in that attempt**; this was a **missing local tool**, not a failed firmware match or a new watchOS security restriction.
+
+The existing **same-path** \`scripts/ro23-v21-poodle-disasm.sh\` has now been upgraded to auto-detect \`llvm-objdump\` in PATH/Homebrew/Xcode, and otherwise use Apple's \`otool -arch arm64_32 -tvV\` with a Perl line filter for instruction addresses \`0x13B4 <= PC < 0x1470\`. This requires no Homebrew LLVM installation and uses the user's already installed Xcode tools when accessible.
+
+**No binary modifications, watch code changes, system writes or new projects.** The new fallback is a code change reviewed in GitHub, **not yet executed on the user's Mac**.
+
+To rerun without resetting the local project, pipe the current GitHub script to \`bash -s -- "$BIN"\` as already done. Once the full function body is printed, interpret the *actual early branch targets* rather than claiming in advance that a path will unlock a face.
+
+Apple explains \`otool -tV\` disassembly in WWDC21's "Symbolication: Beyond the basics":
+https://developer.apple.com/videos/play/wwdc2021/10211/

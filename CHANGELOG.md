@@ -139,3 +139,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Owner-provided live output: 23U95, category=4, collectionType=9, NTKInternalBuild=false, NTKShowHardwareSpecificFaces=false.
 - Poodle category==1 check does not match; known later fallback evaluates restricted if reached; dynamic NTKPoodleFace class was unregistered in diagnostic process so actual restriction return remains unavailable.
 - Recorded literal observed log without guessing. No new executable code, system writes, face activation, or installer modification. Next meaningful step: complete early Poodle disassembly in already-extracted 23U95 Zeus binary.
+
+
+### RO23 V23 — no-LLVM Mac fallback for Zeus/Poodle disassembly (2026-11-11)
+- Verified from owner's run that the already-extracted NTKZeusFaceBundle SHA-256 matched; analysis halted only because llvm-objdump was unavailable.
+- Updated the same V21 script to auto-detect llvm-objdump including Xcode, otherwise fall back to Xcode otool (arm64_32, -tvV) filtered to the Poodle instruction address interval.
+- No installations, source cloning, watch firmware modifications, or new diagnostic buttons. Await actual V23 disassembly output.

@@ -1,10 +1,10 @@
 # RO23 V15 — Validated device diagnostics and NanoTimeKit hardware-face gate (23U95)
 
-> **Status: NOT UNLOCKED.** This is an offline static analysis and a report of the device owner's read-only diagnostics, not a native face installation. Original HermesEnabler 2 © Jinwoo Kim (@pookjw); research logs supplied by @ZhuoXuan-MY.
+> **Status: NOT UNLOCKED.** This is an offline static analysis and a report of my read-only diagnostics, not a native face installation. Original HermesEnabler 2 © Jinwoo Kim (@pookjw); research logs supplied by @ZhuoXuan-MY.
 
 ## 1. Device owner evidence (2026-11-11)
 
-First-generation Apple Watch Ultra, `Watch6,18` / `n199ap`, watchOS 26.6.1, build `23U95`. The owner compiled/ran the RO23 merged Xcode watch project and obtained all three reports. The tool did not directly operate the watch.
+First-generation Apple Watch Ultra, `Watch6,18` / `n199ap`, watchOS 26.6.1, build `23U95`. I compiled/ran the RO23 merged Xcode watch project and obtained all three reports. The tool did not directly operate the watch.
 
 | Field | Actual log |
 |---|---|
@@ -51,14 +51,14 @@ Relevant disassembly:
 
 The function also has a cached setting / notification path. Its embedded CFString at VM `0x74A86FFC` points to the key `ShowHardwareSpecificFaces`. The CFString at `0x74A86FAC` points to the notification `NTKShowHardwareSpecificFacesChangedNotification`. An analogous `_NTKShowInternalWidgets` function invokes the same unresolved preliminary external routine, suggesting a shared internal-feature precondition but **not proving its exact identity**.
 
-**Conclusion:** a configuration key exists, but its presence does not prove that ordinary watchOS devices can use it to enable faces. The preliminary gate may reject the operation before the setting is evaluated, and the owner's actual `NTKShowHardwareSpecificFaces=false` confirms the final result only, not which subcondition failed.
+**Conclusion:** a configuration key exists, but its presence does not prove that ordinary watchOS devices can use it to enable faces. The preliminary gate may reject the operation before the setting is evaluated, and my actual `NTKShowHardwareSpecificFaces=false` confirms the final result only, not which subcondition failed.
 
 Do not write the setting speculatively, modify MobileGestalt, or call `MGRebuildCache` on the live watch to test this. This investigation does not supply any verified privilege escalation, system write method, or native Hermès unlock.
 
 ## 3. What changed in the RO23 project?
 
 - Fixed Objective-C `Boolean` name conflict (`RO23ReadBool`) and removed placeholder App Group entitlement from the **read-only** signing profile (commit `ebc7693`).
-- The user has now successfully run the combined V13, V14.1, and MG cache diagnostics on the watch. This resolves the previous "not compiled" uncertainty for this set of source changes, but does not verify other targets or other watches.
+- I have now successfully run the combined V13, V14.1, and MG cache diagnostics on the watch. This resolves the previous "not compiled" uncertainty for this set of source changes, but does not verify other targets or other watches.
 - No new on-watch test is justified by the current disassembly; the next step would be resolving the unidentified external shared-cache function and mapping the supported face-installation surface, without unverified writes.
 
 Original: https://github.com/pookjw/HermesEnabler

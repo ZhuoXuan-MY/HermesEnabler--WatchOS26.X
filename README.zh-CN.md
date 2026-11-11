@@ -41,6 +41,17 @@
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
 
+## V28｜强制修改的真实可行性结论（仅源码审核，没有操作手表）
+
+用户明确要求**强制修改**以真正启动原生 Hermès 表盘，要求停止无关的静态函数跟踪。本轮直接审核现有 [`BQCore.m`](HermesEnabler2/BQCore.m)，没有执行或交付任何被描述为“成功解锁”的虚假开关。
+
+- `BQEnableHermes` 实际只调用 `BQSetHermesEnabled(YES,...)`。后者查找 `kDeviceBrandLayouts` 里的**精确固件版本**，当前只有 `24S5284h`、`24R359`、`24R364`、`24R365`、`24S118`、`24S132`；**不包含 `23U95`**。所以强行解除 UI 屏蔽仍不会使此原有写入流程支持 watchOS 26.6.1。
+- `BQSaveGestalt` 实际经 `BQEscape(kMGCaches,...)` 找到缓存，再使用 `bq_write_data` 的 `open(O_RDWR|O_CLOEXEC|O_NOFOLLOW)` / 临时文件 `rename` 写入。设备所有者此前针对受保护系统缓存的真实测试返回 **`EPERM`**。已有只读查询/沙箱令牌不能替代写入权。
+- V27.2 在真实固件中确认的 `_CLKIsFaceSnapshotService` 是**快照服务**例外，不是普通手表安装 Hermès 表盘的授权途径。Poodle 的正常限制仍未通过。
+- 公开的 [watchOS 26.x 越狱兼容列表](https://theapplewiki.com/wiki/Jailbreak/26.x) 在本次核查时没有列出支持 watchOS 26.6.1 / Ultra 1 的公开工具；**没有公开工具不等于数学意义上的不可能，但绝不能把未经验证的漏洞当作可用权限**。
+
+**决定：** 不再生成重复的 V27.x 反汇编任务；**不向 `main` 提交只会导致拒绝写入或可能损坏设备的所谓强制解锁代码**。真正的验收是：系统状态可写且读回核验成功 → 系统正常识别原生表盘 → 真实 Ultra 1 表盘成功显示并持久化。当前**三项均未达成，NOT UNLOCKED**。如有可复现且与 `Watch6,18/23U95` 完全匹配的权限来源，才能重新评估实装；没有则应明确告知阻塞，而非以新脚本代替解决方案。
+
 ## V27.2 真实结果与 V27.3 下一步（2026-11-11）
 
 **你已经执行的操作：** 从 GitHub 研究分支获取 `scripts/ro23-v27-2-branch-targets.sh`，在 Mac 上对原有 `Watch6,18/23U95` ARM64_32 共享缓存做静态检查；结果为 **`Completed: 0 command(s) failed`**。这是 **8 个离线 ipsw 查询成功**，不是手表上的 Hermès 表盘启动成功。

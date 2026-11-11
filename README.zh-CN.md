@@ -1,6 +1,6 @@
 # RO23 开发日志｜Apple Watch Ultra 1 · 23U95
 
-**研究进度截至：2026-11-11 22:13（北京时间，UTC+08:00）**  
+**研究进度截至：2026-11-11 22:25（北京时间，UTC+08:00）**  
 **研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
 **当前结果：原生 Hermès 表盘尚未解锁。**
 
@@ -10,6 +10,7 @@
 
 | 时间（北京时间） | 版本 | 具体做了什么 | GitHub 提交 |
 |---|---|---|---|
+| **22:25** | **V28 强制修改可行性（源码实审）** | 按“强行修改”的要求直接审查 `BQCore.m`，确认 `BQSetHermesEnabled` 的固件白名单**不含 23U95**，而此前真实 `BQSaveGestalt` 受保护写入因 `EPERM` 被系统拒绝。删除 App 版本检查不能获得写权限；决定停用 V27.3 的无效离线任务，未向手表写入，未创建假解锁开关。验收只看真实系统写入、普通原生表盘添加和手表显示。 | [`ddcdd1e`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/ddcdd1e1b51b4cfc0a10454b41a2d4f325933eca) |
 | **22:13** | **V27.2 真实 ClockKit 函数解析成功** | 你在 Mac 对真实 Watch6,18 / 23U95 dyld 缓存运行 V27.2，8 项查询均成功。确认 `0x55CE73DC → 0x49C76990 = _CLKIsFaceSnapshotService`，以及 `0x55CE731C → 0x49C2ED64 = _CLKInternalBuild`；两者都在 ClockKit。前者是表盘快照服务谓词，**不能视为普通设备的 Hermès 解锁授权**。按真实函数边界纠正 48 条指令越界误读。未安装/启动表盘。 | [`819bd60`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/819bd6038171e54e870904a0e8b1d5d49efa6a6c) |
 | **22:12** | **V27.3 快照服务及表盘添加检查脚本** | 在现有 [PR #1](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/pull/1) 分支新增只读分析：追踪 `_CLKIsFaceSnapshotService` 初始化调用 `0x49C99CFC`，并分别检查 `_NTKCanAddWatchFace` 的配置、可用性、受限表盘判断。**脚本尚未在你的 Mac 上运行**，无任何设备写入。 | [`e30ff95`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e30ff957822f5a1fd6bbef351533d4ac1cf622cd) |
 | **22:05** | **V27.2 真实函数入口追踪脚本** | 根据你实际提供的 23U95 Stub Island 反汇编，新加离线只读脚本，直接检查 `0x49C76990`、`0x49C2ED64` 的所属映像、函数、偏移与前 48 条指令；脚本已提交，**尚未在你的 Mac 上运行**。原生表盘未解锁。 | [`178dfc2`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/178dfc222a70a2fd1eb75a0297dd6e68665449cf) |
@@ -66,7 +67,7 @@
 - V27.2 的 `--count 48` 把紧邻的其他函数也输出了，**从 `0x49C769C0` 和 `0x49C2ED94` 起的代码不属于上述两个函数**。
 - Snapshot Service 的例外不证明普通表盘添加流程已获授权；此前 Poodle 常规限制及 `_NTKCanAddWatchFace` 的其他验证仍有效。
 
-**已准备的下一次操作（V27.3，目前尚未执行）：** 以下命令读取现有固件，不会安装 IPA、更改签名、运行越狱或修改 Watch/iPhone 系统文件。运行产生的日志保存在桌面。
+**历史命令（V27.3，已按 V28 决定停止；不要再执行）：** 以下命令读取现有固件，不会安装 IPA、更改签名、运行越狱或修改 Watch/iPhone 系统文件。运行产生的日志保存在桌面。
 
 ```bash
 set -o pipefail

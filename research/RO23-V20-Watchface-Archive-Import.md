@@ -5,7 +5,7 @@
 
 ## Verified archive and API behavior
 
-The user's earlier Filza screenshots showed ~250 KB files named `Hermès Circulaire.watchface` (plus numbered copies) under iPhone `Watch [com.apple.Bridge] → Documents → Inbox` and ordinary `Modular Ultra.watchface` under the app's temporary `com.apple.watchface` directory. These are **filenames and size observations only**; a filename alone cannot prove a file represents an actual supported Hermès FaceBundle.
+my earlier Filza screenshots showed ~250 KB files named `Hermès Circulaire.watchface` (plus numbered copies) under iPhone `Watch [com.apple.Bridge] → Documents → Inbox` and ordinary `Modular Ultra.watchface` under the app's temporary `com.apple.watchface` directory. These are **filenames and size observations only**; a filename alone cannot prove a file represents an actual supported Hermès FaceBundle.
 
 Third-party open-source `forcequitOS/FaceRead` (`script.js`) reads .watchface as a ZIP archive and parses:
 - `face.json`: `bundle id`, `analytics id`, `face type`, and optional `customization`.
@@ -17,7 +17,7 @@ Code: https://github.com/forcequitOS/FaceRead/blob/main/script.js
 Apple describes the .watchface file as including face configuration, styles, color, pictures and complication information:
 https://developer.apple.com/documentation/clockkit/sharing-an-apple-watch-face
 
-**Limits:** The exact files from the owner's Filza are not yet available to the researcher. We have not validated their JSON schemas or authenticity. The `face type` JSON field is **not automatically equivalent** to the internal NanoTimeKit `NTKFaceStyle` integer such as `0x2C`; an explicit mapping is required before joining them to the V17 path.
+**Limits:** The exact files from my Filza are not yet available to the researcher. I have not validated their JSON schemas or authenticity. The `face type` JSON field is **not automatically equivalent** to the internal NanoTimeKit `NTKFaceStyle` integer such as `0x2C`; an explicit mapping is required before joining them to the V17 path.
 
 ## How file descriptors meet the V17 system checks
 
@@ -45,7 +45,7 @@ _NTKCanAddWatchFace (configuration + descriptor availability + category restrict
 Only if all relevant conditions pass: eligible native face
 ```
 
-The above is a **conceptual correlation**, not an observed one-to-one synchronous iPhone-to-watch call trace. The Watch's 23U95 eligibility branches were statically analyzed in V17. User's V13/V14/V16 logs independently confirm: `deviceCategory=4`, `collectionType=9`, `deviceBrand=0`, `NTKInternalBuild=false`. The Hermès2025 face category whitelist `{2,3,5}` excludes category 4. This remains a major independent incompatibility.
+The above is a **conceptual correlation**, not an observed one-to-one synchronous iPhone-to-watch call trace. The Watch's 23U95 eligibility branches were statically analyzed in V17. my V13/V14/V16 logs independently confirm: `deviceCategory=4`, `collectionType=9`, `deviceBrand=0`, `NTKInternalBuild=false`. The Hermès2025 face category whitelist `{2,3,5}` excludes category 4. This remains a major independent incompatibility.
 
 ## Distinguish file-format failure from hardware eligibility
 
@@ -60,13 +60,13 @@ https://developer.apple.com/documentation/clockkit/clkwatchfacelibrary/errorcode
 
 A `faceNotAvailable` result would support **incompatibility at the public import layer**, but would NOT prove exactly which private branch rejected the face. An `invalidFile` cannot by itself prove device-category rejection. Apple expressly limits Hermès face additions to Hermès hardware. https://developer.apple.com/documentation/clockkit/clkwatchfacelibrary/addwatchface(at:completionhandler:)
 
-We do **not** need to modify, repackage or re-sign the .watchface to read its JSON metadata. In fact, repackaging can break a file and confound testing.
+I do **not** need to modify, repackage or re-sign the .watchface to read its JSON metadata. In fact, repackaging can break a file and confound testing.
 
 ## New repository script — safe local offline analyzer
 
 `scripts/ro23-inspect-watchface.py` (Python 3 standard library, no third-party packages) accepts one or more files, shows their SHA-256, ZIP presence, safe top-level JSON key names, `bundle id`, `analytics id`, `face type`, and an optional complication *count*. It does NOT extract photos, print personal complication data, alter archives, send network requests, install faces or touch the watch.
 
-It limits JSON reads to 2 MiB and archive entries to 1024 to avoid accidental memory blowups. File hashes let the owner distinguish numbered duplicates with same-size names.
+It limits JSON reads to 2 MiB and archive entries to 1024 to avoid accidental memory blowups. File hashes let me distinguish numbered duplicates with same-size names.
 
 Example **only after copying two existing files to Mac via AirDrop/Files**:
 
@@ -77,7 +77,7 @@ python3 scripts/ro23-inspect-watchface.py \
   "$HOME/Downloads/Modular Ultra.watchface"
 ```
 
-If those paths don't match the actual files, drag the real files onto Terminal; don't create duplicate clones or copy into source. Filza source archives and iPhone app paths need not be altered. The user can alternatively upload a **single authentic .watchface** to the chat for direct offline analysis. Treat face files as potentially containing personal photos and complication/userInfo; explicitly check privacy before sharing.
+If those paths don't match the actual files, drag the real files onto Terminal; don't create duplicate clones or copy into source. Filza source archives and iPhone app paths need not be altered. I can alternatively upload a **single authentic .watchface** to the chat for direct offline analysis. Treat face files as potentially containing personal photos and complication/userInfo; explicitly check privacy before sharing.
 
 ## What to do next based on real evidence
 
@@ -93,7 +93,7 @@ If those paths don't match the actual files, drag the real files onto Terminal; 
 
 ## V20.1 — Real Hermès Circulaire archive successfully parsed (2026-11-11)
 
-**Original user-supplied attachment read directly**: `Hermès Circulaire(1).watchface` (Unicode filename normalized only in display; underlying bytes untouched). The owner had already uploaded this file in chat. Earlier requests for the owner to export/share it again were unnecessary.
+**Original user-supplied attachment read directly**: `Hermès Circulaire(1).watchface` (Unicode filename normalized only in display; underlying bytes untouched). I had already uploaded this file in chat. Earlier requests for me to export/share it again were unnecessary.
 
 - **Actual size:** 249,760 bytes.
 - **SHA-256:** `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`
@@ -118,14 +118,14 @@ If those paths don't match the actual files, drag the real files onto Terminal; 
 
 ### What this proves and does NOT prove
 
-1. The user's actual **Hermès Circulaire** archive names the *legacy Poodle* bundle `com.apple.NTKPoodleFaceBundle`, not the separate Hermes2025 face bundle. The display label and the native bundle name are not interchangeable.
-2. **Filza's “Could not decompress this file” was a viewer failure for this intact uploaded copy**, not proof the ZIP was damaged. We have not identified the exact cause inside Filza's viewer.
+1. my actual **Hermès Circulaire** archive names the *legacy Poodle* bundle `com.apple.NTKPoodleFaceBundle`, not the separate Hermes2025 face bundle. The display label and the native bundle name are not interchangeable.
+2. **Filza's “Could not decompress this file” was a viewer failure for this intact uploaded copy**, not proof the ZIP was damaged. I have not identified the exact cause inside Filza's viewer.
 3. The `forMigration: false` JSON property is a file field; **do not assume** it is passed unchanged to the separate Objective-C `faceBundleForBundleIdentifier:onDevice:forMigration:` parameter. The import pipeline hasn't been dynamically traced.
-4. The 23U95 Zeus Poodle restriction analysis recorded in V16 includes a later `collectionType == 5` acceptance branch or a fallback `NTKShowHardwareSpecificFaces()` condition, conditional on earlier category tests. On the owner's real Ultra 1, `collectionType=9` and `NTKShowHardwareSpecificFaces=false`, so the *observed properties fail those previously mapped Poodle conditions*. This is a static-plus-real-property conclusion, not a captured real face-install attempt. Independent restrictions may also apply.
+4. The 23U95 Zeus Poodle restriction analysis recorded in V16 includes a later `collectionType == 5` acceptance branch or a fallback `NTKShowHardwareSpecificFaces()` condition, conditional on earlier category tests. On my real Ultra 1, `collectionType=9` and `NTKShowHardwareSpecificFaces=false`, so the *observed properties fail those previously mapped Poodle conditions*. This is a static-plus-real-property conclusion, not a captured real face-install attempt. Independent restrictions may also apply.
 5. ZIP validity and a valid Bundle ID do **not** establish that the native face is eligible or installable on this watch. No Apple Watch face was installed, no system settings altered and no bypass verified.
 
 ### Next research step
 
-Compare this **specific** `com.apple.NTKPoodleFaceBundle` against the actual 23U95 Zeus Poodle class restriction and the FaceBundleManager lookup predicate, using already-extracted firmware. Do not ask the owner to upload the same attachment again, change serial numbers or modify pairing files. If an already-observed import error exists, classify it separately from the viewer ZIP error.
+Compare this **specific** `com.apple.NTKPoodleFaceBundle` against the actual 23U95 Zeus Poodle class restriction and the FaceBundleManager lookup predicate, using already-extracted firmware. Do not ask me to upload the same attachment again, change serial numbers or modify pairing files. If an already-observed import error exists, classify it separately from the viewer ZIP error.
 
 **Source:** the uploaded watchface archive, not a screenshot or an assumed description.

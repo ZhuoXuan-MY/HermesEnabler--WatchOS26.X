@@ -9,11 +9,11 @@
 - The upstream `worse_query` project advertises SystemGroup access for **iOS 27**, not iOS 26. No reproducible Watch6,18 / 23U95 privileged write path was established; this does not prove every hypothetical watchOS 26 approach is impossible.
 - **Decision:** pause new speculative unlock versions and repeated unproductive tests. Retain V0–V30 research, historical logs, source and branches as an explicitly **blocked research project**. Do not publish the repository as an enabled/working Hermès watchface solution.
 - **Reopen only on evidence:** (1) independently reproducible privileged write or equivalent system-authorized route **on Watch6,18 / 23U95**, (2) verified readback and persistence without damaging the watch, and (3) normal system face eligibility, addition and visible native Hermès face. All three milestones remain unachieved.
-- **This commit changes documentation only.** It does not archive/delete the repository, revert the code, remove prior findings, claim a jailbreak, or alter any user's Apple Watch.
+- **This commit changes documentation only.** It does not archive/delete the repository, revert the code, remove prior findings, claim a jailbreak, or alter any my Apple Watch.
 
 ## 2026-11-11 — Initial sanitized source package
 
-Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attribution preserved.
+Based on my uploaded `HermesEnabler(1).zip`, with upstream attribution preserved.
 
 - Retained the `HermesEnabler2` Watch App Xcode project, core code, and RO23 diagnostic implementations.
 - **Removed** the historical Geod writable-file experiment `BQGeodOpen23U95` and incorrect `BQWriteHermes23U95` forced writer (`0x670`/`0x16B6`).
@@ -128,7 +128,7 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 
 
 ### RO23 V21 — Poodle-specific firmware decision path (2026-11-11)
-- Joined validated owner's Hermès Circulaire bundle ID to Poodle's secondary FaceBundle registration in 23U95 NTKZeusFaceBundle.
+- Joined validated my Hermès Circulaire bundle ID to Poodle's secondary FaceBundle registration in 23U95 NTKZeusFaceBundle.
 - Distinguished Poodle's documented category=1 exclusion from Hermes2025's different {2,3,5} whitelist; do not claim category=4 alone rejects Poodle.
 - Evaluated the known conditional Poodle fallback with real Ultra values: collectionType=9, NTKShowHardwareSpecificFaces=false -> restricted on that reached branch; earlier branches unresolved.
 - Added optional read-only offline, SHA-256-verified llvm-objdump script for Poodle's full function prologue. No watch-side code changes or unlock.
@@ -147,13 +147,13 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 
 
 ### RO23 V22.2 — first successful V22 physical-watch run (2026-11-11)
-- Owner-provided live output: 23U95, category=4, collectionType=9, NTKInternalBuild=false, NTKShowHardwareSpecificFaces=false.
+- locally provided live output: 23U95, category=4, collectionType=9, NTKInternalBuild=false, NTKShowHardwareSpecificFaces=false.
 - Poodle category==1 check does not match; known later fallback evaluates restricted if reached; dynamic NTKPoodleFace class was unregistered in diagnostic process so actual restriction return remains unavailable.
 - Recorded literal observed log without guessing. No new executable code, system writes, face activation, or installer modification. Next meaningful step: complete early Poodle disassembly in already-extracted 23U95 Zeus binary.
 
 
 ### RO23 V23 — no-LLVM Mac fallback for Zeus/Poodle disassembly (2026-11-11)
-- Verified from owner's run that the already-extracted NTKZeusFaceBundle SHA-256 matched; analysis halted only because llvm-objdump was unavailable.
+- Verified from my run that the already-extracted NTKZeusFaceBundle SHA-256 matched; analysis halted only because llvm-objdump was unavailable.
 - Updated the same V21 script to auto-detect llvm-objdump including Xcode, otherwise fall back to Xcode otool (arm64_32, -tvV) filtered to the Poodle instruction address interval.
 - No installations, source cloning, watch firmware modifications, or new diagnostic buttons. Await actual V23 disassembly output.
 

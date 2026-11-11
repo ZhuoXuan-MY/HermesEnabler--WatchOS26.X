@@ -1,5 +1,16 @@
 # HermesEnabler RO23 — Public research snapshot changelog
 
+## 2026-11-11 — Project status changed to BLOCKED (not permanently abandoned)
+
+**Scope:** First-generation Apple Watch Ultra (`Watch6,18 / n199ap`), watchOS 26.6.1 build `23U95`. **Native Hermès unlock remains unsuccessful.**
+
+- Historical Watch testing could read the protected MobileGestalt cache, but opening it with `O_RDWR` returned `EPERM`; the Class-13 token did not grant write access. Geod-MCM and tested Class-7 flag routes also did not produce a working protected write.
+- The matching 23U95 binaries and real watch observations establish **separate native face-eligibility gates** (Hermes2025 category and Circulaire/Poodle restrictions). A working write alone would not automatically prove native Hermès activation.
+- The upstream `worse_query` project advertises SystemGroup access for **iOS 27**, not iOS 26. No reproducible Watch6,18 / 23U95 privileged write path was established; this does not prove every hypothetical watchOS 26 approach is impossible.
+- **Decision:** pause new speculative unlock versions and repeated unproductive tests. Retain V0–V30 research, historical logs, source and branches as an explicitly **blocked research project**. Do not publish the repository as an enabled/working Hermès watchface solution.
+- **Reopen only on evidence:** (1) independently reproducible privileged write or equivalent system-authorized route **on Watch6,18 / 23U95**, (2) verified readback and persistence without damaging the watch, and (3) normal system face eligibility, addition and visible native Hermès face. All three milestones remain unachieved.
+- **This commit changes documentation only.** It does not archive/delete the repository, revert the code, remove prior findings, claim a jailbreak, or alter any user's Apple Watch.
+
 ## 2026-11-11 — Initial sanitized source package
 
 Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attribution preserved.

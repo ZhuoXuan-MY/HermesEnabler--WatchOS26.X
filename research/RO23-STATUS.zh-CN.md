@@ -57,3 +57,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V19.1：Filza 实机应用容器 + 上传源码复核（2026-11-11）
 
 已离线核验用户真正上传的 `filza27.2-v27.2.2.zip`（SHA-256 `2711ade73f7a383862b6fa0c451fddb69595f970441196cac2d58ebc6c7f7b41`），并确认 iPhone Filza 截图显示 `Watch [com.apple.Bridge]` 可列出其应用数据容器：`tmp`、`SystemData`、`Library`、`Documents`。这里的 `SystemData` 是应用容器内部的子目录，不等于获得 iOS 受保护系统数据目录访问。源码存在 WebDAV 默认延迟自动启动、未配置用户名时 HTTP 免认证、可选 SSH 固定 `alpine` 密码的问题；请关闭 WebDAV/SSH 网络服务。尚无修改 watchOS 系统文件或原生 Hermès 解锁的证据。详见 [V19.1 源码与实机核查](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。
+
+
+## RO23 V19.2：Bridge Library 目录实机补证（2026-11-11）
+
+用户补充八张 Filza 实机截图，确认 `Library/Application Support` 仅列出 `com.apple.MediaPlayer` 和 `.tipkit`；`Library/SyncedPreferences/com.apple.kvs` 下可到达 `ChangeTokens/EndToEndEncryption/Bridge/com.apple.weather`（疑似同步令牌，应停止进入并避免分享内容）；`Library/Preferences` 中存在 `com.apple.ClockKit.plist`（80 B）与 `com.apple.pbbridge.plist`（68 B）；另有未确认类型的 `com.apple.Bridge-ServerObjectDatab…/Database`（29 KB）。**以上仅为文件名与元数据，不能证明表盘授权、Watch 系统写入或序列号可修改。** 下一步仅查看 ClockKit plist 的顶层键名，遮盖私人信息、不保存修改。原生 Hermès 未解锁。详见 [V19.1 附录 V19.2](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。

@@ -37,3 +37,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## V16.1 真机运行结果（2026-11-11）
 
 用户已经在同一台 Ultra 1 / 23U95 上成功执行新按钮，获得真实日志：**`NTKInternalBuild=false`、`NTKShowHardwareSpecificFaces=false`、`NTKShowInternalFaces=false`**，`systemWrites=NO`。结合已核实的 `cbz` 分支，可确定本机内部版本检查未通过，并使硬件专属表盘显示谓词提前返回 false。**不能由此推论所有爱马仕表盘的全部路径均不可能**，但仅写 `ShowHardwareSpecificFaces` 偏好键没有已验证的作用。无需反复测试同样的三个返回值。见 [V16 真机证据](RO23-V16-InternalBuild-Gate.md)。
+
+
+## RO23 V17：原生 FaceBundle 加载及加入表盘库的独立限制（2026-11-11）
+
+对 23U95 匹配的 NanoTimeKit 反汇编确认：`NTKFaceBundleManager` 在**枚举表盘**、**根据 Bundle ID 查找**以及**按旧 Style 查找**时，均有 `isRestrictedForDevice:` 检查；而 `_NTKCanAddWatchFace` 还独立验证配置是否合法、设备能否使用该描述符、表盘类是否受限制。发现未解析的额外判断地址 `0x55CE73DC`，**不可与 V16 的 `0x55CE731C` 视为同一个函数**。系统内部 `forMigration:` 分支不能当作正常添加表盘的成功方案。此轮无需新增实机按钮、无需重新编译，也没有解锁原生 Hermès。详见 [V17 完整研究报告](RO23-V17-FaceBundle-Loading-Chain.md)。

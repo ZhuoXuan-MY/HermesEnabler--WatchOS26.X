@@ -61,3 +61,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 ### RO23 V16.1 — on-device result confirmed (2026-11-11)
 - Confirmed real Watch6,18 / 23U95: NTKInternalBuild=false, NTKShowHardwareSpecificFaces=false, NTKShowInternalFaces=false; no writes or face installation.
 - Identified that internal-build precondition short-circuits a preference-only hardware-face display attempt; no additional executable changes in this documentation update.
+
+
+### RO23 V17 — static FaceBundle loading-path audit (2026-11-11)
+- Traced actual NanoTimeKit FaceBundle enumeration, bundle-ID and legacy-style lookups, and _NTKCanAddWatchFace checks, with function/branch addresses.
+- Identified additional unresolved restricted-face exception predicate at 0x55CE73DC (distinct from the V16 internal-build target 0x55CE731C).
+- Distinguished migration-only special path from supported normal face addition. Documents only; no new Xcode code, device tests, or unlock.

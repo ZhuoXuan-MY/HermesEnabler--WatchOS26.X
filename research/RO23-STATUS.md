@@ -34,3 +34,8 @@ On the matching 23U95 NanoTimeKit binary, `_NTKInternalBuild` at `0x54601310` br
 ## V16.1 device verification (2026-11-11)
 
 The owner's Watch6,18/23U95 log now confirms **`NTKInternalBuild=false`, `NTKShowHardwareSpecificFaces=false`, and `NTKShowInternalFaces=false`**. This directly corroborates the disassembled precondition and excludes a simple preferences-only change as a demonstrated route. Three read-only predicate calls completed; no protected writes or face installations. [Actual V16 record](RO23-V16-InternalBuild-Gate.md).
+
+
+## RO23 V17 — Native FaceBundle manager and add-to-library gates (2026-11-11)
+
+Offline disassembly of matching NanoTimeKit confirms that `NTKFaceBundleManager` filters `isRestrictedForDevice:` both when **enumerating** bundles and when **looking up by bundle ID or legacy style**. Separately, `_NTKCanAddWatchFace` checks configuration validity, descriptor availability and the face class restriction before other library checks. An extra unresolved native predicate is called at `0x55CE73DC`; it is **not** the same address as the V16 internal-build call. The special `forMigration:` branch is not a demonstrated ordinary add flow. No watch-side test needed and no native Hermès unlock. [Complete V17 disassembly analysis](RO23-V17-FaceBundle-Loading-Chain.md).

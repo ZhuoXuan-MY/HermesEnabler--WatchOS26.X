@@ -72,3 +72,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V19.4：CreateWatchFace 组件偏好键（2026-11-11）
 
 用户实机截图证明 iPhone 的 `com.apple.NanoTimeKit.CreateWatchFace` 组件 `Library/Preferences` 中有两个文件：`com.apple.NanoTimeKit.face.plist`（111 B）和 `com.apple.ClockKit.plist`（77 B）；两张编辑器截图显示 `HandFactoryCachedBuild=20F66` + `UltraFaceWasAddedToLibrary=YES`，以及另一份 `HandFactoryCachedBuild=21C66`。**编辑界面未显示原文件名**，根据字节数把双键归于 NanoTimeKit.face 只是合理推断。字段 `UltraFaceWasAddedToLibrary` 可能记录 Ultra 专属表盘被添加的状态，但含义尚未经源码证明，不等于 Hermès 授权或手表端硬件资格改变。**不得编辑、删除或保存修改；没有解锁。** 详见 [V19.4 记录](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。
+
+
+## RO23 V20：表盘包真实标识与系统导入失败分类（2026-11-11）
+
+已核查开源 FaceRead 的 `face.json`／`metadata.json` 解析字段及 Apple 官方 `CLKWatchFaceLibrary.ErrorCode`。现有 `Hermès Circulaire.watchface` 仅在 Filza 截图里出现，**没有收到其实际文件内容，不能臆造 Bundle ID 或导入结果**。已在同一个 GitHub 仓库新增只读离线脚本 `scripts/ro23-inspect-watchface.py`，只输出 SHA-256、`bundle id`、`analytics id`、`face type` 和组件数量，避免读取相片或私人复杂功能内容。提醒：`face.json` 的 `face type` 不一定等于 V17 的 NanoTimeKit `faceStyle=0x2C`。下一步优先比较一份原始爱马仕表盘与一份普通 Ultra 表盘文件，按真实 Bundle ID 对照固件门槛。**不改写、不重打包、不重复刷机或添加手表按钮。** 见 [V20 技术报告](RO23-V20-Watchface-Archive-Import.md)。

@@ -54,3 +54,8 @@ Compared the user's Filza 27.2.2 release screenshot against the independent `for
 ## RO23 V19.1 — Filza source reviewed and Bridge app data container verified (2026-11-11)
 
 Audited the user's exact `filza27.2-v27.2.2.zip` (SHA-256 `2711ade73f7a383862b6fa0c451fddb69595f970441196cac2d58ebc6c7f7b41`). The user's iPhone Filza screenshots confirm `Watch [com.apple.Bridge]` application container listing, with `tmp`, `SystemData`, `Library`, and `Documents`. The nested `SystemData` is not root/system-group access. Source review reveals a WebDAV autostart configuration (default enabled when unset), unauthenticated HTTP when username unset, and optional SSH using fixed `alpine` credentials. Do not infer watchOS file write access or native Hermes unlock. [Full V19.1 audit](RO23-V19.1-Filza-Source-And-Bridge-Verification.md).
+
+
+## RO23 V20 — watchface archive and import-result research (2026-11-11)
+
+Verified FaceRead's actual .watchface JSON parser and Apple's public import error codes. Added **offline, read-only** `scripts/ro23-inspect-watchface.py` to inspect face identifiers and hashes without extracting images, touching system files, or modifying the watch. The real Hermès Circulaire file has only appeared as a Filza filename screenshot; **no file bytes yet, no known bundle ID, no unlock**. [V20 report](RO23-V20-Watchface-Archive-Import.md).

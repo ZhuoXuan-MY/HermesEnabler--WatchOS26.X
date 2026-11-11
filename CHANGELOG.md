@@ -102,3 +102,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Owner confirms listing two preference plists in com.apple.NanoTimeKit.CreateWatchFace container; observed cached builds 20F66, 21C66 and UltraFaceWasAddedToLibrary=YES.
 - File-to-key mapping inferred from byte sizes only because editing screenshots omit filename.
 - No verified Hermes authorization, category mutation or watchOS system write. No executable changes or new Xcode/UI artifacts.
+
+
+### RO23 V20 — .watchface archive parser and import error research (2026-11-11)
+- Verified FaceRead's actual standard ZIP face.json fields: bundle id, analytics id, face type; metadata complication count; preview filename.
+- Added safe read-only Python 3 inspector for one/many existing .watchface archives: SHA-256, root JSON identifiers, no extraction/writes/network/face-installation.
+- Classified Apple public faceNotAvailable vs invalidFile vs permissionDenied; no real Hermès sample bytes, no inferred Bundle ID or unlock.

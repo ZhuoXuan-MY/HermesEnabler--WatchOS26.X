@@ -32,3 +32,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Added isolated RO23 V13/V14.1/cache read-only probes and 23U95 UI write controls hide.
 - Corrected deviceBrand object return type and preserved upstream credits.
 - Native Hermès unlock is not achieved; Xcode physical build not yet verified.
+
+
+### RO23 V14.2.1 — Xcode build repair
+- Rename RO23Diagnostics C helper Boolean to RO23ReadBool to avoid CoreFoundation Boolean typedef collision.
+- Remove placeholder App Group entitlement from the read-only research signing profile; free/personal development teams may not have App Groups provisioning.
+- No changes to protected MG cache or watchface installation. Real Xcode build still needs user-side verification.

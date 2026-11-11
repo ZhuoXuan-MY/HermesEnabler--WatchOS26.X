@@ -36,7 +36,7 @@ static BOOL Integer(id d,NSString *name,int *out) {
     *out=((int(*)(id,SEL))objc_msgSend)(d,sel);
     return YES;
 }
-static BOOL Boolean(id d,NSString *name,BOOL *out) {
+static BOOL RO23ReadBool(id d,NSString *name,BOOL *out) {
     SEL sel=NSSelectorFromString(name);
     if (![d respondsToSelector:sel]) return NO;
     *out=((BOOL(*)(id,SEL))objc_msgSend)(d,sel);
@@ -92,14 +92,14 @@ NSString *RO23ClockKitReport(void) {
     if (!d) {[log addObject:@"CLKDevice.currentDevice unavailable"];return Done(log);}
     int size=0,cat=0,collection=0; BOOL ultra=NO,fall=NO;
     BOOL hs=Integer(d,@"sizeClass",&size),hc=Integer(d,@"deviceCategory",&cat);
-    BOOL hp=Integer(d,@"collectionType",&collection),hu=Boolean(d,@"isUltra",&ultra);
+    BOOL hp=Integer(d,@"collectionType",&collection),hu=RO23ReadBool(d,@"isUltra",&ultra);
     id brand=ObjectValue(d,@"deviceBrand");
     [log addObject:[NSString stringWithFormat:@"sizeClass=%@",Fmt(hs,size)]];
     [log addObject:[NSString stringWithFormat:@"deviceCategory=%@",Fmt(hc,cat)]];
     [log addObject:[NSString stringWithFormat:@"collectionType=%@",Fmt(hp,collection)]];
     [log addObject:[NSString stringWithFormat:@"deviceBrand=%@",brand?:@"unavailable"]];
     [log addObject:[NSString stringWithFormat:@"isUltra=%@",hu?(ultra?@"true":@"false"):@"unavailable"]];
-    if (Boolean(d,@"supportsFall2025FacesCapability",&fall))
+    if (RO23ReadBool(d,@"supportsFall2025FacesCapability",&fall))
         [log addObject:[NSString stringWithFormat:@"supportsFall2025FacesCapability=%@",fall?@"true":@"false"]];
     else
         [log addObject:@"supportsFall2025FacesCapability=not registered in this process"];
@@ -121,7 +121,7 @@ NSString *RO23ZeusReport(void) {
     if (!d) {[log addObject:@"CLKDevice.currentDevice unavailable"];return Done(log);}
     int cat=0,collection=0; BOOL black=NO;
     BOOL hc=Integer(d,@"deviceCategory",&cat),hp=Integer(d,@"collectionType",&collection);
-    BOOL hb=Boolean(d,@"isZeusBlack",&black);
+    BOOL hb=RO23ReadBool(d,@"isZeusBlack",&black);
     id brand=ObjectValue(d,@"deviceBrand");
     [log addObject:[NSString stringWithFormat:@"deviceCategory=%@",Fmt(hc,cat)]];
     [log addObject:[NSString stringWithFormat:@"collectionType=%@",Fmt(hp,collection)]];

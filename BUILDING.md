@@ -19,3 +19,20 @@ The script performs git pull --ff-only origin main and opens Xcode, then you can
 
 
 Note on icons: The GitHub integration uses a simple 1024×1024 placeholder icon for both app targets. The original full-size icon images remain available in the upstream project and the downloadable merged archive; replace these placeholders with the original app icons when finalizing the app's appearance.
+
+
+## RO23 build fix — Xcode Signing / Boolean (11 Nov 2026)
+
+The watchOS 26 research configuration does **not** need the Apple App Groups entitlement. The previous example entitlement `group.com.example.HermesEnabler` could not be provisioned for the signing account. The watch target's `HermesEnabler2.entitlements` is intentionally an empty plist, avoiding App Group provisioning errors. No elevated Apple-private entitlement is requested.
+
+This is a **read-only research configuration**. It does not grant MobileGestalt system-group write access. Upstream watchOS 27 functionality that depends on an App Group is not guaranteed to function with this research profile. To use those separately, restore/configure your own legitimately provisioned App Group with an appropriate development team, and review the original upstream requirements; do not reuse the placeholder group.
+
+The Objective-C source was also updated to rename `Boolean(...)` to `RO23ReadBool(...)`. `Boolean` is already a CoreFoundation typedef and caused compiler errors.
+
+### After updating the same Git clone
+
+1. Run `git pull --ff-only origin main` (or `bash scripts/ro23-update-open.sh` when clean).
+2. In Xcode set your Team for **both the iPhone companion and watch app** under **Signing & Capabilities**, and enable **Automatically manage signing**. A unique bundle ID owned by your team is required; ensure the companion and watch IDs match the project's expected structure. Remove any leftover manually added **App Groups** capability in the local Xcode target UI if present.
+3. Xcode menu **Product → Clean Build Folder** (`Shift+⌘K`), then `⌘B` and `⌘R`.
+
+If the next build reports a *different* error, provide the exact text; this patch is static-source verified, **not** verified via a macOS Xcode build.

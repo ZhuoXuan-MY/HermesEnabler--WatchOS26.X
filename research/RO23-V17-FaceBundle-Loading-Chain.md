@@ -1,4 +1,4 @@
-# RO23 V17 — Native FaceBundle Registration, Lookup and Add-to-Library Checks
+# HermesEnabler · watchOS 26.x — V17 — Native FaceBundle Registration, Lookup and Add-to-Library Checks
 
 **Date:** 2026-11-11. **Target:** first-generation Apple Watch Ultra (Watch6,18 / n199ap), watchOS 26.6.1, build 23U95.
 

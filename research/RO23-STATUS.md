@@ -84,3 +84,8 @@ Owner's actual V23 Mac dump verifies the matching SHA-256 `2b34d3…` and suppli
 ## RO23 V25 — ObjC selector and ClockKit return independently verified (2026-11-11)
 
 Analyzed **the actual uploaded 23U95 Zeus and ClockKit Mach-O binaries**, not a name guess. Zeus stub `0x469C0` → `__objc_selrefs[0x4F0A8]` → `__objc_methname[0x40445]` = **`supportsPDRCapability:`**. Matching `-[CLKDevice supportsPDRCapability:]` at `0x49C6E724` consists solely of `mov w0,#1; ret`, so this specific Poodle capability check always succeeds on this ClockKit build. The owner's category 4 / collection 9 / hardware-face false still produce **Poodle restricted=true**. A read-only SHA-checked Python verifier was executed successfully on both original binaries and added to the repository. No native face activation. [V25 report](RO23-V25-Poodle-Selector-ClockKit.md).
+
+
+## RO23 V26 — watchOS sandbox-escape feasibility and version/signing mismatch (2026-11-11)
+
+Reviewed upstream `forcequitOS/worse_query` and the newer watchOS `LogicSense1/WatchRegion`. The latter **claims** a successful MobileGestalt sales-region edit on Ultra 4/watchOS 27.3 beta and actually targets watchOS 27.0 or later with a dedicated App Group entitlement. Our Ultra 1 remains on **26.6.1/23U95** and the public RO23 watch entitlement plist is empty. Historical 23U95 protected writes returned `EPERM`. The upstream iOS-only PoC does not prove 23U95 watchOS compatibility. **Research this nonstandard access primitive by offline capability/signing inspection; do not install WatchRegion unchanged or write live MG.** No watch app source changes or unlock. [V26 compatibility audit](RO23-V26-WatchOS-Sandbox-Feasibility.md).

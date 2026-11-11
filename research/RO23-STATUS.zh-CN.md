@@ -102,3 +102,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V25：Poodle 未知能力检查已解析为真实 ClockKit 方法（2026-11-11）
 
 直接打开此前上传的原始 23U95 `RO23-V14-Zeus.zip` 和 `RO23-V12-ClockKit.zip`，校验二进制哈希后追踪 **Zeus 跳板 `0x469C0` → `__objc_selrefs` 地址 `0x4F0A8` → `__objc_methname` 地址 `0x40445`**，真实方法名是 **`supportsPDRCapability:`**；相同固件 `-[CLKDevice supportsPDRCapability:]` 的 `0x49C6E724` 仅有 `mov w0,#1; ret`，始终返回 true。这样 V24 中唯一未知的能力判断也已解释。结合实机类别 4、collection 9 和 hardware-face=false，Poodle **仍被完整资格方法拒绝**。新增已对两份原始固件实际测试通过的纯标准库只读 Python 校验工具，原始 Apple 二进制不上传公共仓库、无需新增手表按钮。详见 [V25](RO23-V25-Poodle-Selector-ClockKit.md)。
+
+
+## RO23 V26：watchOS 沙箱逃逸是否适用于 Ultra 1（2026-11-11，北京时间）
+
+已审阅 `forcequitOS/worse_query` 原版与真正面向 watchOS 的 `LogicSense1/WatchRegion`。后者作者声称在 Ultra 4 / watchOS 27.3 beta 使用 `worse_query` 修改过 MobileGestalt 销售地区缓存，但工程**最低 watchOS 27.0**、依赖独立 App Group 签名；本项目 Ultra 1 为 **26.6.1/23U95**，公开 RO23 entitlement plist 是空 `<dict/>`，历史受保护缓存写入仍为 `EPERM`。因此这是值得继续离线核实的**非普通资格路径**，但不能把跨机型、跨系统的演示视为目前已可写入；原样安装、修改系统缓存、改类别或重启均不作为本轮试验。**V26 没有修改手表代码、没有运行漏洞、没有解锁。** 详见 [V26 沙箱可行性审计](RO23-V26-WatchOS-Sandbox-Feasibility.md)。

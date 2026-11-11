@@ -158,3 +158,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Resolved Zeus 0x469C0 via arm64_32 __objc_stubs → __objc_selrefs[0x4F0A8] → __objc_methname[0x40445] to `supportsPDRCapability:`; independently resolved category and collection getter stubs.
 - Verified matching ClockKit `-[CLKDevice supportsPDRCapability:]` at VM 0x49C6E724 consists of MOV W0,#1; RET. Poodle's method rejects measured Ultra 1 values despite this predicate always returning true.
 - Added a read-only standard-library Python verifier, tested successfully against actual uploaded binary files. No watch code changes, system writes, or unlock.
+
+
+### RO23 V26 — audit watchOS sandbox-escape portability (2026-11-11, Beijing Time)
+- Inspected forcequitOS/worse_query (iOS-only documented range) and LogicSense1/WatchRegion (watchOS target 27.0, claimed Ultra4/27.3 beta MobileGestalt region write, App Group required).
+- Checked current RO23 entitlements remain empty and earlier 23U95 EPERM write failure. Upstream PoC alone does not prove a watchOS 26 privilege/write primitive.
+- Isolated an offline feasibility path; did not copy GPL exploit code, run it on a device, change Apple firmware, or attempt Hermès activation.

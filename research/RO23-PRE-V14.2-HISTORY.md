@@ -1,4 +1,4 @@
-# RO23｜V14.2 之前的完整操作史：Issue #17 原始实测与研究复盘
+# HermesEnabler · watchOS 26.x — V14.2 之前的完整研究历史
 
 > **研究目标：** Apple Watch Ultra 第一代 `Watch6,18 / n199ap`，watchOS 26.6.1（`23U95`），尝试让系统真正启用原生 Hermès 表盘。**V14.2 以前并未成功修改受保护 MobileGestalt 缓存，也未成功启动原生 Hermès 表盘。**
 >

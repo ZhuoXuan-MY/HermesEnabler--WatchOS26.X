@@ -2,7 +2,7 @@
 
 > **研究目标：** Apple Watch Ultra 第一代 `Watch6,18 / n199ap`，watchOS 26.6.1（`23U95`），尝试让系统真正启用原生 Hermès 表盘。**V14.2 以前并未成功修改受保护 MobileGestalt 缓存，也未成功启动原生 Hermès 表盘。**
 >
-> **证据来源：** 设备所有者 @ZhuoXuan-MY 在原作者 [pookjw/HermesEnabler Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 的原帖/评论；本仓库 [RO23-STATUS.zh-CN.md](RO23-STATUS.zh-CN.md) / [RO23-STATUS.md](RO23-STATUS.md) 的 V13–V14.1 结果；现有 `HermesEnabler2/RO23Diagnostics.m` 源码。部分分析及源代码为 AI 辅助，实际 Mac/Xcode/Watch 操作由设备所有者完成。
+> **证据来源：** 我（@ZhuoXuan-MY） 在原作者 [pookjw/HermesEnabler Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 的原帖/评论；本仓库 [RO23-STATUS.zh-CN.md](RO23-STATUS.zh-CN.md) / [RO23-STATUS.md](RO23-STATUS.md) 的 V13–V14.1 结果；现有 `HermesEnabler2/RO23Diagnostics.m` 源码。部分分析及源代码为 AI 辅助，实际 Mac/Xcode/Watch 操作由我完成。
 >
 > **时间规则：** 下面精确到分钟的时刻是 GitHub **Issue 发帖/评论时间（转换为北京时间 UTC+08:00）**，不能当作实机操作时间或历史 Git 提交时间。V14、V14.1 的实际执行分钟未见完整独立记录，仅证实在 V14.2 合并前。本文是后来进行的**历史补录**，不是声称 V1–V14.1 已在这些时间分别存在于本仓库的 Git commit 中。
 
@@ -19,7 +19,7 @@
 
 ## 1．RO23 V1–V4：在真实 Ultra 上确定 MG 描述符和写入失败性质
 
-**对应 Issue #17 评论：2026-11-10 23:20（北京时间）**，[详情与原始日志](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913)。代码由对话协作添加到本地 `HermesEnabler2/BQCore.m`，设备所有者在 Mac 上备份、修改、Xcode 编译并安装到手表，得到真实输出。测试工程中的定时器约为启动后 3 秒（V1）、5 秒（V2）、7 秒（V4）；**它们不是墙上时钟的测试日期**。
+**对应 Issue #17 评论：2026-11-10 23:20（北京时间）**，[详情与原始日志](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913)。代码由对话协作添加到本地 `HermesEnabler2/BQCore.m`，我在 Mac 上备份、修改、Xcode 编译并安装到手表，得到真实输出。测试工程中的定时器约为启动后 3 秒（V1）、5 秒（V2）、7 秒（V4）；**它们不是墙上时钟的测试日期**。
 
 | 阶段 | 实际添加/运行的操作 | 观察结果、纠错或局限 |
 |---|---|---|
@@ -44,7 +44,7 @@
 
 ## 3．RO23 V8–V9：下载匹配 OTA，定位 `error=9` 的实际代码分支
 
-- **V8 发布记录：2026-11-11 04:05（北京时间）**，[原始报告](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777949079)；同一 V8 有 [重复补充版](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778376901)，不是另一个独立新版本。设备所有者在 Mac 获取与 `Watch6,18_N199AP_23U95` 匹配的 **3,758,096,384 字节加密 AEA OTA**，`ipsw ota info/ls` 核对 Build/设备及 post.bom，针对性提取 **`usr/libexec/MobileGestaltHelper`**（76,112 字节，ARM64_32，SHA256 `0e0c05244a3d35753e948783372f18e615ae2032cf7b750dd7a9cc57cfb3626e`）。`ipsw macho disass` 曾不支持 ARM64_32，后来用 LLVM 17 完成静态反汇编；定位 `getServerAnswerForQuestion:reply:` at `0x5110`，实际调用 `_MGServerCopyAnswerWithError` at `0x51C4`；还找到 `rebuildCache:`、`setCacheSentinel:` 等**系统内部方法**，但**未调用重建缓存**。
+- **V8 发布记录：2026-11-11 04:05（北京时间）**，[原始报告](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777949079)；同一 V8 有 [重复补充版](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778376901)，不是另一个独立新版本。我在 Mac 获取与 `Watch6,18_N199AP_23U95` 匹配的 **3,758,096,384 字节加密 AEA OTA**，`ipsw ota info/ls` 核对 Build/设备及 post.bom，针对性提取 **`usr/libexec/MobileGestaltHelper`**（76,112 字节，ARM64_32，SHA256 `0e0c05244a3d35753e948783372f18e615ae2032cf7b750dd7a9cc57cfb3626e`）。`ipsw macho disass` 曾不支持 ARM64_32，后来用 LLVM 17 完成静态反汇编；定位 `getServerAnswerForQuestion:reply:` at `0x5110`，实际调用 `_MGServerCopyAnswerWithError` at `0x51C4`；还找到 `rebuildCache:`、`setCacheSentinel:` 等**系统内部方法**，但**未调用重建缓存**。
 - **V9 发布记录：2026-11-11 04:25（北京时间）**，[原始报告](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778385658)；另附 [反汇编摘录一](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778394165)、[摘录二](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778403169)。进一步分析匹配固件的 **991,764 字节 `libMobileGestalt.dylib`**（ARM64_32，SHA256 `383dfd64b790ba505760bb4af7a08ed2df185cbf6fffca64a13608f9bdcc2baf`）。确认 `_MGServerCopyAnswerWithError` 在 `0x215B42A8`，访问检查从 `0x215B4BF4`；有关服务问题描述符的标志/回调能走到业务层 `error=9`。V7 四问对应的普通本地查询**不因此获得 Server API 访问资格**；静态代码解释不能冒充四次动态单步追踪。
 - 还在匹配库里独立确认 `DeviceBrand=index103 / type5 / flags0x0C`。其 provider 读取 `IODeviceTree:/chosen` 的 `marketing-software-behavior`，**与 MG 缓存值属于不同数据层次**。
 
@@ -66,7 +66,7 @@
 
 ## 6．V14.2 合并是历史和 GitHub 新工程的分界
 
-**2026-11-11 14:55（北京时间）**，本仓库 GitHub [V14.2 合并提交](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1)把最新上游 HermesEnabler 2 的 Watch App、iPhone Companion、Xcode 工程，与 V13/V14.1 的只读探针/缓存快照结合。**旧 V1–V7 实验是 V14.2 之前在设备所有者 Mac 的本地工程中运行，不等于当时已逐项提交到本仓库 main 的独立 Git commit。** 仓库快照做了防误用清理：移除错误的 206/0x670 强行写入实现，隐藏 23U95 上的危险写入及重启控制，保留研究记录/只读入口。**V14.2 是项目整理和代码合并，不是 Hermès 解锁成功。**
+**2026-11-11 14:55（北京时间）**，本仓库 GitHub [V14.2 合并提交](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1)把最新上游 HermesEnabler 2 的 Watch App、iPhone Companion、Xcode 工程，与 V13/V14.1 的只读探针/缓存快照结合。**旧 V1–V7 实验是 V14.2 之前在我的 Mac 的本地工程中运行，不等于当时已逐项提交到本仓库 main 的独立 Git commit。** 仓库快照做了防误用清理：移除错误的 206/0x670 强行写入实现，隐藏 23U95 上的危险写入及重启控制，保留研究记录/只读入口。**V14.2 是项目整理和代码合并，不是 Hermès 解锁成功。**
 
 ## 7．纠错记录：这些结论绝不能混淆
 

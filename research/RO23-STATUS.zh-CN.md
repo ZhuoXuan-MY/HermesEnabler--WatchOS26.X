@@ -1,5 +1,20 @@
 # RO23 研究进度：Ultra 1 / watchOS 26.6.1（23U95）
 
+**当前正式状态：`BLOCKED`（当前解锁路线受阻，暂停无效版本迭代；2026-11-11 23:43，北京时间）。** 适用目标：Apple Watch Ultra 第一代（`Watch6,18 / n199ap`）/ watchOS 26.6.1（`23U95`）。**原生 Hermès 表盘没有成功解锁。** 本文下方早期“后续”或“待执行”段落只作为**历史记录**，不是当前建议继续运行的步骤。完整变更见 [CHANGELOG](../CHANGELOG.md) 和 [README](../README.zh-CN.md)。
+
+### 状态理由（已验证，不冒充全部可能路线均不存在）
+
+- 保护的 MobileGestalt 系统缓存**可读，但直接 `open(O_RDWR)` 返回 `EPERM`**。Class 13 令牌虽然获得并激活，受保护写入/创建仍被沙箱策略拒绝；Geod-MCM 与已测试 Class 7 flags 也未获得有效的目标写入。
+- 真实 `23U95` 固件与设备测量证明**至少两类独立资格限制**：Hermès 2025 类别不包含本机 `deviceCategory=4`；Circulaire/Poodle 静态资格路径在本机 `collectionType=9`、硬件表盘开关为 false 时返回受限。**即使以后解决写入，也不能因此自动认定所有系统表盘检查已通过。**
+- `worse_query` 所描述的 SystemGroup 访问适用性是 **iOS 27**，不能推断 Ultra 1 的 **watchOS 26.6.1** 获得可写的受保护 SystemGroup。Filza、EscapeOS、iPhone 普通 App Group 或备份修改也未提供这台手表上经过验证的写入通路。
+- 先前 `V27.2` 已把异常调用跳板识别为 ClockKit `_CLKIsFaceSnapshotService`，**这是快照服务检查，不是通用授权/解锁**。停止把该路线当作新的实机解锁步骤。
+- **暂停条件：** 不重复构建“强制成功”按钮、不继续无新证据的 V31/V32 猜测、不在真实手表上试写未知缓存偏移；保留 V0–V30 源码、日志与研究文档。
+- **恢复开发门槛：** 出现针对**相同机型/固件**可复现的受保护写入权限或等效系统授权途径；完成写入/读回与重启持久化验证；最后由真实手表通过系统资格检查并显示可持久使用的原生 Hermès 表盘。三项目前均未达成。
+
+**状态含义：当前实现路线失败，仓库作为研究档案保留；不宣称 watchOS 26 在理论上绝对不可能被修改，也不宣称已经成功启用 Hermès 表盘。**
+
+---
+
 **未完成，原生 Hermès 表盘尚未解锁。** 原作者：[Jinwoo Kim（@pookjw）](https://github.com/pookjw/HermesEnabler)。研究实机与 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)：@ZhuoXuan-MY；部分代码和逆向由 AI 辅助分析。
 
 - V1–V4：可读取 MG 缓存、但写入被 EPERM 拒绝。真正 DeviceBrand 槽位 103、值偏移 0x338、有效位 0x164F；早期 206/0x670 已判定错误。

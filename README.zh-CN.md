@@ -1,28 +1,65 @@
-# RO23 开发日志｜Apple Watch Ultra 1 · 23U95
+# HermesEnabler · watchOS 26.x 兼容性研究
 
-**研究进度截至：2026-11-11 23:43（北京时间，UTC+08:00）**  
-**研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
-**当前状态：BLOCKED — 当前技术路线受阻；原生 Hermès 表盘尚未解锁，V0–V30 研究完整保留。**
+**原生 Hermès 表盘研究项目｜Apple Watch Ultra 第一代（Watch6,18 / n199ap）**
 
-这里按**可核实的时间及来源**记录 RO23 项目：**V14.2（2026-11-11 14:55）及后续**使用本仓库实际 GitHub commit 时间换算的北京时间；**V14.2 之前补录的 V0–V14.1** 使用上游 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 评论的**发布时间**，不是实机实验的准确分钟，也不是当时本仓库的 commit。V14、V14.1 的精确操作时间尚未证实。实机诊断由我在自己的设备上执行，源码与研究资料有 AI 辅助；记录代码或文档**不代表手表已成功解锁**。
+**当前状态：BLOCKED — 当前技术路线受阻，尚未实现原生 Hermès 表盘解锁。**
 
-## 当前项目状态：BLOCKED（当前技术路线受阻）
+[简体中文](README.zh-CN.md) · [English](README.md#english-summary) · [完整开发记录](#完整开发记录) · [原作者项目](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
 
-**项目目标：** 在 Apple Watch Ultra 第一代（`Watch6,18 / n199ap`）、watchOS 26.6.1（`23U95`）上启用真正的原生 Hermès 表盘。**结论：截至现有真实测试，该解锁目标未实现，暂停没有新权限证据的版本迭代。** 这不是宣布 watchOS 26 绝对不可能被修改，也不是关闭/删除本仓库。
+## 项目简介
 
-| 验收环节 | 已有真实证据 | 状态 |
-|---|---|---|
-| 受保护 MobileGestalt 写入 | 可读；真实 `open(O_RDWR)` 返回 `EPERM`，Class 13 token 激活后仍无 `file-write-data/create` 权限 | **未通过** |
-| 原生 Hermès 资格判断 | Hermès 2025 类别与 Poodle/Circulaire 限制分别阻止本机的正常静态资格路径；ClockKit 的 Snapshot Service 例外不是通用解锁授权 | **未通过** |
-| 在手表上成功启用并持久显示 | 没有可复现实机成功案例 | **未通过** |
+我基于 [pookjw/HermesEnabler](https://github.com/pookjw/HermesEnabler)，研究在 **Apple Watch Ultra 第一代、watchOS 26.6.1（23U95）** 上启用原生 Hermès 表盘的可行性。仓库保存了我使用 Mac、Xcode、真实 Apple Watch 和匹配固件开展的测试、源码、分析与失败记录，部分代码及文档由 AI 辅助完成。
 
-**恢复开发的前提：** 找到且复现在**同一设备型号及固件**上可用的受保护文件写入权限或等效的受信任系统途径；安全验证修改后读回及重启持久性；再验证完整的原生表盘添加和实际显示。否则不继续推出“强制成功”的按钮或 V31/V32 无效实验。现有 **V0–V30 研究和历史失败记录保留为档案**。
+**本仓库不是已验证可用的解锁工具，也不提供适用于该设备/固件的成功解锁 IPA。** 项目暂时保留为公开研究档案，而不是删除或宣称所有未来方案都不可能。
 
-**历史证据：** [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) · [项目状态（中文）](research/RO23-STATUS.zh-CN.md) · [完整 Changelog](CHANGELOG.md)。以下时间线依旧保留，早期“下一步运行某脚本”的文字仅反映当时的研究状态，**不是目前建议执行的指令**。
+| 范围 | 说明 |
+|---|---|
+| **研究设备** | Apple Watch Ultra 第一代 · `Watch6,18` / `n199ap` |
+| **目标系统** | watchOS **26.6.1** · Build **`23U95`** |
+| **研究目标** | 让系统真正识别、添加并持续显示**原生** Hermès 表盘 |
+| **项目状态** | **BLOCKED — 未解锁，暂停没有新证据的尝试** |
+| **研究范围** | MobileGestalt、ClockKit、NanoTimeKit、表盘资格判断与系统权限 |
 
-## 2026 年 11 月 11 日｜逐分钟开发记录（新 → 旧）
+## 研究结果
 
-| 时间（北京时间） | 版本 | 具体做了什么 | GitHub 提交 |
+| 已验证的事实 | 结果 |
+|---|---|
+| MobileGestalt 缓存读取 | **成功**；`DeviceBrand` 为 `0`，真实描述符是 **index 103 / offset 0x338 / validity 0x164F**。旧记录中的 index 206 / 0x670 已纠正 |
+| 受保护系统文件写入 | **失败**；在本机 `open(O_RDWR)` 返回 **`EPERM`**，Class 13 sandbox extension 也没有赋予写入权限 |
+| Hermès 2025 资格 | 对应固件的静态类别检查不接受实测 `deviceCategory=4` |
+| Hermès Circulaire / Poodle 资格 | 已验证表盘文件完整，识别为 `com.apple.NTKPoodleFaceBundle`；匹配固件的静态资格函数对实测条件计算为 **restricted** |
+| 表盘管理器例外路径 | 已识别为 ClockKit `_CLKIsFaceSnapshotService`，**不是**面向普通设备的通用解锁权限 |
+| 原生 Hermès 表盘实际启动 | **未成功，尚无已验证的持续显示结果** |
+
+这些结论来自真实设备只读日志、匹配的 **23U95** 固件和可复现的静态分析。其他机型或 watchOS 27 上的工具结果，不能当成 Ultra 1 / 23U95 已获得权限的证据。
+
+## 为什么暂时停止
+
+现有方法还不能对受保护的手表系统缓存取得写入权限；而且**即使取得写入权限，仍需要独立通过表盘资格和添加检查**。我已经停止重复运行相同的离线探针，不继续发布只有“强制启用”按钮、却不能真正解锁系统的版本。
+
+**恢复研究需要新的实证：** 在同一机型及固件上可复现的有效系统访问路径、修改后的安全读回与持久化，以及在手表上实际添加和显示原生 Hermès 表盘。当前三个目标均未达成。
+
+## 阅读指南
+
+| 内容 | 入口 |
+|---|---|
+| **V0–V14.1 早期实机操作** | [Issue #17 原始证据及完整复盘](research/RO23-PRE-V14.2-HISTORY.md) |
+| **现状、限制与复现边界** | [中文研究状态](research/RO23-STATUS.zh-CN.md) · [English status](research/RO23-STATUS.md) |
+| **关键技术研究** | [Poodle 完整资格检查](research/RO23-V24-Poodle-Full-Gate.md) · [ClockKit 能力确认](research/RO23-V25-Poodle-Selector-ClockKit.md) · [受保护写入可行性](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) |
+| **外部方案核验** | [EscapeOS v0.3.2](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md) |
+| **构建与历史改动** | [BUILDING](BUILDING.md) · [CHANGELOG](CHANGELOG.md) |
+| **原始、未删减的旧版首页** | [旧 README 完整快照](research/ARCHIVE-Full-README-2026-11-11.md) · [旧中文 README](research/ARCHIVE-Full-README.zh-CN-2026-11-11.md) |
+
+> **关于旧代号：** 早期文件和诊断符号使用 `RO23` 作为内部研究记录前缀。它**不是手表型号、watchOS 版本或官方产品名称**。现在项目对外统一称为 **HermesEnabler · watchOS 26.x 兼容性研究**；为保证历史代码、脚本和链接可追溯，已有文件路径中的旧前缀暂不重命名。
+
+## 完整开发记录
+
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**可以展开查看全部 52 条历史记录**，无需在首页首屏阅读所有日志。新增工作也会继续接到这里。
+
+<details>
+<summary><strong>展开：V14.2–V30 与项目状态变更（GitHub 提交时间，新 → 旧）</strong></summary>
+
+| 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
 | **23:43** | **项目状态正式调整为 BLOCKED** | 依据 Ultra 1 / `23U95` 已验证的受保护 MobileGestalt 写入 `EPERM`、Class 13 令牌不赋予写权限，以及独立的 Hermès 表盘资格限制，决定**当前路线暂停**。保留 V0–V30 全部研究、源码、日志和 Git 历史，**不删除/归档仓库、不发布假解锁版本**。仅在同型号同固件取得可复现权限与原生表盘成功证据后恢复。此轮仅修改文档，没有对手表采取行动。 | [`fbaa159`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/fbaa1593b44df447b7fdccab8fb839b14a2494d5) |
 | **23:28** | **V30：EscapeOS v0.3.2 验证** | 针对我提出的新候选方案检查发布版、`Info.plist`、`AppGroupListing.swift`、`SandboxEscape.swift`、`worse_query.m` 与签名 entitlement。确认它是 **iPhone / iOS 26 App 数据与普通 App Groups 工具**；没有 watchOS 目标，普通 `group.` 容器 ≠ Watch `systemgroup.com.apple.mobilegestaltcache`；未获取 23U95 系统写权限。**无设备试写、无 Hermès 解锁**。[完整核验](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md)。 | [`db4d4d5`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/db4d4d5e7799c551804ee60fc0938a931e74060b) |
@@ -60,6 +97,16 @@
 | **15:07** | **V14.2.1** | 修复 `Boolean` 与系统类型命名冲突（改为 `RO23ReadBool`），移除无法使用的占位 App Group entitlement。 | [`ebc7693`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/ebc7693db5bb3fc34a59a726015df8f14cd2ea44) |
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
+
+</details>
+
+<details>
+<summary><strong>展开：V0–V14.1 早期研究（Issue #17 报告时间，新 → 旧）</strong></summary>
+
+这里的具体分钟是 **Issue #17 发帖/评论的发布时间**，不是每次实机测试的实际分钟，也不是当时的 Git 提交时间。V14 / V14.1 的精确执行时刻没有足够证据。
+
+| 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
+|---|---|---|---|
 | **14:55 前／时间未核实** | **V14.1 · Brand 返回类型修复** | 原始 Zeus 只读诊断把 ObjC 对象指针误当 int，曾报出 `399803152` 等假值；改为读取 `__NSCFNumber`，真实 `deviceBrand=0`，不是改品牌成功。 | [研究摘要](research/RO23-STATUS.zh-CN.md) |
 | **14:55 前／时间未核实** | **V14 · Zeus 专属表盘判断** | 研究 Zeus Analog、Spectrum、Hades/Secretariat 相关门槛；实机 `isZeusBlack=false`、`NTKShowHardwareSpecificFaces=false`，检查结果为受限，未启用任何原生表盘。 | [研究摘要](research/RO23-STATUS.zh-CN.md) |
 | **13:46（Issue 发布）** | **V13 · Hermes2025 分类** | 从 23U95 Hermes2025/ClockKit 反汇编得到类别白名单 `{2,3,5}`；Ultra 1 实测 `sizeClass=6`、`category=4`、`collectionType=9`、`brand=0`、`isUltra=true`，类别不合格。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6788186063) |
@@ -77,152 +124,10 @@
 | **11/10 23:20（Issue 发布）** | **V1 · 实机 Mach-O 只读扫描** | 搜索 `libMobileGestalt` 中 DeviceBrand 哈希与引用，找到真实键；最初描述符边界分析有误，后来 V3 修复。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913) |
 | **11/10 19:57（Issue 创建）** | **最初本地实验 · V0** | 改版 HermesEnabler2 安装到 Ultra 1、配置 App Group、MG 只读读取 **13,328 B**、按 23U95 重新备份；强制写入 `open(O_RDWR)` **EPERM**；Geod-MCM 无容器，Class7 三种 flags **NO TOKEN**。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) |
 
-**V14.2 以前的历史补录说明：** V0／V1–V14.1 的表格时间来自 [原作者 Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 的创建/报告发布时间（并非本仓库 commit 或确切实测分钟）；V14／V14.1 的准确分钟暂未核实。全部技术细节、日志与**错误更正**见 [V14.2 前完整操作史](research/RO23-PRE-V14.2-HISTORY.md)。原有 14:55 V14.2 合并及之后 GitHub commit 时间维持不变。
+</details>
 
-## V30｜EscapeOS v0.3.2 能否修改 Apple Watch 受保护 plist？
+## 研究归属与授权
 
-**答：不能作为 Ultra 1 / `23U95` 的系统写入解决方案。** 我提出 [EscapeOS v0.3.2](https://github.com/pwnapplehat/EscapeOS/releases/tag/v0.3.2) 后，本轮对**准确 tag 源码**进行了核查：`Resources/Info.plist` 表明应用运行平台是 `iPhoneOS` 且最低 iOS 26.0；其新增的“App Groups”功能仅在 iPhone 安装记录列出普通 App Group 标识和对应路径时浏览应用共享容器，`AppGroupListing.swift` 只接受 `group.` 前缀，并不等同手表独立的受保护 Apple `systemgroup.com.apple.mobilegestaltcache`。源码 `worse_query.m` 仍使用 Class 7，`EscapeOS.entitlements` 没有 Apple SystemGroup 私有写入 entitlement。没有新的目标手表读写测试，也不建议安装该 iPhone IPA 去改配对文件来“解锁”表盘。**真实写入障碍仍为 `open(O_RDWR) → EPERM`。** [查看证据和源码逐项表](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md)。
+HermesEnabler 原项目由 **[Jinwoo Kim（@pookjw）](https://github.com/pookjw/HermesEnabler)** 开发。本仓库的 Apple Watch Ultra 1 / watchOS 26.6.1 实机研究及 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 记录由 **[@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)** 维护，部分代码与文档含 AI 辅助。保留上游许可及第三方声明：[LICENSE](LICENSE) · [NOTICE](NOTICE.md)。
 
-## V29.1｜Filza、iPhone MobileGestalt 修改器、手表备份能否代替系统写权限？
-
-**研究问题：** Filza、MobileGestalt 编辑器能否修改 Apple Watch 的系统 plist，是否存在其他可用路径？ 本次是**工具能力与权限边界核验**，并非在 Mac/iPhone/Watch 上运行了新的写入测试。
-
-| 方案 | 已核查的事实 | 对 Ultra 1 / 23U95 的结论 |
-|---|---|---|
-| 原版 [Filza（TIGI 官方）](https://www.tigisoftware.com/default/?page_id=78) | 官方列明支持 iPhone、iPad、iPod touch，拥有 plist 编辑器；其读取对象取决于安装设备及实际文件权限 | **iPhone 上的 Filza 无法直接编辑另一台 Apple Watch 的受保护系统目录**。能打开本地导出的 `.plist` 不代表能写回手表 |
-| [WorstGestalt](https://github.com/GoldenNugget-Team/worstgestalt) / iPhone MG 修改器 | WorstGestalt 自述 iOS 26 可用 `bad_query` 等途径改**iPhone** 上的 MobileGestalt，部分其他 iOS 项目可能适用范围不同 | **这是 iOS 工具的兼容性声明，不是 Watch6,18/watchOS 26.6.1 成功写入证明**。避免把之前对 Erosion 的结论误写为“任何 iOS 26 都不能改 MG” |
-| iPhone Watch App 的容器及成对手表备份 | [Apple 官方备份说明](https://support.apple.com/en-my/108358) 列有表盘设置、外观、顺序等用户数据，但未列明受保护的 `systemgroup.com.apple.mobilegestaltcache` 可被备份编辑覆盖 | **可能影响受允许的表盘配置/同步，不是可证明的 `DeviceBrand` 写入渠道** |
-| 用 `.watchface` 导入 Hermès | [Apple ClockKit addWatchFace 官方 API](https://developer.apple.com/documentation/clockkit/clkwatchfacelibrary/addwatchface%28at%3Acompletionhandler%3A%29) 明确说明 Nike/Hermès 原生表盘限对应硬件，失败会回调错误 | 先改 iPhone 端表盘文件或导入有效 Circulaire 文件，也**不能保证绕过手表自身资格判断** |
-| 在手表中直接编辑受保护 plist | 已有 23U95 实机日志验证可读，但 `open(O_RDWR)` 被 `EPERM` 拒绝；Filza 的 plist 编辑功能、SFTP 客户端、Xcode 安装 App 均不能自动增加进程权限 | **只有具备真正有效的手表端写入权限/受信任系统服务才能操作**；目前没有验证到这种权限 |
-| 官方升级 watchOS 27 以使用其它工具 | [Apple 官方兼容列表](https://www.apple.com/my/os/watchos/) 包括 Ultra 2/3/4，**不包括第一代 Ultra** | **Ultra 1 无法通过官方更新升级到 watchOS 27**，不能推荐以此解决 |
-| 完整越狱/特权路径 | [公开 watchOS 26.x 兼容表](https://theapplewiki.com/wiki/Jailbreak/26.x) 对相关版本标注无可用工具 | 不能宣称物理上永远不可能，但截至本轮未核查到**匹配 Ultra 1/23U95 的可复现成功工具** |
-
-**结论：** 没有发现 Filza 或 iPhone 侧 MobileGestalt 编辑器能跨越手表的独立文件系统/权限边界；修改手表备份或导入真实 `.watchface` 并不等于改写手表 `MobileGestalt`。现阶段需要真正的**手表端**系统写权限；它目前仍被 `EPERM` 阻止。**本轮无需再次运行测试、没有修改 `BQCore.m`、没有宣称原生 Hermès 解锁。**
-
-## V29｜23U95 系统写入权限专项核查（问题未解决）
-
-**唯一目标：** 在拥有者的 Apple Watch Ultra 第一代（`Watch6,18`，watchOS 26.6.1 `23U95`）取得**真实、可读回验证**的系统缓存写入能力，以便后续检验原生 Hermès 表盘能否被系统接纳。不是改变 App 里的按钮或伪造 `true` 返回值。
-
-**本次实际完成：** 审核自身 `BQCore.m` 已有的 `BQEscape → BQSaveGestalt → bq_write_data` 写入链，核对 `worse_query` 开发者原始说明、`Erosion` 与 `WatchRegion` 源码、公开 watchOS 26.6.1 越狱兼容表，以及 Apple 2026-11-09 的 26.6.1 安全公告。**没有连接手表、执行漏洞、修改系统文件或生成所谓成功解锁包。**
-
-| 候选路径 | 有实据的结果 | 对 `Watch6,18 / 23U95` 的判定 |
-|---|---|---|
-| 现有 HermesEnabler `BQEscape` / Class 13 | 已有真机日志：受保护缓存可读，`open(O_RDWR)` 返回 `EPERM`；单独沙箱令牌未授予写权限 | **真实写入失败** |
-| [`forcequitOS/worse_query`](https://github.com/forcequitOS/worse_query) | 官方 PoC 说明 SystemGroup 通路属于 **iOS 27**；iOS 26 的适用路径范围不同，作者称其**不是越狱** | **没有证明支持 watchOS 26 的 MG 写入** |
-| [`jailbreakdotparty/Erosion`](https://github.com/jailbreakdotparty/Erosion) | FAQ 直说 `worse_query` 在 **iOS 26** 无法写 MobileGestalt | iOS 负面结果不能直接当作 watchOS 实测，但**不能作为 23U95 可写的依据** |
-| [`LogicSense1/WatchRegion`](https://github.com/LogicSense1/WatchRegion) | `RegionCache.swift` 经 `worse_query` 后仍调用 `open(O_RDWR)` 写受保护缓存；已公布成功设备是 Ultra 4、watchOS 27.3 beta `24S5284h` | **没有 Ultra 1 / 23U95 成功证据**；直接搬用仍可能 `EPERM` |
-| [公开 watchOS 26.x 越狱列表](https://theapplewiki.com/wiki/Jailbreak/26.x) | `26.6.1` 列为 `No Tool Available` | **没有核实到可用的公开完整越狱** |
-| [Apple watchOS 26.6.1 安全公告](https://support.apple.com/en-us/149723) | 官方发布日期 2026-11-09，所列修复集中在蓝牙/配对相关组件 | **不是可利用写入权限的公开方案** |
-
-**技术结论：** 要越过这个关口，必须有**真正赋予当前进程写入权限**的系统级执行环境／可验证漏洞链／Apple 授权的相应服务；单改 `DeviceBrand` 数值、缓存偏移、Xcode 签名、App 本地函数返回值或把 iOS 27 实验移植过来均不等于已经获得这种权限。当前没有可验证的 23U95 写入原语；**这个请求尚未解决。** 没有实施危险的猜测性缓存写入，避免损坏无恢复保障的配对手表。
-
-**验收标准（都必须真实通过）：** (1) 目标系统文件安全打开并有写权限，(2) 目标受保护状态修改后精确读回且重启后有效，(3) 系统接受并实际显示原生 Hermès 表盘。当前 **0/3**。不要把从另一个系统版本取得的 `write` 测试描述为 23U95 成功。
-
-## V28｜强制修改的真实可行性结论（仅源码审核，没有操作手表）
-
-我曾提出**强制修改**的目标以真正启动原生 Hermès 表盘，要求停止无关的静态函数跟踪。本轮直接审核现有 [`BQCore.m`](HermesEnabler2/BQCore.m)，没有执行或交付任何被描述为“成功解锁”的虚假开关。
-
-- `BQEnableHermes` 实际只调用 `BQSetHermesEnabled(YES,...)`。后者查找 `kDeviceBrandLayouts` 里的**精确固件版本**，当前只有 `24S5284h`、`24R359`、`24R364`、`24R365`、`24S118`、`24S132`；**不包含 `23U95`**。所以强行解除 UI 屏蔽仍不会使此原有写入流程支持 watchOS 26.6.1。
-- `BQSaveGestalt` 实际经 `BQEscape(kMGCaches,...)` 找到缓存，再使用 `bq_write_data` 的 `open(O_RDWR|O_CLOEXEC|O_NOFOLLOW)` / 临时文件 `rename` 写入。我此前针对受保护系统缓存的真实测试返回 **`EPERM`**。已有只读查询/沙箱令牌不能替代写入权。
-- V27.2 在真实固件中确认的 `_CLKIsFaceSnapshotService` 是**快照服务**例外，不是普通手表安装 Hermès 表盘的授权途径。Poodle 的正常限制仍未通过。
-- 公开的 [watchOS 26.x 越狱兼容列表](https://theapplewiki.com/wiki/Jailbreak/26.x) 在本次核查时没有列出支持 watchOS 26.6.1 / Ultra 1 的公开工具；**没有公开工具不等于数学意义上的不可能，但绝不能把未经验证的漏洞当作可用权限**。
-
-**决定：** 不再生成重复的 V27.x 反汇编任务；**不向 `main` 提交只会导致拒绝写入或可能损坏设备的所谓强制解锁代码**。真正的验收是：系统状态可写且读回核验成功 → 系统正常识别原生表盘 → 真实 Ultra 1 表盘成功显示并持久化。当前**三项均未达成，NOT UNLOCKED**。如有可复现且与 `Watch6,18/23U95` 完全匹配的权限来源，才能重新评估实装；没有则应明确告知阻塞，而非以新脚本代替解决方案。
-
-## V27.2 真实结果与 V27.3 下一步（2026-11-11）
-
-**我已执行的操作：** 从 GitHub 研究分支获取 `scripts/ro23-v27-2-branch-targets.sh`，在 Mac 上对原有 `Watch6,18/23U95` ARM64_32 共享缓存做静态检查；结果为 **`Completed: 0 command(s) failed`**。这是 **8 个离线 ipsw 查询成功**，不是手表上的 Hermès 表盘启动成功。
-
-| 代码作用 | 真实 ClockKit 符号 | 函数地址及结束地址 | 证据 |
-|---|---|---|---|
-| 受限表盘查找后的例外调用 | **`_CLKIsFaceSnapshotService`** | `0x49C76990–0x49C769C0` | 原始 Stub `0x55CE73DC` 分支；`ipsw a2s/a2f` 已核实 |
-| 内部版本判断 | **`_CLKInternalBuild`** | `0x49C2ED64–0x49C2ED94` | 原始 Stub `0x55CE731C` 分支；`ipsw a2s/a2f` 已核实 |
-
-- 两个函数均在 `/System/Library/Frameworks/ClockKit.framework/ClockKit`。
-- `_CLKIsFaceSnapshotService` 内部调用 `0x49C99CFC` 进行缓存相关初始化；其具体判断逻辑**尚未解析**。
-- V27.2 的 `--count 48` 把紧邻的其他函数也输出了，**从 `0x49C769C0` 和 `0x49C2ED94` 起的代码不属于上述两个函数**。
-- Snapshot Service 的例外不证明普通表盘添加流程已获授权；此前 Poodle 常规限制及 `_NTKCanAddWatchFace` 的其他验证仍有效。
-
-**历史命令（V27.3，已按 V28 决定停止；不要再执行）：** 以下命令读取现有固件，不会安装 IPA、更改签名、运行越狱或修改 Watch/iPhone 系统文件。运行产生的日志保存在桌面。
-
-```bash
-set -o pipefail
-REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
-git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit &&
-git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-3-snapshot-service-and-add-gates.sh \
-  | bash -s -- 2>&1 \
-  | tee "$HOME/Desktop/RO23-V27.3.txt"
-```
-
-完整核验记录：[V27.2 ClockKit 函数边界与原始证据](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md)；脚本：[V27.3](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/scripts/ro23-v27-3-snapshot-service-and-add-gates.sh)。
-
-## V27.1 最新的真实固件结果（Mac 离线运行，不是手表端动态执行）
-
-| 项目 | 验证结果 | 结论 |
-|---|---|---|
-| 固件与机器 | `Watch6,18` / `23U95` 完整 arm64_32 dyld shared cache | 我提供的真实 Mac 终端输出 |
-| 表盘限制例外调用 | `0x55CE73DC → 0x49C76990` | 由 `ADRP x16,0x49C76000; ADD #0x990; BR x16` 直接算出 |
-| 内部构建相关调用 | `0x55CE731C → 0x49C2ED64` | 由 `ADRP x16,0x49C2E000; ADD #0xD64; BR x16` 直接算出 |
-| 4 个查询失败 | 2 个 Stub Island × `a2f` / `a2o --image-rel` | 目标为 `__TEXT_STUBS`，不能按普通 dylib 映像直接归属；**并非反汇编失败** |
-| 2 个调用现场 | `0x544B0F94` 和 `0x544B1164` | 均确认在普通受限判断后走向相同的例外跳板 |
-| 下一检查 | `0x49C76990` / `0x49C2ED64` 的真实函数身份及返回条件 | 尚未证明为可用的授权绕过，`_NTKCanAddWatchFace` 仍独立检查 |
-
-**记录规则：** 后续每次提供测试指令、收到真实输出、取得结果或发现失败，都在 README 时间线新增一行（中英同步），标注真实 GitHub 提交时间及离线/手表实测边界；不能将“工具完成”标记成“表盘已启动”。完整原始指令摘要见 [V27.1 研究记录（PR 分支）](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.1-Stub-Binding-Audit.md)，下一脚本见 [V27.2（PR 分支）](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/scripts/ro23-v27-2-branch-targets.sh)。
-
-**本轮实际执行命令（V27.1，`--extended` 未运行）：**
-
-```bash
-set -o pipefail
-REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
-git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit
-git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-1-stub-binding-audit.sh \
-  | bash -s -- \
-  | tee "$HOME/Desktop/RO23-V27.1.txt"
-```
-
-**下一轮操作（V27.2，尚未执行）：**
-
-```bash
-set -o pipefail
-REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
-git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit &&
-git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
-  | bash -s -- 2>&1 | tee "$HOME/Desktop/RO23-V27.2.txt"
-```
-
-## 当天已确认的实机数据
-
-| 项目 | 已确认结果 | 意义 |
-|---|---|---|
-| **设备 / 系统** | Watch6,18 / watchOS 26.6.1 / `23U95` | RO23 研究对象，不等于上游正式支持的系统范围 |
-| **V13/V14.1** | `deviceCategory=4`, `collectionType=9`, `deviceBrand=0`, `isUltra=true` | 真实 ClockKit/MobileGestalt 属性 |
-| **V16** | `NTKInternalBuild=false`, `NTKShowHardwareSpecificFaces=false`, `NTKShowInternalFaces=false` | 已验证内部构建版本前置条件未通过 |
-| **Hermès 2025** | 类别白名单 `{2,3,5}` 不包含类别 `4` | 2025 表盘已知类别限制失败 |
-| **Hermès Circulaire** | `com.apple.NTKPoodleFaceBundle`，原始 ZIP/CRC 校验成功 | 文件真实有效，但这不代表手表能够安装 |
-| **Poodle 完整静态资格检查（V25）** | `category=4`, `collectionType=9`、`NTKShowHardwareSpecificFaces=false`，且匹配 ClockKit 能力调用返回 true | 完整 `isRestrictedForDevice:` 静态路径返回 restricted=true；并非 Watch 进程的动态调用 |
-| **系统写入与解锁** | 未发现可验证的受保护写入方法；**未解锁** | 不能把只读诊断或离线分析描述为破解成功 |
-
-## 研究文件与源码
-
-- [V0–V14.1｜V14.2 前完整操作史与 Issue #17 原始证据](research/RO23-PRE-V14.2-HISTORY.md)
-- [V27.2｜真实 ClockKit 快照服务与内部构建符号](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md)
-- [V27｜NanoTimeKit 受限表盘特殊跳板追踪](research/RO23-V27-Exception-Stub-Trace.md)
-- [V26｜watchOS 沙箱逃逸与 Ultra 1 适配评估](research/RO23-V26-WatchOS-Sandbox-Feasibility.md)
-- [V25｜Poodle 能力选择器与 ClockKit 返回值验证](research/RO23-V25-Poodle-Selector-ClockKit.md)
-- [V24｜Poodle 完整静态资格函数分析](research/RO23-V24-Poodle-Full-Gate.md)
-- [V22｜Poodle 手表端实测入口与限制分支](research/RO23-V22-Poodle-Runtime-Gate.md)
-- [V21｜Poodle 设备资格条件与未解析分支](research/RO23-V21-Poodle-Gate-Mapping.md)
-- [V20 / V20.1｜真实 Hermès Circulaire 文件分析](research/RO23-V20-Watchface-Archive-Import.md)
-- [V17｜FaceBundle 注册、查找与添加表盘检查](research/RO23-V17-FaceBundle-Loading-Chain.md)
-- [V16｜内部构建版本判断与实机日志](research/RO23-V16-InternalBuild-Gate.md)
-- [V19.1–V19.4｜Filza 源码与 iPhone Watch 数据目录](research/RO23-V19.1-Filza-Source-And-Bridge-Verification.md)
-- [完整研究进度（中文）](research/RO23-STATUS.zh-CN.md) · [全部变更记录](CHANGELOG.md) · [Xcode 工程说明](BUILDING.md)
-
-**使用现有工程：** 本仓库的 `HermesEnabler2.xcodeproj`；不要创建另一套 Xcode 工程。最新研究报告更新不一定对应手表 App 的新版本或新按钮。**RO23 是非官方研究分支，不能被宣传为已支持 watchOS 26 的 Hermès 解锁工具。**
-
-## 原作者、授权和研究归属
-
-- **HermesEnabler 2 原作者：** [Jinwoo Kim (@pookjw)](https://github.com/pookjw/HermesEnabler)。
-- **本仓库 RO23 实机与资料：** [@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY)；部分代码、分析报告及提交由 AI 辅助完成。
-- **相关项目：** [Gester](https://github.com/sasobhabha/Gester)。保留原项目 MIT 版权声明及第三方许可，详见 [LICENSE](LICENSE)、[NOTICE.md](NOTICE.md)。
-- **研究讨论：** [HermesEnabler Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)。Apple、Hermès 与原项目作者均未对本研究分支提供背书。
+本研究与 Apple 或 Hermès 无官方关联，**不保证解锁、安全性或兼容性**。

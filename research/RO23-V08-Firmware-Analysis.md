@@ -49,17 +49,17 @@ A public reverse-engineered **iOS 26.1** implementation suggested multiple paths
 
 This report distinguishes:
 
-- **OWNER MAC OUTPUT:** `ipsw` CLI output supplied by the owner after running commands on their own Mac.
+- **MY MAC OUTPUT:** `ipsw` CLI output supplied by me after running commands on their own Mac.
 - **BUILD-MATCHED BINARY:** the 76,112-byte `MobileGestaltHelper` extracted from `Watch6,18 / 23U95`, supplied as a ZIP and independently SHA-256 checked during analysis.
 - **DIRECT MACHINE-CODE FINDING:** executable instructions or metadata actually read from this binary.
 - **OTHER-BUILD REFERENCE:** iOS 26.1 `libMobileGestalt` and other-watch investigations, clearly distinguished from the Ultra 1 binary.
 - **INFERENCE / OPEN QUESTION:** claims which remain to be tested or cannot be proved from the Helper executable alone.
 
-The owner performed the downloads and extractions on macOS. The assistant did not remotely control the owner's Mac or Apple Watch, did not execute the Helper on the watch, and did not access or rewrite the live MobileGestalt cache in this stage.
+I performed the downloads and extractions on macOS. The AI-assisted analysis did not remotely control my Mac or Apple Watch, did not execute the Helper on the watch, and did not access or rewrite the live MobileGestalt cache in this stage.
 
 ## 3. Host tooling and the exact firmware archive
 
-The owner confirmed these properties:
+I confirmed these properties:
 
 ```text
 File: 596a9cab7fd039cffd431b392185c4cc2b355afe56aa743b27f18b9dd54e33c0.aea
@@ -71,7 +71,7 @@ Initial free disk space: approximately 17 GiB
 
 The generic `file: data` output is not evidence of corruption: the source is an encrypted Apple AEA archive. An initial interactive-shell issue was also encountered (`zsh: command not found: #` when pasted comment lines were interpreted as commands); setting `setopt interactivecomments` addressed that command-entry problem, unrelated to the firmware.
 
-The owner used the AEA key obtained for this OTA with `ipsw ota info --key-val ...` and successfully read metadata. The following is the observed output, abridged only to relevant fields:
+I used the AEA key obtained for this OTA with `ipsw ota info --key-val ...` and successfully read metadata. The following is the observed output, abridged only to relevant fields:
 
 ```text
 [OTA Info]
@@ -105,11 +105,11 @@ The Mac's SHA-256 of the AEA archive was:
 
 This digest was calculated locally. It has **not** been independently compared against an Apple-published expected hash and must not be described as external checksum verification. Successful `ipsw ota info` parsing and correct build/device identifiers establish a usable archive and metadata match, not a comprehensive proof of every contained payload's integrity.
 
-Firmware catalog used in the earlier investigation: https://cpeoples.github.io/signet/watch/watch6-18/ . The original AEA is retained on the owner's Mac; the firmware has not been reflashed or installed onto the watch during this analysis.
+Firmware catalog used in the earlier investigation: https://cpeoples.github.io/signet/watch/watch6-18/ . The original AEA is retained on my Mac; the firmware has not been reflashed or installed onto the watch during this analysis.
 
 ## 4. The OTA inventory located the target artifacts
 
-The owner ran the `ipsw ota ls` inventory commands, saving their outputs locally:
+I ran the `ipsw ota ls` inventory commands, saving their outputs locally:
 
 ```sh
 ipsw ota ls --key-val "$KEY" "$FW" > "$ROOT/ota-assets.txt"
@@ -144,7 +144,7 @@ The `post.bom` is an inventory/manifest, not proof that every file is independen
 
 ## 5. Targeted extraction of the build-matched Helper
 
-Instead of extracting the full OTA or the entire dyld cache, the owner used the targeted `ipsw` regex extraction path:
+Instead of extracting the full OTA or the entire dyld cache, me used the targeted `ipsw` regex extraction path:
 
 ```sh
 FW="$HOME/Downloads/596a9cab7fd039cffd431b392185c4cc2b355afe56aa743b27f18b9dd54e33c0.aea"
@@ -180,7 +180,7 @@ SHA256: 0e0c05244a3d35753e948783372f18e615ae2032cf7b750dd7a9cc57cfb3626e
 UUID:   9C92827B-594D-3731-9A6C-AF6E75886171
 ```
 
-The SHA-256 was computed once by the owner after extraction, again before ZIP upload, and independently checked on the decompressed upload; all results matched. This verifies that analysis used the exact supplied extracted executable. The ZIP contained the original executable and a small AppleDouble resource-fork metadata entry; the latter was not used for code analysis.
+The SHA-256 was computed once by me after extraction, again before ZIP upload, and independently checked on the decompressed upload; all results matched. This verifies that analysis used the exact supplied extracted executable. The ZIP contained the original executable and a small AppleDouble resource-fork metadata entry; the latter was not used for code analysis.
 
 ## 6. Mach-O build information and dependencies
 
@@ -217,7 +217,7 @@ Import-table presence alone establishes a dependency. The direct `BL` instructio
 
 ## 7. Why two first-pass tools failed (and what actually worked)
 
-The owner initially generated three static-analysis files with `ipsw macho info` and `ipsw macho disass`:
+I initially generated three static-analysis files with `ipsw macho info` and `ipsw macho disass`:
 
 | Output | Actual result | Interpretation |
 |---|---|---|
@@ -387,10 +387,10 @@ Do **not** infer from the Helper's entitlement list that a third-party developer
 |---|---|---|
 | Correct Ultra 1 / 23U95 DeviceBrand descriptor | Strongly identified: index 103, type 5, offsets 0x338 / 0x164F | Earlier Ultra tests in #17 |
 | Local `MGCopyAnswer(DeviceBrand)` | Works, returns numeric 0 | RO23 V7 |
-| Mac-side full OTA metadata match | Confirmed, Watch6,18_N199AP_23U95 | Owner's `ipsw ota info` |
-| Source archive AEA SHA-256 calculated | Yes; no independent expected-hash comparison | Owner's `shasum` |
-| OTA `post.bom` location of MobileGestaltHelper | Found | Owner's `ipsw ota ls --bom` |
-| Targeted native Helper extraction | Success, from `payload.054` | Owner's `ipsw ota extract` |
+| Mac-side full OTA metadata match | Confirmed, Watch6,18_N199AP_23U95 | my `ipsw ota info` |
+| Source archive AEA SHA-256 calculated | Yes; no independent expected-hash comparison | my `shasum` |
+| OTA `post.bom` location of MobileGestaltHelper | Found | my `ipsw ota ls --bom` |
+| Targeted native Helper extraction | Success, from `payload.054` | my `ipsw ota extract` |
 | Native Helper binary SHA-256 consistency | Success, 76,112-byte executable | Owner and independent ZIP check |
 | Objective-C query method location | Confirmed, IMP `0x5110` | Build-matched binary method list |
 | Direct BL to `_MGServerCopyAnswerWithError` | Confirmed at `0x51C4` | Build-matched ARM64_32 code |
@@ -405,12 +405,12 @@ A very important distinction: the Helper's code proves **who reports** the error
 
 ## 13. Next technical stage: matching ARM64_32 shared-cache library
 
-The next missing artifact is the actual watchOS 23U95 `/usr/lib/libMobileGestalt.dylib` image, expected in the corresponding `arm64_32` dyld shared-cache family. We have not acquired that library yet, and this report must not pretend that its watchOS internals have already been disassembled.
+The next missing artifact is the actual watchOS 23U95 `/usr/lib/libMobileGestalt.dylib` image, expected in the corresponding `arm64_32` dyld shared-cache family. I have not acquired that library yet, and this report must not pretend that its watchOS internals have already been disassembled.
 
-Planned, **not yet executed** on the owner's Mac:
+Planned, **not yet executed** on my Mac:
 
 1. Recheck available disk space before extracting the multi-segment cache family. During the above experiments, free space declined from roughly 17 GiB, to 15 GiB after inventory, then approximately 14 GiB after Helper extraction.
-2. Once the user has adequate storage, use `ipsw ota extract` with `--dyld --dyld-arch arm64_32` and an explicit output directory, avoiding extraction of unrelated firmware content where possible.
+2. Once me has adequate storage, use `ipsw ota extract` with `--dyld --dyld-arch arm64_32` and an explicit output directory, avoiding extraction of unrelated firmware content where possible.
 3. Use `ipsw dyld extract <DSC> /usr/lib/libMobileGestalt.dylib --output <dir>` to export only the relevant library (if present in that family). Do not use `--all` for dylib exports.
 4. Preserve source build identifiers, image UUID, extracted binary SHA-256, and dyld subcache companions; then statically trace `_MGServerCopyAnswerWithError`, `_MGServerQuestionIsPlatform`, server-context setup and question flags.
 5. Compare the real 23U95 implementation against the published **iOS 26.1** source, taking care not to treat same-named functions as proof of identical branch conditions on different operating systems.
@@ -430,7 +430,7 @@ ipsw dyld extract "$DSC" \
   --output "$ROOT/target"
 ```
 
-Some `ipsw` extraction paths create temporary decrypted/staging files despite small final target size. Do not run full extraction on the owner's nearly full Mac without an appropriate space margin.
+Some `ipsw` extraction paths create temporary decrypted/staging files despite small final target size. Do not run full extraction on my nearly full Mac without an appropriate space margin.
 
 ## 14. Reproduction and research references
 
@@ -447,12 +447,12 @@ Some `ipsw` extraction paths create temporary decrypted/staging files despite sm
 - dyld image extraction CLI: https://github.com/blacktop/ipsw/blob/master/cmd/ipsw/cmd/dyld/dyld_extract.go
 - Earlier **iOS 26.1** (not Watch6,18) reverse-engineered `libMobileGestalt`: https://github.com/EthanArbuckle/iPhone18-3_26.1_23B85_Restore/blob/main/usr/lib/libMobileGestalt/libMobileGestalt.mm
 
-The executable itself is not embedded in this public issue text. The file hash, build UUID, extracted path, and relevant instructions are sufficient to identify the artifact without publishing an Apple copyrighted binary or disclosing the owner's home-directory username.
+The executable itself is not embedded in this public issue text. The file hash, build UUID, extracted path, and relevant instructions are sufficient to identify the artifact without publishing an Apple copyrighted binary or disclosing my home-directory username.
 
 ## 15. Final status for the maintainer
 
-**The match-specific binary analysis has now crossed a useful boundary:** we are no longer relying solely on guessed XPC interface behavior or a reverse-engineered iOS binary. On the tested Ultra 1 build, the actual Apple MobileGestaltHelper executable was located in the full OTA, extracted, and independently analyzed. Its native query implementation directly calls `_MGServerCopyAnswerWithError` and packages the returned error, answer and optional log into the XPC dictionary, accounting for the exact shape observed in RO23 V7.
+**The match-specific binary analysis has now crossed a useful boundary:** I am no longer relying solely on guessed XPC interface behavior or a reverse-engineered iOS binary. On the tested Ultra 1 build, the actual Apple MobileGestaltHelper executable was located in the full OTA, extracted, and independently analyzed. Its native query implementation directly calls `_MGServerCopyAnswerWithError` and packages the returned error, answer and optional log into the XPC dictionary, accounting for the exact shape observed in RO23 V7.
 
 **What this does not mean:** it is not a sandbox escape, a watchOS kernel exploit, a writable SystemGroup token, a verified explanation of the `libMobileGestalt` error-9 branch, or a method to turn on Hermès faces. The earlier `EPERM`/sandbox-write denial still stands. The current safest next research step is static examination of the matching `libMobileGestalt.dylib` from the actual watchOS 23U95 dyld cache.
 
-I hope this build-matched evidence is useful for distinguishing Helper reply mechanics from the more difficult platform authorization and cache-editing questions. Thank you to @pookjw and everyone contributing reproducible watchOS research.
+I hope this build-matched evidence is useful for distinguishing Helper reply mechanics from the more difficult platform authorization and cache-editing questions. Thank the reader to @pookjw and everyone contributing reproducible watchOS research.

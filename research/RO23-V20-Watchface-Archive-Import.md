@@ -89,3 +89,43 @@ If those paths don't match the actual files, drag the real files onto Terminal; 
 **No on-watch code change, no new UI, no privileges or jailbreak, no system writes and no native unlock.**
 
 [RO23 V17 native gate analysis](RO23-V17-FaceBundle-Loading-Chain.md) · [RO23 V19.4 Filza file observations](RO23-V19.1-Filza-Source-And-Bridge-Verification.md) · [Original HermesEnabler](https://github.com/pookjw/HermesEnabler)
+
+
+## V20.1 — Real Hermès Circulaire archive successfully parsed (2026-11-11)
+
+**Original user-supplied attachment read directly**: `Hermès Circulaire(1).watchface` (Unicode filename normalized only in display; underlying bytes untouched). The owner had already uploaded this file in chat. Earlier requests for the owner to export/share it again were unnecessary.
+
+- **Actual size:** 249,760 bytes.
+- **SHA-256:** `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`
+- **Container:** valid ZIP. Python standard-library `zipfile.is_zipfile` succeeded, 7 entries listed, and `ZipFile.testzip() == None` (all entries' CRC passed).
+- **Entries:** `complicationData/`, `complicationData/bottom-left/`, `complicationData/top-left/`, `snapshot.png`, `metadata.json`, `face.json`, `no_borders_snapshot.png`.
+- **Manifests:** both `face.json` (584 bytes uncompressed) and `metadata.json` (1093 bytes uncompressed) successfully decoded as JSON. Their full private contents and the images are **not** copied to this public repo.
+
+**Verified minimal `face.json` fields** (only non-sensitive identifiers):
+
+```json
+{
+  "analytics id": "poodle",
+  "face type": "bundle",
+  "bundle id": "com.apple.NTKPoodleFaceBundle",
+  "forMigration": false,
+  "customization": {"color": "white"},
+  "version": 4
+}
+```
+
+**Other metadata** (only aggregate values): `metadata.json` has `version=2` and `device_size=2`, with five named complication positions. The interpretation of `device_size=2` is not established here. The source manifests may contain personalized complication configurations, so the public report deliberately omits their contents.
+
+### What this proves and does NOT prove
+
+1. The user's actual **Hermès Circulaire** archive names the *legacy Poodle* bundle `com.apple.NTKPoodleFaceBundle`, not the separate Hermes2025 face bundle. The display label and the native bundle name are not interchangeable.
+2. **Filza's “Could not decompress this file” was a viewer failure for this intact uploaded copy**, not proof the ZIP was damaged. We have not identified the exact cause inside Filza's viewer.
+3. The `forMigration: false` JSON property is a file field; **do not assume** it is passed unchanged to the separate Objective-C `faceBundleForBundleIdentifier:onDevice:forMigration:` parameter. The import pipeline hasn't been dynamically traced.
+4. The 23U95 Zeus Poodle restriction analysis recorded in V16 includes a later `collectionType == 5` acceptance branch or a fallback `NTKShowHardwareSpecificFaces()` condition, conditional on earlier category tests. On the owner's real Ultra 1, `collectionType=9` and `NTKShowHardwareSpecificFaces=false`, so the *observed properties fail those previously mapped Poodle conditions*. This is a static-plus-real-property conclusion, not a captured real face-install attempt. Independent restrictions may also apply.
+5. ZIP validity and a valid Bundle ID do **not** establish that the native face is eligible or installable on this watch. No Apple Watch face was installed, no system settings altered and no bypass verified.
+
+### Next research step
+
+Compare this **specific** `com.apple.NTKPoodleFaceBundle` against the actual 23U95 Zeus Poodle class restriction and the FaceBundleManager lookup predicate, using already-extracted firmware. Do not ask the owner to upload the same attachment again, change serial numbers or modify pairing files. If an already-observed import error exists, classify it separately from the viewer ZIP error.
+
+**Source:** the uploaded watchface archive, not a screenshot or an assumed description.

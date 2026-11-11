@@ -59,3 +59,8 @@ Audited the user's exact `filza27.2-v27.2.2.zip` (SHA-256 `2711ade73f7a383862b6f
 ## RO23 V20 — watchface archive and import-result research (2026-11-11)
 
 Verified FaceRead's actual .watchface JSON parser and Apple's public import error codes. Added **offline, read-only** `scripts/ro23-inspect-watchface.py` to inspect face identifiers and hashes without extracting images, touching system files, or modifying the watch. The real Hermès Circulaire file has only appeared as a Filza filename screenshot; **no file bytes yet, no known bundle ID, no unlock**. [V20 report](RO23-V20-Watchface-Archive-Import.md).
+
+
+## RO23 V20.1 — real Hermès Circulaire archive decoded (2026-11-11)
+
+The owner already uploaded the authentic 249,760-byte `Hermès Circulaire(1).watchface`. Direct ZIP/CRC and JSON checks passed (SHA-256 `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`). Actual identifiers are **`bundle id=com.apple.NTKPoodleFaceBundle`, `analytics id=poodle`, `face type=bundle`, `forMigration=false`**. The Poodle gate studied in V16 depends in part on collectionType 5 or the hardware-specific face flag, while the owner's watch reports 9/false. Filza viewer decompression error did not indicate corruption of this verified copy. **No face installation or unlock**. Private complication JSON was not published. [V20.1 report](RO23-V20-Watchface-Archive-Import.md).

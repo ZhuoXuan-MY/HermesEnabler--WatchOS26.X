@@ -77,3 +77,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V20：表盘包真实标识与系统导入失败分类（2026-11-11）
 
 已核查开源 FaceRead 的 `face.json`／`metadata.json` 解析字段及 Apple 官方 `CLKWatchFaceLibrary.ErrorCode`。现有 `Hermès Circulaire.watchface` 仅在 Filza 截图里出现，**没有收到其实际文件内容，不能臆造 Bundle ID 或导入结果**。已在同一个 GitHub 仓库新增只读离线脚本 `scripts/ro23-inspect-watchface.py`，只输出 SHA-256、`bundle id`、`analytics id`、`face type` 和组件数量，避免读取相片或私人复杂功能内容。提醒：`face.json` 的 `face type` 不一定等于 V17 的 NanoTimeKit `faceStyle=0x2C`。下一步优先比较一份原始爱马仕表盘与一份普通 Ultra 表盘文件，按真实 Bundle ID 对照固件门槛。**不改写、不重打包、不重复刷机或添加手表按钮。** 见 [V20 技术报告](RO23-V20-Watchface-Archive-Import.md)。
+
+
+## RO23 V20.1：已直接解析用户上传的原始 Hermès 表盘（2026-11-11）
+
+用户此前已成功上传 `Hermès Circulaire(1).watchface`，无需重复分享。直接 ZIP、全部 CRC 和 JSON 校验通过，文件 249,760 字节，SHA-256：`d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`。**真实 Bundle ID 是 `com.apple.NTKPoodleFaceBundle`，Analytics ID 是 `poodle`，Face Type 是 `bundle`，`forMigration=false`。** 文件不是 Hermes2025 Bundle，Filza 的无法解压不能作为文件损坏证明。结合原版 Zeus Poodle 限制分支和实机 `collectionType=9`、`NTKShowHardwareSpecificFaces=false`，该档案仍没有可验证的正常添加路径。没有改写系统或解锁表盘；公开仓库不存放原始文件、私人复杂功能或照片。详见 [V20.1](RO23-V20-Watchface-Archive-Import.md)。

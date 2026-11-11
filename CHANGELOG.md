@@ -108,3 +108,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Verified FaceRead's actual standard ZIP face.json fields: bundle id, analytics id, face type; metadata complication count; preview filename.
 - Added safe read-only Python 3 inspector for one/many existing .watchface archives: SHA-256, root JSON identifiers, no extraction/writes/network/face-installation.
 - Classified Apple public faceNotAvailable vs invalidFile vs permissionDenied; no real Hermès sample bytes, no inferred Bundle ID or unlock.
+
+
+### RO23 V20.1 — decoded actual uploaded Hermès Circulaire watchface (2026-11-11)
+- Verified original 249,760-byte watchface has valid ZIP central directory, 7 entries, all CRC passes, and readable JSON.
+- Confirmed actual legacy bundle com.apple.NTKPoodleFaceBundle, analytics id poodle, face type bundle, forMigration=false. Do not conflate face.json migration flag with the NanoTimeKit method argument.
+- Compared with V16 Poodle static conditions and actual Ultra1 collectionType=9/hardware-face predicate=false. No native face installation or unlock. Kept personalized manifest data out of public GitHub.

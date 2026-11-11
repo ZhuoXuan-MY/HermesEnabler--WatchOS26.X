@@ -121,3 +121,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Distinguished Poodle's documented category=1 exclusion from Hermes2025's different {2,3,5} whitelist; do not claim category=4 alone rejects Poodle.
 - Evaluated the known conditional Poodle fallback with real Ultra values: collectionType=9, NTKShowHardwareSpecificFaces=false -> restricted on that reached branch; earlier branches unresolved.
 - Added optional read-only offline, SHA-256-verified llvm-objdump script for Poodle's full function prologue. No watch-side code changes or unlock.
+
+
+### RO23 V22 — watch-side Poodle eligibility checkpoint (2026-11-11)
+- Added actual source implementation `RO23V22PoodleReport()` that reads current device category/collection, NanoTimeKit internal-build/hardware-face predicate, and conditionally queries the original Poodle class if already registered in this process.
+- Added **V22 · Poodle eligibility** directly to the watch home screen with clear RO23 V22 version marker, and also to secondary diagnostics.
+- Reports static fallback estimates as conditional, not full-function facts. No force bundle loading, private hooks, watchface installation or protected writes. Real Watch6,18 test and Xcode build are not yet verified.

@@ -211,3 +211,84 @@ NSString *RO23V16InternalBuildReport(void) {
     [log addObject:@"RO23 V16 END systemWrites=NO"];
     return Done(log);
 }
+
+
+// RO23 V22 — Poodle-specific in-process diagnostic.
+// File identity (from the owner's real .watchface): com.apple.NTKPoodleFaceBundle.
+// 23U95 Zeus implementation is NTKPoodleFace, sometimes not registered in the
+// app process. A missing class here DOES NOT mean it is absent from firmware.
+// No bundle injection/loading, cache writes, device changes or face installation.
+NSString *RO23V22PoodleReport(void) {
+    NSMutableArray<NSString *> *lines = [NSMutableArray arrayWithObjects:
+        @"RO23 V22 — Hermès Circulaire / Poodle (read only)",
+        [NSString stringWithFormat:@"Build=%@", Build()],
+        @"ArchiveBundleID=com.apple.NTKPoodleFaceBundle (V20.1 uploaded archive)",
+        nil];
+
+    if (!RO23IsTargetBuild()) {
+        [lines addObject:@"Not 23U95; target-specific evaluation stopped."];
+        [lines addObject:@"RO23 V22 END systemWrites=NO"];
+        return Done(lines);
+    }
+    id device = Device();
+    if (!device) {
+        [lines addObject:@"CLKDevice.currentDevice=unavailable; cannot evaluate gates."];
+        [lines addObject:@"RO23 V22 END systemWrites=NO"];
+        return Done(lines);
+    }
+
+    int category = 0, collection = 0;
+    BOOL hasCategory = Integer(device, @"deviceCategory", &category);
+    BOOL hasCollection = Integer(device, @"collectionType", &collection);
+    [lines addObject:[NSString stringWithFormat:@"deviceCategory=%@", Fmt(hasCategory, category)]];
+    [lines addObject:[NSString stringWithFormat:@"collectionType=%@", Fmt(hasCollection, collection)]];
+
+    typedef bool (*RO23Predicate)(void);
+    RO23Predicate internalBuild = (RO23Predicate)RO23NanoTimeKitSymbol("NTKInternalBuild");
+    RO23Predicate hardwareFaces = (RO23Predicate)RO23NanoTimeKitSymbol("NTKShowHardwareSpecificFaces");
+    [lines addObject:[NSString stringWithFormat:@"NTKInternalBuild=%@",
+                      internalBuild ? (internalBuild() ? @"true" : @"false") : @"unavailable"]];
+    BOOL canEvaluate = hardwareFaces != NULL;
+    BOOL hardware = canEvaluate ? (BOOL)hardwareFaces() : NO;
+    [lines addObject:[NSString stringWithFormat:@"NTKShowHardwareSpecificFaces=%@",
+                      canEvaluate ? (hardware ? @"true" : @"false") : @"unavailable"]];
+
+    if (hasCategory) {
+        [lines addObject:[NSString stringWithFormat:
+            @"Poodle known category==1 exclusion=%@ (other early tests unresolved)",
+            category == 1 ? @"MATCH" : @"NOT MATCHED"]];
+    } else {
+        [lines addObject:@"Poodle known category==1 exclusion=UNDETERMINED"];
+    }
+
+    if (!hasCollection || !canEvaluate) {
+        [lines addObject:@"Poodle known collection/hardware fallback=UNDETERMINED"];
+    } else if (collection == 5) {
+        [lines addObject:@"Poodle known collectionType==5 branch=not restricted there (other tests remain)"];
+    } else {
+        [lines addObject:[NSString stringWithFormat:
+            @"Poodle known fallback if reached=%@ (static model, not direct face result)",
+            hardware ? @"NOT RESTRICTED" : @"RESTRICTED"]];
+    }
+
+    // Check class registration in THIS process only. Never dlopen the Zeus
+    // FaceBundle, invoke bundle loader or force migration. If the OS already
+    // registered the class, its original eligibility method may be queried.
+    Class faceClass = NSClassFromString(@"NTKPoodleFace");
+    [lines addObject:[NSString stringWithFormat:@"NTKPoodleFace registered in this process=%@",
+                      faceClass ? @"true" : @"false"]];
+    SEL restrictionSelector = NSSelectorFromString(@"isRestrictedForDevice:");
+    if (faceClass && [(id)faceClass respondsToSelector:restrictionSelector]) {
+        BOOL actualRestricted =
+            ((BOOL (*)(id, SEL, id))objc_msgSend)((id)faceClass, restrictionSelector, device);
+        [lines addObject:[NSString stringWithFormat:
+            @"NTKPoodleFace.isRestrictedForDevice(actual in-process)=%@",
+            actualRestricted ? @"RESTRICTED" : @"NOT RESTRICTED"]];
+    } else {
+        [lines addObject:@"NTKPoodleFace.isRestrictedForDevice=unavailable (class/method not registered)"];
+    }
+    [lines addObject:@"A missing class here is not proof that firmware lacks the bundle."];
+    [lines addObject:@"No face installed; no protected writes; no system settings changed."];
+    [lines addObject:@"RO23 V22 END systemWrites=NO"];
+    return Done(lines);
+}

@@ -4,12 +4,13 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model = ContentModel()
     @State private var v16Result = ""
+    @State private var v22Result = ""
 
     var body: some View {
         NavigationStack {
             List {
                 Section("RO23 · Ultra 1 research") {
-                    Text("RO23 V16.1 installed · read-only")
+                    Text("RO23 V22 · read-only diagnostics")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Button {
@@ -19,6 +20,15 @@ struct ContentView: View {
                     }
                     if !v16Result.isEmpty {
                         Text(v16Result)
+                            .font(.system(.caption2, design: .monospaced))
+                    }
+                    Button {
+                        v22Result = RO23V22PoodleReport()
+                    } label: {
+                        Label("V22 · Poodle eligibility", systemImage: "magnifyingglass")
+                    }
+                    if !v22Result.isEmpty {
+                        Text(v22Result)
                             .font(.system(.caption2, design: .monospaced))
                     }
                     NavigationLink { RO23ResearchView() } label: {

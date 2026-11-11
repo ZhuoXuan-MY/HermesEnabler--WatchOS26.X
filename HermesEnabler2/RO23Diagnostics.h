@@ -5,3 +5,4 @@ FOUNDATION_EXPORT NSString *RO23CacheSnapshot(void);
 FOUNDATION_EXPORT NSString *RO23ClockKitReport(void);
 FOUNDATION_EXPORT NSString *RO23ZeusReport(void);
 FOUNDATION_EXPORT NSString *RO23V16InternalBuildReport(void);
+FOUNDATION_EXPORT NSString *RO23V22PoodleReport(void);

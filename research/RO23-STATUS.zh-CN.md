@@ -62,3 +62,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V19.2：Bridge Library 目录实机补证（2026-11-11）
 
 用户补充八张 Filza 实机截图，确认 `Library/Application Support` 仅列出 `com.apple.MediaPlayer` 和 `.tipkit`；`Library/SyncedPreferences/com.apple.kvs` 下可到达 `ChangeTokens/EndToEndEncryption/Bridge/com.apple.weather`（疑似同步令牌，应停止进入并避免分享内容）；`Library/Preferences` 中存在 `com.apple.ClockKit.plist`（80 B）与 `com.apple.pbbridge.plist`（68 B）；另有未确认类型的 `com.apple.Bridge-ServerObjectDatab…/Database`（29 KB）。**以上仅为文件名与元数据，不能证明表盘授权、Watch 系统写入或序列号可修改。** 下一步仅查看 ClockKit plist 的顶层键名，遮盖私人信息、不保存修改。原生 Hermès 未解锁。详见 [V19.1 附录 V19.2](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。
+
+
+## RO23 V19.3：ClockKit plist 唯一真实键值（2026-11-11）
+
+用户实际打开 iPhone Watch 应用数据容器 `Library/Preferences/com.apple.ClockKit.plist`（80 B），发现 `Dictionary[1]` 只有一个 String：`HandFactoryCachedBuild = 24B5089g`。独立构建版本资料证实 `24B5089g` 对应 **iOS 27.2 Beta 2（2026-09-21）**；它不等于 Ultra 1 的 `23U95`，亦不能证明当前 iPhone 仍是该 Beta。该字段的内部用途尚未逆向核实，只能从名称判断可能是某个版本缓存，不是已经验证的爱马仕授权开关。**不得改写该值或点击 Save**。接下来查看独立 `com.apple.NanoTimeKit.CreateWatchFace` 组件能否打开数据容器及其顶层目录；无需碰配对令牌。见 [V19.3 记录](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。

@@ -90,3 +90,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Recorded observed iPhone Watch application Library folders and candidate ClockKit.plist (80 B), pbbridge.plist (68 B) from Filza screenshots.
 - Identified E2E KVS change-token path as potentially sensitive; no token content inspection or pairing database edits.
 - No proof of watchOS native face entitlement or filesystem writes. No code or UI changes.
+
+
+### RO23 V19.3 — ClockKit preference single-key evidence (2026-11-11)
+- Actual Filza screenshot: com.apple.ClockKit.plist Dictionary[1], String HandFactoryCachedBuild=24B5089g.
+- Correlated cache build string with iOS 27.2 beta 2 (2026-09-21). Does not establish current iPhone build or watch Hermès authorization.
+- No system write or Xcode source changes; next test is only listing CreateWatchFace component app-container top level.

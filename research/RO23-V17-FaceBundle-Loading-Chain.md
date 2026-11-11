@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-11. **Target:** first-generation Apple Watch Ultra (Watch6,18 / n199ap), watchOS 26.6.1, build 23U95.
 
-**STATUS: NATIVE HERMÈS FACES ARE NOT UNLOCKED.** This is independent **offline static disassembly** of Apple's matching NanoTimeKit binary, cross-referenced against the owner's V13, V14.1 and V16 read-only watch logs. No new system write, face injection, jailbreak, altered signing entitlements, or on-watch face load was performed.
+**STATUS: NATIVE HERMÈS FACES ARE NOT UNLOCKED.** This is independent **offline static disassembly** of Apple's matching NanoTimeKit binary, cross-referenced against my V13, V14.1 and V16 read-only watch logs. No new system write, face injection, jailbreak, altered signing entitlements, or on-watch face load was performed.
 
 **Original project:** Jinwoo Kim (@pookjw), [HermesEnabler](https://github.com/pookjw/HermesEnabler). **RO23 device research:** @ZhuoXuan-MY; AI-assisted analysis and documentation.
 
@@ -18,14 +18,14 @@ Extracted private framework: `/System/Library/PrivateFrameworks/NanoTimeKit.fram
 ### Evidence categories
 
 - **STATIC:** branch condition and selector are visible in the extracted binary.
-- **DEVICE:** values reported by the owner from the running Watch6,18 / 23U95.
+- **DEVICE:** values reported by me from the running Watch6,18 / 23U95.
 - **INFERENCE:** combined interpretation of these observations. No execution trace of a Hermès bundle was captured.
 
 ## 2. Registry construction is not a permission grant
 
 `-[NTKFaceBundleManager _generateLookupsIfNecessary]` at **0x544B0AA0** calls the loader's selector `enumerateFaceBundleClassesIgnoringCache:withBlock:` at **0x544B0B8C**.
 
-It builds a class lookup, but this does **not** establish that each discovered bundle can be enumerated, looked up for a particular device or added to the user's face library. The three subsequent filters below are independently implemented.
+It builds a class lookup, but this does **not** establish that each discovered bundle can be enumerated, looked up for a particular device or added to my face library. The three subsequent filters below are independently implemented.
 
 ## 3. Listing stage — restricted faces skipped
 
@@ -57,7 +57,7 @@ If the class reports `isRestrictedForDevice:=true`, execution skips the enumerat
 0x544B1050   mov  x22, #0               ; nil result
 ```
 
-**Important qualification:** the method is explicitly parameterized `forMigration:`. Its migration-specific branch skips the indicated normal restriction check, but this **is not a demonstrated ordinary add-to-library route**, and separate add validations still exist. We do not propose invoking private migration methods to alter the watch.
+**Important qualification:** the method is explicitly parameterized `forMigration:`. Its migration-specific branch skips the indicated normal restriction check, but this **is not a demonstrated ordinary add-to-library route**, and separate add validations still exist. I do not propose invoking private migration methods to alter the watch.
 
 **Unresolved:** the implementation/name behind the distinct external call `0x55CE73DC` is not established from the stand-alone extracted dylib. It must **not** be conflated with the prior V16 call `0x55CE731C` associated with `NTKInternalBuild`; those are different addresses. The extracted dylib's standalone Mach-O bind/lazy-bind tables provided no direct symbol mapping for this call.
 

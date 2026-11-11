@@ -15,3 +15,10 @@
 后续：Xcode 首次编译与真机验证、NanoTimeKit 其他合法准入路径研究。目前没有任何已验证的 Ultra 1 原生 Hermès 解锁方法。
 
 [原作者项目](https://github.com/pookjw/HermesEnabler) · [上游研究 Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
+
+
+## V14.2.1 真机验证完成／V15 静态研究（2026-11-11）
+
+用户已通过 Xcode 在 Ultra 1／23U95 实际运行合并工程里的 V13、V14.1 和 MG 缓存只读诊断。结果稳定为 `deviceBrand=0`（`__NSCFNumber`）、`deviceCategory=4`、`collectionType=9`、`NTKShowHardwareSpecificFaces=false`。缓存再次验证索引 103／偏移 `0x338`／有效位 1。原生 Hermès 表盘**仍未解锁**，所有表盘判断仍为限制状态。
+
+V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` 存在前置检查和 `ShowHardwareSpecificFaces` 配置键，但前置调用的实际身份未解析；**不能将配置键存在视为普通 Ultra 可开启该表盘的证据**。见 [V15 技术分析](RO23-V15-NanoTimeKit-Gate.md)。

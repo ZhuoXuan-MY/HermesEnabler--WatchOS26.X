@@ -38,3 +38,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Rename RO23Diagnostics C helper Boolean to RO23ReadBool to avoid CoreFoundation Boolean typedef collision.
 - Remove placeholder App Group entitlement from the read-only research signing profile; free/personal development teams may not have App Groups provisioning.
 - No changes to protected MG cache or watchface installation. Real Xcode build still needs user-side verification.
+
+
+### RO23 V15 — read-only evidence update (2026-11-11)
+- Device owner confirmed the merged Xcode project runs V13, V14.1 and MG snapshot diagnostics on Watch6,18 / 23U95.
+- Added offline NanoTimeKit analysis of NTKShowHardwareSpecificFaces precondition, cached setting and notification.
+- No new watch-side probes or protected system writes; native Hermès faces are not unlocked.

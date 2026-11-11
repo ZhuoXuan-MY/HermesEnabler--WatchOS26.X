@@ -36,3 +36,7 @@ The Objective-C source was also updated to rename `Boolean(...)` to `RO23ReadBoo
 3. Xcode menu **Product → Clean Build Folder** (`Shift+⌘K`), then `⌘B` and `⌘R`.
 
 If the next build reports a *different* error, provide the exact text; this patch is static-source verified, **not** verified via a macOS Xcode build.
+
+
+### Device build verification update (2026-11-11)
+The device owner subsequently supplied Xcode-run logs for V13, V14.1 and MG snapshot in the merged watch app. These three flows now have **user-reported real-watch execution evidence** on 23U95, including the corrected RO23ReadBool helper. This does not verify an unlocked watchface or successful system modifications.

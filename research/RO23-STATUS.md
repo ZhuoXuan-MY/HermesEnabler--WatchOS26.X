@@ -19,3 +19,8 @@ All current active RO23 UI probes are **read-only**, manually invoked, and repor
 **Current merged Xcode design:** the latest upstream code is the functional base; a separate RO23Diagnostics.m/.h and RO23ResearchView.swift hold the probes. On 23U95 the landing UI hides upstream feature-changing controls and allows the research screen without requiring MG backup. Older V1–V7 code is archived as text (not compiled).
 
 Sources: [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17), [Issue #7](https://github.com/pookjw/HermesEnabler/issues/7), V8/V9 reports and other notes in this folder.
+
+
+## V14.2.1 on-device validation / V15 static follow-up (2026-11-11)
+
+The device owner successfully ran the merged RO23 V13, V14.1 and MG cache read-only diagnostics under 23U95. `deviceBrand=0` was confirmed as `__NSCFNumber`, and cache layout index 103 / offset 0x338 / validity 1 was independently reported again. Observed gate outcomes remain RESTRICTED/FAIL; **no native Hermès unlock**. [Full V15 analysis](RO23-V15-NanoTimeKit-Gate.md).

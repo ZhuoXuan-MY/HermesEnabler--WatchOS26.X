@@ -1,6 +1,6 @@
 # RO23 开发日志｜Apple Watch Ultra 1 · 23U95
 
-**研究进度截至：2026-11-11 23:15（北京时间，UTC+08:00）**  
+**研究进度截至：2026-11-11 23:23（北京时间，UTC+08:00）**  
 **研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
 **当前结果：原生 Hermès 表盘尚未解锁。**
 
@@ -10,6 +10,7 @@
 
 | 时间（北京时间） | 版本 | 具体做了什么 | GitHub 提交 |
 |---|---|---|---|
+| **23:23** | **V14.2 以前历史重建／文档补录** | 核对 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 原帖及10条评论、早期本仓库诊断记录，补齐 V0、V1–V14.1 各阶段的真实动作与结果；将 Issue 评论的**发布时间**和真实操作时间分开，保留错误 index206→正确 index103 的更正，新增 [前史完整报告](research/RO23-PRE-V14.2-HISTORY.md)。**本次只是补写文档，不是重新运行旧实验。** | [`dddba1a`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/dddba1a65df9000018eed3263598b2636a7b4e1d) |
 | **23:15** | **V29.1 Filza / MG 编辑器替代路径核查** | 确认 iPhone 上的 Filza 只能访问其实际获授权的设备文件，不能直接改写独立的 Apple Watch 受保护 `plist`；WorstGestalt 的 iOS 26 成功声明不代表 watchOS 26 成功；配对手表备份包含表盘设置却不能证明可替换 MG 缓存。Apple 官方 watchOS 27 兼容列表**不含 Ultra 1**。因此 23U95 手表端 `EPERM` 写入阻塞仍未解决；本轮没有执行设备写入或解锁。 | [`c5ae0a4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/c5ae0a47aafd3529a4f68a94e9b0d9c5e9ee80f8) |
 | **22:39** | **V29 系统写入权限专项核查：尚未解决** | 对照 `BQCore.m` 既有读写路径与 `worse_query`、Erosion、WatchRegion 的实际源码；确定 Ultra 4 / watchOS 27.3 beta 的系统缓存写入不能直接视为 Ultra 1 / 23U95 可用；`worse_query` 在 iOS 26 无 MobileGestalt 写入能力，公开 watchOS 26.6.1 越狱表无可用工具。**本轮无手表连接、无权限提升、无系统写入、无解锁**；目标仍需真实写入与重启持久化验证。 | [`abfb7d0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/abfb7d0280a29844cda3cd32f105f0a85a86760d) |
 | **22:25** | **V28 强制修改可行性（源码实审）** | 按“强行修改”的要求直接审查 `BQCore.m`，确认 `BQSetHermesEnabled` 的固件白名单**不含 23U95**，而此前真实 `BQSaveGestalt` 受保护写入因 `EPERM` 被系统拒绝。删除 App 版本检查不能获得写权限；决定停用 V27.3 的无效离线任务，未向手表写入，未创建假解锁开关。验收只看真实系统写入、普通原生表盘添加和手表显示。 | [`ddcdd1e`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/ddcdd1e1b51b4cfc0a10454b41a2d4f325933eca) |
@@ -43,6 +44,24 @@
 | **15:07** | **V14.2.1** | 修复 `Boolean` 与系统类型命名冲突（改为 `RO23ReadBool`），移除无法使用的占位 App Group entitlement。 | [`ebc7693`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/ebc7693db5bb3fc34a59a726015df8f14cd2ea44) |
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
+| **14:55 前／时间未核实** | **V14.1 · Brand 返回类型修复** | 原始 Zeus 只读诊断把 ObjC 对象指针误当 int，曾报出 `399803152` 等假值；改为读取 `__NSCFNumber`，真实 `deviceBrand=0`，不是改品牌成功。 | [研究摘要](research/RO23-STATUS.zh-CN.md) |
+| **14:55 前／时间未核实** | **V14 · Zeus 专属表盘判断** | 研究 Zeus Analog、Spectrum、Hades/Secretariat 相关门槛；实机 `isZeusBlack=false`、`NTKShowHardwareSpecificFaces=false`，检查结果为受限，未启用任何原生表盘。 | [研究摘要](research/RO23-STATUS.zh-CN.md) |
+| **13:46（Issue 发布）** | **V13 · Hermes2025 分类** | 从 23U95 Hermes2025/ClockKit 反汇编得到类别白名单 `{2,3,5}`；Ultra 1 实测 `sizeClass=6`、`category=4`、`collectionType=9`、`brand=0`、`isUltra=true`，类别不合格。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6788186063) |
+| **05:27（Issue 汇总）** | **V12 · ClockKit 对照** | 提取真实 23U95 `ClockKit`（1,425,840 B）并核查 `CLKDevice` 的 Brand/Category/Collection/Ultra getter 和 NanoRegistry 能力路径；只是静态检查，未修改手表。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6779723360) |
+| **05:27（Issue 汇总）** | **V11 · NanoTimeKit 门槛** | 提取匹配 `NanoTimeKit`（11,395,800 B），分析 FaceBundle Manager、`_NTKFaceStyleIsAvailable`、Hermes2025 `isRestrictedForDevice:`，证明存在多重准入检查。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6779723360) |
+| **05:27（Issue 汇总）** | **V10 · 固件含原生表盘** | 从 23U95 OTA 清单及文件中找到 `NTKHermes2025FaceBundle`、Carousel、ClockFace、nanotimekitd；证明代码存在，**不等于设备可使用**。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6779723360) |
+| **04:25（Issue 发布）** | **V9 · MG Helper 错误9逆向** | 从目标 dyld 缓存取得 991,764 B 的 `libMobileGestalt`，定位 `_MGServerCopyAnswerWithError` 和描述符检查；解释 V7 `error=9` 的静态原因，并二次核实 Brand index103。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6778385658) |
+| **04:05（Issue 发布）** | **V8 · 23U95 OTA + Helper** | 取得匹配 Watch6,18 的 3.76 GB AEA OTA，核查 BOM，提取 76,112 B `MobileGestaltHelper`，用 LLVM 解决 arm64_32 反汇编障碍，确认其调用 Server API；无系统写入。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777949079) |
+| **03:28（Issue 发布）** | **V7 · XPC 四问** | 本地 `MGCopyAnswer` 可读 Brand 明文/哈希、BuildVersion、ProductType；Helper XPC **四项全返回 `error=9` 且没有 answer**，与 `EPERM` 不同。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777128180) |
+| **03:28（Issue 发布）** | **V6 · 首次 Helper XPC** | 连接 `com.apple.mobilegestalt.xpc`，向 `getServerAnswerForQuestion:reply:` 只读询问 DeviceBrand；收到 `error=9`、无 answer，没有重建缓存。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777128180) |
+| **03:28（Issue 发布）** | **V5 · Mach Service 查找** | 通过 bootstrap API 找到 `com.apple.mobilegestalt.xpc`，`kr=0` 且有有效 send right；只能证明服务可访问到，非系统写权限。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6777128180) |
+| **11/10 23:20（Issue 发布）** | **V4 · Class 13 权限差异** | 普通 App Group 存在、Apple 私有 SystemGroup entitlement 缺失；Class13 **token取得并激活 (`handle=2`)**，但 MG 写入/创建前后仍 DENY；此轮没有系统写入。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913) |
+| **11/10 23:20（Issue 发布）** | **V3 · 更正 DeviceBrand** | 发现前版误读相邻记录：真正 `flags=12`、`index=103`、`type=5`、值 `0x338`、presence `0x164F`；**废弃错误206/0x670**。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913) |
+| **11/10 23:20（Issue 发布）** | **V2 · MGCopyAnswer 类型** | 修正两参数 API 调用，直接查 DeviceBrand 明文与哈希，均得 **CFNumber(0)**；验证不是把 CF 类型当 MG 内部类型。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913) |
+| **11/10 23:20（Issue 发布）** | **V1 · 实机 Mach-O 只读扫描** | 搜索 `libMobileGestalt` 中 DeviceBrand 哈希与引用，找到真实键；最初描述符边界分析有误，后来 V3 修复。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913) |
+| **11/10 19:57（Issue 创建）** | **最初本地实验 · V0** | 改版 HermesEnabler2 安装到 Ultra 1、配置 App Group、MG 只读读取 **13,328 B**、按 23U95 重新备份；强制写入 `open(O_RDWR)` **EPERM**；Geod-MCM 无容器，Class7 三种 flags **NO TOKEN**。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) |
+
+**V14.2 以前的历史补录说明：** V0／V1–V14.1 的表格时间来自 [原作者 Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 的创建/报告发布时间（并非本仓库 commit 或确切实测分钟）；V14／V14.1 的准确分钟暂未核实。全部技术细节、日志与**错误更正**见 [V14.2 前完整操作史](research/RO23-PRE-V14.2-HISTORY.md)。原有 14:55 V14.2 合并及之后 GitHub commit 时间维持不变。
 
 ## V29.1｜Filza、iPhone MobileGestalt 修改器、手表备份能否代替系统写权限？
 
@@ -165,6 +184,7 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 
 ## 研究文件与源码
 
+- [V0–V14.1｜V14.2 前完整操作史与 Issue #17 原始证据](research/RO23-PRE-V14.2-HISTORY.md)
 - [V27.2｜真实 ClockKit 快照服务与内部构建符号](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md)
 - [V27｜NanoTimeKit 受限表盘特殊跳板追踪](research/RO23-V27-Exception-Stub-Trace.md)
 - [V26｜watchOS 沙箱逃逸与 Ultra 1 适配评估](research/RO23-V26-WatchOS-Sandbox-Feasibility.md)

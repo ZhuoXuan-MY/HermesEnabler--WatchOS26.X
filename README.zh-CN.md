@@ -1,15 +1,30 @@
 # RO23 开发日志｜Apple Watch Ultra 1 · 23U95
 
-**研究进度截至：2026-11-11 23:28（北京时间，UTC+08:00）**  
+**研究进度截至：2026-11-11 23:43（北京时间，UTC+08:00）**  
 **研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
-**当前结果：原生 Hermès 表盘尚未解锁。**
+**当前状态：BLOCKED — 当前技术路线受阻；原生 Hermès 表盘尚未解锁，V0–V30 研究完整保留。**
 
 这里按**可核实的时间及来源**记录 RO23 项目：**V14.2（2026-11-11 14:55）及后续**使用本仓库实际 GitHub commit 时间换算的北京时间；**V14.2 之前补录的 V0–V14.1** 使用上游 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 评论的**发布时间**，不是实机实验的准确分钟，也不是当时本仓库的 commit。V14、V14.1 的精确操作时间尚未证实。实机诊断由设备所有者执行，源码与研究资料有 AI 辅助；记录代码或文档**不代表手表已成功解锁**。
+
+## 当前项目状态：BLOCKED（当前技术路线受阻）
+
+**项目目标：** 在 Apple Watch Ultra 第一代（`Watch6,18 / n199ap`）、watchOS 26.6.1（`23U95`）上启用真正的原生 Hermès 表盘。**结论：截至现有真实测试，该解锁目标未实现，暂停没有新权限证据的版本迭代。** 这不是宣布 watchOS 26 绝对不可能被修改，也不是关闭/删除本仓库。
+
+| 验收环节 | 已有真实证据 | 状态 |
+|---|---|---|
+| 受保护 MobileGestalt 写入 | 可读；真实 `open(O_RDWR)` 返回 `EPERM`，Class 13 token 激活后仍无 `file-write-data/create` 权限 | **未通过** |
+| 原生 Hermès 资格判断 | Hermès 2025 类别与 Poodle/Circulaire 限制分别阻止本机的正常静态资格路径；ClockKit 的 Snapshot Service 例外不是通用解锁授权 | **未通过** |
+| 在手表上成功启用并持久显示 | 没有可复现实机成功案例 | **未通过** |
+
+**恢复开发的前提：** 找到且复现在**同一设备型号及固件**上可用的受保护文件写入权限或等效的受信任系统途径；安全验证修改后读回及重启持久性；再验证完整的原生表盘添加和实际显示。否则不继续推出“强制成功”的按钮或 V31/V32 无效实验。现有 **V0–V30 研究和历史失败记录保留为档案**。
+
+**历史证据：** [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) · [项目状态（中文）](research/RO23-STATUS.zh-CN.md) · [完整 Changelog](CHANGELOG.md)。以下时间线依旧保留，早期“下一步运行某脚本”的文字仅反映当时的研究状态，**不是目前建议执行的指令**。
 
 ## 2026 年 11 月 11 日｜逐分钟开发记录（新 → 旧）
 
 | 时间（北京时间） | 版本 | 具体做了什么 | GitHub 提交 |
 |---|---|---|---|
+| **23:43** | **项目状态正式调整为 BLOCKED** | 依据 Ultra 1 / `23U95` 已验证的受保护 MobileGestalt 写入 `EPERM`、Class 13 令牌不赋予写权限，以及独立的 Hermès 表盘资格限制，决定**当前路线暂停**。保留 V0–V30 全部研究、源码、日志和 Git 历史，**不删除/归档仓库、不发布假解锁版本**。仅在同型号同固件取得可复现权限与原生表盘成功证据后恢复。此轮仅修改文档，没有对手表采取行动。 | [`fbaa159`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/fbaa1593b44df447b7fdccab8fb839b14a2494d5) |
 | **23:28** | **V30：EscapeOS v0.3.2 验证** | 按用户提出的新候选方案检查发布版、`Info.plist`、`AppGroupListing.swift`、`SandboxEscape.swift`、`worse_query.m` 与签名 entitlement。确认它是 **iPhone / iOS 26 App 数据与普通 App Groups 工具**；没有 watchOS 目标，普通 `group.` 容器 ≠ Watch `systemgroup.com.apple.mobilegestaltcache`；未获取 23U95 系统写权限。**无设备试写、无 Hermès 解锁**。[完整核验](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md)。 | [`db4d4d5`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/db4d4d5e7799c551804ee60fc0938a931e74060b) |
 | **23:23** | **V14.2 以前历史重建／文档补录** | 核对 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 原帖及10条评论、早期本仓库诊断记录，补齐 V0、V1–V14.1 各阶段的真实动作与结果；将 Issue 评论的**发布时间**和真实操作时间分开，保留错误 index206→正确 index103 的更正，新增 [前史完整报告](research/RO23-PRE-V14.2-HISTORY.md)。**本次只是补写文档，不是重新运行旧实验。** | [`dddba1a`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/dddba1a65df9000018eed3263598b2636a7b4e1d) |
 | **23:15** | **V29.1 Filza / MG 编辑器替代路径核查** | 确认 iPhone 上的 Filza 只能访问其实际获授权的设备文件，不能直接改写独立的 Apple Watch 受保护 `plist`；WorstGestalt 的 iOS 26 成功声明不代表 watchOS 26 成功；配对手表备份包含表盘设置却不能证明可替换 MG 缓存。Apple 官方 watchOS 27 兼容列表**不含 Ultra 1**。因此 23U95 手表端 `EPERM` 写入阻塞仍未解决；本轮没有执行设备写入或解锁。 | [`c5ae0a4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/c5ae0a47aafd3529a4f68a94e9b0d9c5e9ee80f8) |

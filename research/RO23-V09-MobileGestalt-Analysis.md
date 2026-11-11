@@ -23,15 +23,15 @@ Status: Host-only static investigation. No watch changes; no cache writes; no He
 
 ## 1. Provenance and evidence levels
 
-**DEVICE OWNER / MAC:** The device owner downloaded the encrypted full OTA for `Watch6,18_N199AP_23U95`, verified its embedded metadata, extracted the ARM64_32 dyld cache family, and ran:
+**DEVICE OWNER / MAC:** me downloaded the encrypted full OTA for `Watch6,18_N199AP_23U95`, verified its embedded metadata, extracted the ARM64_32 dyld cache family, and ran:
 
     ipsw dyld extract "$DSC" "/usr/lib/libMobileGestalt.dylib" --output "$ROOT/target"
 
-The owner's log confirms successful creation of `target/libMobileGestalt.dylib`. The owner then uploaded `libMobileGestalt-23U95.zip` to this conversation. The assistant independently inspected the ZIP payload and performed offline ARM64_32 disassembly and descriptor parsing from its bytes.
+my log confirms successful creation of `target/libMobileGestalt.dylib`. I then uploaded `libMobileGestalt-23U95.zip` to this conversation. AI-assisted analysis independently inspected the ZIP payload and performed offline ARM64_32 disassembly and descriptor parsing from its bytes.
 
 **INDEPENDENT STATIC BINARY EVIDENCE:** Findings labeled as direct evidence below come from the actual submitted library image, not from an unrelated iOS source tree. The library is an `ipsw`-exported image reconstructed from the corresponding OTA dyld shared cache; this report does not claim a byte-for-byte dump from live watch process memory.
 
-**EARLIER WATCH LOGS:** V4 and V5–V7 findings were collected by the owner on the watch, as previously documented in Issue #17. They are not repeated experiments in this V9 stage.
+**EARLIER WATCH LOGS:** V4 and V5–V7 findings were collected by me on the watch, as previously documented in Issue #17. They are not repeated experiments in this V9 stage.
 
 **OTHER SOURCES:** Public MGKeys mappings and independent Series 8 research are cross-checks only. The concrete V9 addresses and control-flow decisions below were recovered from the matching Watch6,18 / 23U95 library.
 
@@ -41,7 +41,7 @@ Uploaded ZIP member: `target/libMobileGestalt.dylib`
 Uncompressed byte count: 991,764 bytes (~969 KiB)
 SHA-256: `383dfd64b790ba505760bb4af7a08ed2df185cbf6fffca64a13608f9bdcc2baf`
 
-This SHA-256 exactly matches the owner's earlier Mac terminal output for the extracted file. The ZIP also contained a small macOS `._libMobileGestalt.dylib` AppleDouble sidecar; it is **not** the dynamic library and was excluded from analysis.
+This SHA-256 exactly matches my earlier Mac terminal output for the extracted file. The ZIP also contained a small macOS `._libMobileGestalt.dylib` AppleDouble sidecar; it is **not** the dynamic library and was excluded from analysis.
 
 Mach-O:
 - Format: Mach-O ARM64_32 / armv8 (ILP32 ABI)
@@ -180,7 +180,7 @@ There are additional branches for other kinds of descriptors and caller environm
 
 ## 7. Actual descriptor-table parse for V7 questions
 
-The library's `__TEXT,__cstring` contains known obfuscated MobileGestalt hashes. Using a pointer-width-correct parser for ARM64_32 and the 100-byte descriptor records, we found the actual record for each of the three logical keys. Public name-to-hash mapping was cross-checked with `PoomSmart/MGKeys`:
+The library's `__TEXT,__cstring` contains known obfuscated MobileGestalt hashes. Using a pointer-width-correct parser for ARM64_32 and the 100-byte descriptor records, I found the actual record for each of the three logical keys. Public name-to-hash mapping was cross-checked with `PoomSmart/MGKeys`:
 
 - `DeviceBrand` -> `fuKL2rMywRgQF1wowOA/cg`
 - `BuildVersion` -> `mZfUC7qo4pURNhyMHZ62RQ`
@@ -299,7 +299,7 @@ D. Keep the existing watchOS 23U95 backup. Do not use the older 26.5 backup for 
 
 ## 13. Reproducibility commands (host-only)
 
-Assumes you already extracted the watchOS `libMobileGestalt.dylib`. No watch is needed.
+Requires an already-extracted watchOS `libMobileGestalt.dylib`. No watch is needed.
 
     shasum -a 256 libMobileGestalt.dylib
     llvm-objdump --macho --exports-trie libMobileGestalt.dylib
@@ -354,4 +354,4 @@ The values are specific to this file and must not be used as universal offsets f
 
 The real Ultra 1 / watchOS 23U95 `libMobileGestalt.dylib` is now available for exact-build static analysis. `_MGServerCopyAnswerWithError` explicitly constructs error 9, and the internal server-access check refuses the tested ordinary question descriptors because their flags lack server bit 1 and their optional access callbacks are absent. The actual Helper initializes server mode, so the matching binary explains why earlier XPC requests returned `error=9` even when direct local `MGCopyAnswer` worked. The same binary independently verifies the corrected DeviceBrand cache descriptor and the underlying DeviceTree property provider.
 
-This does not unlock native Hermès watch faces, provide an arbitrary DeviceBrand setter, or bypass the protected MobileGestalt SystemGroup write policy. The useful outcome is a reproducible, device-appropriate explanation for the previously unexplained RO23 V7 behavior without risking the owner's watch.
+This does not unlock native Hermès watch faces, provide an arbitrary DeviceBrand setter, or bypass the protected MobileGestalt SystemGroup write policy. The useful outcome is a reproducible, device-appropriate explanation for the previously unexplained RO23 V7 behavior without risking my watch.

@@ -1,4 +1,4 @@
-# Follow-up for HermesEnabler Issue #17: RO23 V8 — Ultra 1 / 23U95 Full OTA Acquisition, Native MobileGestaltHelper Extraction, ARM64_32 Reversing, and Error-9 Call-Chain Findings
+# HermesEnabler · watchOS 26.x — V8 — Ultra 1 / 23U95 Full OTA Acquisition, Native MobileGestaltHelper Extraction, ARM64_32 Reversing, and Error-9 Call-Chain Findings
 
 **Date:** 2026-11-11 (UTC+08:00)
 **Issue:** https://github.com/pookjw/HermesEnabler/issues/17

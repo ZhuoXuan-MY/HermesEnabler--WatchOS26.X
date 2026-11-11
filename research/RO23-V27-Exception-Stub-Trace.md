@@ -1,4 +1,4 @@
-# RO23 V27 — 从普通资格检查转向 FaceBundleManager 特殊例外跳板
+# HermesEnabler · watchOS 26.x — V27 — 从普通资格检查转向 FaceBundleManager 特殊例外跳板
 
 **日期：2026 年 11 月 11 日（北京时间 UTC+08:00）**  
 **固件：Watch6,18 / watchOS 26.6.1（23U95）**  

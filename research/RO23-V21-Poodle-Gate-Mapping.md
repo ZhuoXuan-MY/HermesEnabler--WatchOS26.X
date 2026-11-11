@@ -6,11 +6,11 @@
 **Credit:** HermesEnabler by Jinwoo Kim (@pookjw), RO23 owner @ZhuoXuan-MY. See [V14 Zeus research](https://github.com/pookjw/HermesEnabler/issues/17), [V16](RO23-V16-InternalBuild-Gate.md), [V17](RO23-V17-FaceBundle-Loading-Chain.md) and [V20.1](RO23-V20-Watchface-Archive-Import.md).
 
 
-> **Updated by V24 (2026-11-11):** The owner has now supplied the full 23U95 Zeus disassembly. The entire Poodle restriction function was reconstructed, and its outcome for observed Ultra 1 values is **RESTRICTED regardless of the unknown capability-call result**. The V21 conditional-only interpretation below is historical. See [V24 full gate analysis](RO23-V24-Poodle-Full-Gate.md).
+> **Updated by V24 (2026-11-11):** I have now supplied the full 23U95 Zeus disassembly. The entire Poodle restriction function was reconstructed, and its outcome for observed Ultra 1 values is **RESTRICTED regardless of the unknown capability-call result**. The V21 conditional-only interpretation below is historical. See [V24 full gate analysis](RO23-V24-Poodle-Full-Gate.md).
 
 ## A. Important target-identity correction: secondary FaceBundle IDs
 
-The owner's **actual uploaded** `Hermès Circulaire(1).watchface` was validated in V20.1 (249,760 bytes, SHA-256 `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`). Its parsed `face.json` includes:
+my **actual uploaded** `Hermès Circulaire(1).watchface` was validated in V20.1 (249,760 bytes, SHA-256 `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`). Its parsed `face.json` includes:
 
 ```json
 {
@@ -27,7 +27,7 @@ The owner's **actual uploaded** `Hermès Circulaire(1).watchface` was validated 
 
 ## B. Two separate category rules — do NOT conflate them
 
-| Face family | Known category check | Consequence for owner's deviceCategory=4 |
+| Face family | Known category check | Consequence for my deviceCategory=4 |
 |---|---|---|
 | Hermès 2025 | whitelist `{2,3,5}` (V13 original firmware analysis) | **Fails known category gate** |
 | Poodle / Hermès Circulaire | earlier `deviceCategory==1` exclusion is documented in V14; other early conditions not fully decoded | **Category=4 does not hit that particular category==1 rejection**; do NOT infer complete acceptance |
@@ -49,7 +49,7 @@ V16 static analysis of the 663,040-byte matching `NTKZeusFaceBundle` (SHA-256 `2
 0x1420  eor  w20, w0, #1
 ```
 
-On the owner's real watch, V13/V14.1/V16 measured `collectionType=9` and `NTKShowHardwareSpecificFaces=false`:
+On my real watch, V13/V14.1/V16 measured `collectionType=9` and `NTKShowHardwareSpecificFaces=false`:
 
 ```text
 Reached comparison? (depends on earlier branches)
@@ -57,7 +57,7 @@ Reached comparison? (depends on earlier branches)
     YES + collectionType!=5  => w20=NOT NTKShowHardwareSpecificFaces()
                                => NOT false = true = restricted
 
-Owner's observed properties: 9 and false => restricted ON THIS PATH.
+my observed properties: 9 and false => restricted ON THIS PATH.
 ```
 
 **This is a definite value evaluation for the shown branch, but not a full-function proof.** The assembly between `0x13B4` and `0x13F0` and any early exits/other capability conditions still need the matching full disassembly before stating the whole function must return true. In particular, `deviceCategory=4` alone should **not** be reported as the Poodle category blocker.
@@ -84,11 +84,11 @@ bash scripts/ro23-v21-poodle-disasm.sh "/actual/path/to/NTKZeusFaceBundle"
 
 The script refuses an incorrect SHA-256. LLVM officially documents `--start-address` and `--stop-address` as disassembly-range filters: https://llvm.org/docs/CommandGuide/llvm-objdump.html
 
-**Not yet verified:** this script has not run on the owner's Mac, and the full Poodle prologue is not in the materials retrieved in this pass. Do not invent the outcomes of those branches.
+**Not yet verified:** this script has not run on my Mac, and the full Poodle prologue is not in the materials retrieved in this pass. Do not invent the outcomes of those branches.
 
 ## F. Decision / next material evidence
 
-- **Verified:** uploaded Hermès Circulaire file points to Poodle; Poodle code is represented in the matching Zeus bundle; owner's known properties make the displayed fallback restricted if reached.
+- **Verified:** uploaded Hermès Circulaire file points to Poodle; Poodle code is represented in the matching Zeus bundle; my known properties make the displayed fallback restricted if reached.
 - **Not verified:** the full earlier Poodle branch, the stub `0x55CE73DC` target, the on-device `+[NTKPoodleFace isRestrictedForDevice:]` return, and successful native face installation.
 - **Avoid:** changing `HandFactoryCachedBuild`, `UltraFaceWasAddedToLibrary`, iPhone serial-number replicas or protected MG caches; none has demonstrated an effect on the Poodle check.
 
@@ -97,13 +97,13 @@ The script refuses an incorrect SHA-256. LLVM officially documents `--start-addr
 
 ## V23 — Apple otool fallback for missing llvm-objdump (owner Mac log, 2026-11-11)
 
-The owner ran the V21 helper against the existing extracted **23U95 NTKZeusFaceBundle**. It **found the binary** and verified SHA-256:
+I ran the V21 helper against the existing extracted **23U95 NTKZeusFaceBundle**. It **found the binary** and verified SHA-256:
 \`2b34d3d411b77ee73f3892638f419eda83b7bedc4653ecf44adf7c975bbd72e4\`.
 It then stopped with \`ERROR: llvm-objdump not found\`. Therefore **no Poodle disassembly output was obtained in that attempt**; this was a **missing local tool**, not a failed firmware match or a new watchOS security restriction.
 
-The existing **same-path** \`scripts/ro23-v21-poodle-disasm.sh\` has now been upgraded to auto-detect \`llvm-objdump\` in PATH/Homebrew/Xcode, and otherwise use Apple's \`otool -arch arm64_32 -tvV\` with a Perl line filter for instruction addresses \`0x13B4 <= PC < 0x1470\`. This requires no Homebrew LLVM installation and uses the user's already installed Xcode tools when accessible.
+The existing **same-path** \`scripts/ro23-v21-poodle-disasm.sh\` has now been upgraded to auto-detect \`llvm-objdump\` in PATH/Homebrew/Xcode, and otherwise use Apple's \`otool -arch arm64_32 -tvV\` with a Perl line filter for instruction addresses \`0x13B4 <= PC < 0x1470\`. This requires no Homebrew LLVM installation and uses my already installed Xcode tools when accessible.
 
-**No binary modifications, watch code changes, system writes or new projects.** The new fallback is a code change reviewed in GitHub, **not yet executed on the user's Mac**.
+**No binary modifications, watch code changes, system writes or new projects.** The new fallback is a code change reviewed in GitHub, **not yet executed on my Mac**.
 
 To rerun without resetting the local project, pipe the current GitHub script to \`bash -s -- "$BIN"\` as already done. Once the full function body is printed, interpret the *actual early branch targets* rather than claiming in advance that a path will unlock a face.
 

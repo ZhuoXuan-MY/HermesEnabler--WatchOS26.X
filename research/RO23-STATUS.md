@@ -44,3 +44,8 @@ Offline disassembly of matching NanoTimeKit confirms that `NTKFaceBundleManager`
 ## RO23 V18 — system-level methods now in scope, predicate still unresolved (2026-11-11)
 
 With the device owner's explicit authorization, system-level read/write and jailbreak compatibility **may be researched**, but no privileges or remote watch access are acquired by that declaration. Local disassembly verifies two direct calls to `0x55CE73DC` after `isRestrictedForDevice:` rejects a face. The call remains unidentified; it is distinct from V16's `0x55CE731C`. Full symbol mapping requires the already-extracted Watch6,18/23U95 shared cache still on the owner's Mac. No watch writes or unlock performed. [V18 report](RO23-V18-Restricted-Face-Exception.md).
+
+
+## RO23 V19 — iPhone/Watch pairing and Filza scope audit (2026-11-11)
+
+Compared the user's Filza 27.2.2 release screenshot against the independent `forcequitOS/worse_query` access matrix, Apple ClockKit docs and forensic locations of iPhone-side `DeviceRegistry` / `NanoPreferencesSync` watch-face backups. iOS 26 app containers may be visible but **neither full Watch pairing state nor watchOS system access follows**. The exact Gitea Filza 27.2.2 source is currently inaccessible, so its implementation has **not** been audited. Proposed read-only per-container test without handling serial numbers, tokens or unrelated data; no Xcode code modifications or new test UI. [V19 report](RO23-V19-Filza-iPhone-Watch-Sync.md).

@@ -72,3 +72,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 ### RO23 V18 — restricted-face predicate symbol investigation (2026-11-11)
 - Verified two call sites to 0x55CE73DC in matching 23U95 NanoTimeKit; function identity not yet established.
 - Documented safe, read-only address-to-symbol lookup in the already-extracted dyld shared cache. No new Xcode UI, installation, jailbreak or system writes.
+
+
+### RO23 V19 — Filza 27.2.2 / iPhone-Watch sync capability boundary (2026-11-11)
+- Correlated release screenshot against worse_query's iOS 26 container scope, paired Watch DeviceRegistry/NanoPreferencesSync forensic paths, and Apple's hardware eligibility on importing faces.
+- Gitea source release could not be independently fetched; did not attribute unrelated Filza forks' source to this one.
+- Defined read-only, metadata-only on-device verification; no source code change, system mutation, or new project copy.

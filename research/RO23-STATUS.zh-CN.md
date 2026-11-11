@@ -47,3 +47,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V18：系统级研究获授权，特殊判断仍待符号映射（2026-11-11）
 
 设备所有者明确允许进一步评估其自有 Ultra 1 的越狱、系统级访问及写入可行性；但授权本身不会生成 Apple 私有 entitlement，也不代表聊天助手可以直接控制手表。离线反汇编再次确认，`0x55CE73DC` 只在两个 FaceBundle 查找路径中被直接调用，且都发生在 `isRestrictedForDevice:` 判断受限制之后。其真实函数名**尚未确认**；与 V16 的 `0x55CE731C` 不是同一地址。下一步使用 Mac 上已提取的完整 dyld cache 执行只读地址→符号映射，无需重新下载 OTA。没有实施越狱、系统写入或解锁。详见 [V18 研究报告](RO23-V18-Restricted-Face-Exception.md)。
+
+
+## RO23 V19：Filza 27.2.2／iPhone 与 Apple Watch 配对及表盘同步研究（2026-11-11）
+
+已核对用户给出的 Filza 27.2.2 更新截图、`forcequitOS/worse_query` 原项目、Apple 官方 ClockKit 文件导入限制，以及 iPhone 历史取证资料中的 `DeviceRegistry`／`NanoPreferencesSync`。初步判断：iOS 26 可访问部分应用、扩展、daemon、App Group 容器，但 Apple Watch 配对主数据通常位于上述普通容器之外；手机端的表盘备份或序列号副本不是手表自身的原生资格判断。**所给 Gitea 的 Filza 精确源码尚无法访问，不能冒充已经审计**。已提出只读、只看目录的最小验证，不新增 Xcode 按钮、不创建第二套工程、不修改序列号或配对文件。详见 [V19 报告](RO23-V19-Filza-iPhone-Watch-Sync.md)。

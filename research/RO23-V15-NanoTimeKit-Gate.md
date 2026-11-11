@@ -1,4 +1,4 @@
-# RO23 V15 — Validated device diagnostics and NanoTimeKit hardware-face gate (23U95)
+# HermesEnabler · watchOS 26.x — V15 — Validated device diagnostics and NanoTimeKit hardware-face gate (23U95)
 
 > **Status: NOT UNLOCKED.** This is an offline static analysis and a report of my read-only diagnostics, not a native face installation. Original HermesEnabler 2 © Jinwoo Kim (@pookjw); research logs supplied by @ZhuoXuan-MY.
 

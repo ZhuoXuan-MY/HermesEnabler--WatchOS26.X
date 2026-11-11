@@ -1,4 +1,4 @@
-# RO23 V30 — EscapeOS v0.3.2 compatibility with Ultra 1 / watchOS 26.6.1
+# HermesEnabler · watchOS 26.x — V30 — EscapeOS v0.3.2 compatibility with Ultra 1 / watchOS 26.6.1
 
 **Objective:** Evaluate whether [pwnapplehat/EscapeOS v0.3.2](https://github.com/pwnapplehat/EscapeOS/releases/tag/v0.3.2) can modify the target's protected MobileGestalt plist and thereby remove the native Hermès face block on Apple Watch Ultra 1 (`Watch6,18/n199ap`, build `23U95`).
 

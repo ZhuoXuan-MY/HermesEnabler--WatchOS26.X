@@ -1,4 +1,4 @@
-# RO23 V24 — Complete NTKPoodleFace gate proved on 23U95
+# HermesEnabler · watchOS 26.x — V24 — Complete NTKPoodleFace gate proved on 23U95
 
 **Date:** 2026-11-11 · **Firmware:** Watch6,18 / watchOS 26.6.1 / `23U95` · **Target:** Hermès Circulaire / `com.apple.NTKPoodleFaceBundle` in shared `NTKZeusFaceBundle`.
 

@@ -11,7 +11,7 @@
 
 The device owner executed the V23 script directly against the already extracted `NTKZeusFaceBundle`. Original local binary SHA-256: `2b34d3d411b77ee73f3892638f419eda83b7bedc4653ecf44adf7c975bbd72e4`. The SHA-256 matched. LLVM path: `/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-objdump`.
 
-The owner supplied **51,891 lines of console output**; the script's LLVM Mach-O `--start-address` / `--stop-address` did not effectively limit printed text. We filtered the actual instruction PCs locally: precisely **29 instructions at 0x13B4 through 0x1424** belong to the Poodle restriction implementation. The surrounding 0x12FC Hades and 0x1434 subsequent method instructions are *not part of this function*.
+I supplied **51,891 lines of console output**; the script's LLVM Mach-O `--start-address` / `--stop-address` did not effectively limit printed text. I filtered the actual instruction PCs locally: precisely **29 instructions at 0x13B4 through 0x1424** belong to the Poodle restriction implementation. The surrounding 0x12FC Hades and 0x1434 subsequent method instructions are *not part of this function*.
 
 The original `+[NTKPoodleFace isRestrictedForDevice:]` entry at `0x13B4` was previously mapped to its Objective-C class method by checking original relative method lists (V14). Its instructions now establish the whole function:
 
@@ -35,7 +35,7 @@ The original `+[NTKPoodleFace isRestrictedForDevice:]` entry at `0x13B4` was pre
 0x1424  b    0x1408              ; return
 ```
 
-The `0x469C0` call is a predicate shaped by the 32-bit immediate `0xD5DDA3E7`. **Its actual imported selector or implementation has not been independently resolved in this evidence.** Calling it a specific `supportsPDRCapability` method would be premature. Its unknown outcome **does not change the result for this user's known category / collection / hardware-face values**.
+The `0x469C0` call is a predicate shaped by the 32-bit immediate `0xD5DDA3E7`. **Its actual imported selector or implementation has not been independently resolved in this evidence.** Calling it a specific `supportsPDRCapability` method would be premature. Its unknown outcome **does not change the result for this my known category / collection / hardware-face values**.
 
 ## Reconstructed high-level behavior (read-only; explanatory pseudocode)
 
@@ -55,7 +55,7 @@ bool PoodleIsRestricted(Device device) {
 | `category=4`, `CapabilityAt_0x469C0(...)=false` | `0x13E8 → 0x1404` | **restricted = true** |
 | `category=4`, capability predicate `true`, `collectionType=9`, hardware flag `false` | `0x13F8 → 0x141C → 0x1420` | **restricted = true** |
 
-**Thus no earlier acceptance path remains inside this exact function** for the measured device values. This supersedes the V21/V22 statement that the complete early branch was unresolved, but it does **not** claim the native class was dynamically invoked by our app.
+**Thus no earlier acceptance path remains inside this exact function** for the measured device values. This supersedes the V21/V22 statement that the complete early branch was unresolved, but it does **not** claim the native class was dynamically invoked by my app.
 
 ## Different layers and remaining work
 
@@ -67,7 +67,7 @@ bool PoodleIsRestricted(Device device) {
 
 ### Script output correction
 
-The existing `scripts/ro23-v21-poodle-disasm.sh` now **filters output from LLVM AND otool by actual instruction PC**, keeping only `0x13B4 <= PC < 0x1428`. This yields the **29 Poodle function instructions** rather than dumping ~52,000 lines. The correction is source-reviewed and a locally parsed user log confirmed 29 lines; **it has not yet been rerun on the owner's Mac**. File SHA-256 guard and fallback to Xcode's tools remain. No new watch UI or projects.
+The existing `scripts/ro23-v21-poodle-disasm.sh` now **filters output from LLVM AND otool by actual instruction PC**, keeping only `0x13B4 <= PC < 0x1428`. This yields the **29 Poodle function instructions** rather than dumping ~52,000 lines. The correction is source-reviewed and a locally parsed user log confirmed 29 lines; **it has not yet been rerun on my Mac**. File SHA-256 guard and fallback to Xcode's tools remain. No new watch UI or projects.
 
 **Next legitimate research:** identify the `0x469C0` selector for completeness and the `0x55CE73DC` restricted-face-manager exception, then separate supported face-selection APIs from internal/migration-only behavior. Avoid repeating the same watch probe or altering live paired-device identity.
 

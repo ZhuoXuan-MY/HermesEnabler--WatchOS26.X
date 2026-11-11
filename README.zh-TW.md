@@ -1,33 +1,13 @@
-# HermesEnabler 2
+# HermesEnabler · watchOS 26.x 相容性研究
 
-[English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
+**狀態：BLOCKED — 目前技術路線受阻，尚未成功解鎖原生 Hermès 錶面。**
 
-![](image.png)
+本儲存庫記錄我在 **第一代 Apple Watch Ultra（Watch6,18 / n199ap）**、**watchOS 26.6.1（23U95）** 上進行的實機測試、系統權限研究及原生 Hermès 錶面相容性分析。
 
-> 僅支援 watchOS 27.0 至 27.3 beta 1。
+實際測試確認受保護的 MobileGestalt 快取可以讀取，但以寫入方式開啟會得到 `EPERM`；另外，ClockKit／NanoTimeKit 的原生錶面資格檢查仍有限制。**本專案不是可用的解鎖工具，沒有已驗證成功的 IPA。**
 
-## 安裝
+為保留歷史證據與版本追溯，部分舊研究檔名仍包含早期內部代號 `RO23`，但它不是產品名稱或系統版本。
 
-### 安裝 IPA
+[完整專案說明與開發紀錄（簡體中文）](README.zh-CN.md) · [English summary](README.md#english-summary) · [原作者專案](https://github.com/pookjw/HermesEnabler) · [研究 Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) · [LICENSE](LICENSE)
 
-1. 從 [Releases](https://github.com/pookjw/HermesEnabler/releases) 下載 IPA。
-2. 使用 [Sideloadly](https://sideloadly.io) 安裝。
-3. 在 iPhone 上打開 **Watch（手錶）App → 我的手錶 → App**，安裝 **HermesEnabler2**。
-4. 在 Apple Watch 上打開 **HermesEnabler2**，並依照 app 中的步驟操作。
-
-### 使用 Xcode 建置
-
-1. 在 Xcode 中打開 [HermesEnabler2.xcodeproj](HermesEnabler2.xcodeproj)。
-2. 選擇 Apple Watch 作為執行目標，然後點擊 **Run**。
-3. 在 Apple Watch 上打開 **HermesEnabler2**，並依照 app 中的步驟操作。
-
-## 注意事項
-
-- 在 Sideloadly 中關閉 **Use automatic bundle ID**，並使用固定的 Bundle Identifier。每次更新時都使用相同的 Bundle Identifier 和 Apple ID，以便保留現有的 App 資料和備份。
-- 刪除 App 前，請務必透過 HermesEnabler2 App 還原 MobileGestalt 備份。
-
-## 致謝
-
-本專案包含來自 [Gester](https://github.com/sasobhabha/Gester) 的程式碼。
-
-本專案為非官方研究用途，相關使用風險需自行評估。
+**本專案為獨立研究，與 Apple 或 Hermès 無官方關聯。**

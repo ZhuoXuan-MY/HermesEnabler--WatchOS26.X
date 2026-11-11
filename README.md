@@ -42,6 +42,25 @@
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
 
+## V29｜23U95 系统写入权限专项核查（问题未解决）
+
+**唯一目标：** 在拥有者的 Apple Watch Ultra 第一代（`Watch6,18`，watchOS 26.6.1 `23U95`）取得**真实、可读回验证**的系统缓存写入能力，以便后续检验原生 Hermès 表盘能否被系统接纳。不是改变 App 里的按钮或伪造 `true` 返回值。
+
+**本次实际完成：** 审核自身 `BQCore.m` 已有的 `BQEscape → BQSaveGestalt → bq_write_data` 写入链，核对 `worse_query` 开发者原始说明、`Erosion` 与 `WatchRegion` 源码、公开 watchOS 26.6.1 越狱兼容表，以及 Apple 2026-11-09 的 26.6.1 安全公告。**没有连接手表、执行漏洞、修改系统文件或生成所谓成功解锁包。**
+
+| 候选路径 | 有实据的结果 | 对 `Watch6,18 / 23U95` 的判定 |
+|---|---|---|
+| 现有 HermesEnabler `BQEscape` / Class 13 | 已有真机日志：受保护缓存可读，`open(O_RDWR)` 返回 `EPERM`；单独沙箱令牌未授予写权限 | **真实写入失败** |
+| [`forcequitOS/worse_query`](https://github.com/forcequitOS/worse_query) | 官方 PoC 说明 SystemGroup 通路属于 **iOS 27**；iOS 26 的适用路径范围不同，作者称其**不是越狱** | **没有证明支持 watchOS 26 的 MG 写入** |
+| [`jailbreakdotparty/Erosion`](https://github.com/jailbreakdotparty/Erosion) | FAQ 直说 `worse_query` 在 **iOS 26** 无法写 MobileGestalt | iOS 负面结果不能直接当作 watchOS 实测，但**不能作为 23U95 可写的依据** |
+| [`LogicSense1/WatchRegion`](https://github.com/LogicSense1/WatchRegion) | `RegionCache.swift` 经 `worse_query` 后仍调用 `open(O_RDWR)` 写受保护缓存；已公布成功设备是 Ultra 4、watchOS 27.3 beta `24S5284h` | **没有 Ultra 1 / 23U95 成功证据**；直接搬用仍可能 `EPERM` |
+| [公开 watchOS 26.x 越狱列表](https://theapplewiki.com/wiki/Jailbreak/26.x) | `26.6.1` 列为 `No Tool Available` | **没有核实到可用的公开完整越狱** |
+| [Apple watchOS 26.6.1 安全公告](https://support.apple.com/en-us/149723) | 官方发布日期 2026-11-09，所列修复集中在蓝牙/配对相关组件 | **不是可利用写入权限的公开方案** |
+
+**技术结论：** 要越过这个关口，必须有**真正赋予当前进程写入权限**的系统级执行环境／可验证漏洞链／Apple 授权的相应服务；单改 `DeviceBrand` 数值、缓存偏移、Xcode 签名、App 本地函数返回值或把 iOS 27 实验移植过来均不等于已经获得这种权限。当前没有可验证的 23U95 写入原语；**这个请求尚未解决。** 没有实施危险的猜测性缓存写入，避免损坏无恢复保障的配对手表。
+
+**验收标准（都必须真实通过）：** (1) 目标系统文件安全打开并有写权限，(2) 目标受保护状态修改后精确读回且重启后有效，(3) 系统接受并实际显示原生 Hermès 表盘。当前 **0/3**。不要把从另一个系统版本取得的 `write` 测试描述为 23U95 成功。
+
 ## V28｜强制修改的真实可行性结论（仅源码审核，没有操作手表）
 
 用户明确要求**强制修改**以真正启动原生 Hermès 表盘，要求停止无关的静态函数跟踪。本轮直接审核现有 [`BQCore.m`](HermesEnabler2/BQCore.m)，没有执行或交付任何被描述为“成功解锁”的虚假开关。
@@ -157,6 +176,19 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 **Recorded through November 11, 2026, 22:25 (Beijing Time, UTC+08:00).** Target device: first-generation Apple Watch Ultra (Watch6,18), watchOS 26.6.1 (23U95). **Native Hermès watchfaces are NOT unlocked.**
 
 Every timestamp below is the **actual GitHub commit time converted to Beijing Time**, not a claim of on-device operation at that minute. Device measurements were run by the owner; some repository changes and analysis were AI-assisted.
+
+### V29 — Actual 23U95 protected-write capability audit (UNSOLVED)
+
+The user's objective is **verified native system modification**, not more symbol discovery or UI-level forced flags. Audited the existing `BQEscape → BQSaveGestalt → bq_write_data` path in the repository and checked primary-source `forcequitOS/worse_query`, `jailbreakdotparty/Erosion`, and `LogicSense1/WatchRegion` code and docs, the [watchOS 26.x jailbreak compatibility table](https://theapplewiki.com/wiki/Jailbreak/26.x), and the [Apple watchOS 26.6.1 security release](https://support.apple.com/en-us/149723) dated November 9, 2026.
+
+- **Owner's original Watch6,18 / 23U95 device evidence:** protected cache reads work, but `open(O_RDWR)` fails with **`EPERM`**. A Class-13 sandbox token is not a write-capability grant.
+- **worse_query:** upstream expressly presents iOS 27 systemgroup access, but not an iOS 26 systemgroup write primitive; it is not a full jailbreak.
+- **Erosion:** explicitly says its iOS 26 worse_query backend cannot modify MobileGestalt. iOS results cannot be mislabeled as the watchOS result, but cannot validate this watch's writability either.
+- **WatchRegion:** its `RegionCache.swift` still ultimately calls `open(O_RDWR)`, and the published success involves Ultra 4/watchOS 27.3 beta (`24S5284h`), not the target hardware/firmware.
+- **Public compatibility:** no known verified public jailbreak tool is listed for watchOS 26.6.1. An undisclosed exploit is logically possible but is **not** an implementable or tested path.
+- **No actual watch access or modifications were made in this turn**. No unsupported `23U95` offsets, guessed private entitlements, fabricated successful write, or misleading unlock release was added.
+
+**Status: NOT WRITABLE / NOT UNLOCKED, based on the current device evidence, with no public alternate route confirmed.** Completion requires an actual checked write permission, write/readback/reboot persistence, and native Hermès face launch on Watch6,18/23U95; currently **0/3**. Stop unrelated V27.x tasks. Future implementation should be gated on a genuinely verified 23U95 permission source, not another speculative bypass.
 
 ### V28 — Requested forced system modification: direct code feasibility review
 

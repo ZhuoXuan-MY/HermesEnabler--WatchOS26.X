@@ -10,18 +10,9 @@ struct ContentView: View {
         NavigationStack {
             List {
                 Section("RO23 · Ultra 1 research") {
-                    Text("RO23 V22 · read-only diagnostics")
+                    Text("RO23 V22.1 installed · Poodle test first")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Button {
-                        v16Result = RO23V16InternalBuildReport()
-                    } label: {
-                        Label("V16 · Internal-build gate", systemImage: "checkmark.shield")
-                    }
-                    if !v16Result.isEmpty {
-                        Text(v16Result)
-                            .font(.system(.caption2, design: .monospaced))
-                    }
                     Button {
                         v22Result = RO23V22PoodleReport()
                     } label: {
@@ -29,6 +20,15 @@ struct ContentView: View {
                     }
                     if !v22Result.isEmpty {
                         Text(v22Result)
+                            .font(.system(.caption2, design: .monospaced))
+                    }
+                    Button {
+                        v16Result = RO23V16InternalBuildReport()
+                    } label: {
+                        Label("V16 · Internal-build gate", systemImage: "checkmark.shield")
+                    }
+                    if !v16Result.isEmpty {
+                        Text(v16Result)
                             .font(.system(.caption2, design: .monospaced))
                     }
                     NavigationLink { RO23ResearchView() } label: {

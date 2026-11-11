@@ -127,3 +127,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Added actual source implementation `RO23V22PoodleReport()` that reads current device category/collection, NanoTimeKit internal-build/hardware-face predicate, and conditionally queries the original Poodle class if already registered in this process.
 - Added **V22 · Poodle eligibility** directly to the watch home screen with clear RO23 V22 version marker, and also to secondary diagnostics.
 - Reports static fallback estimates as conditional, not full-function facts. No force bundle loading, private hooks, watchface installation or protected writes. Real Watch6,18 test and Xcode build are not yet verified.
+
+
+### RO23 V22.1 — make Poodle button the first Watch-home action (2026-11-11)
+- Reordered ContentView so `V22 · Poodle eligibility` appears directly under a visible `RO23 V22.1 installed` marker, **before** the lengthy V16 diagnostic result.
+- Fixes discoverability when prior V16 output pushes later rows below the watch viewport. No changes to signing, entitlements, protected writes, or Poodle runtime logic.
+- Requires the actual open Xcode checkout and watch target to be synchronized and redeployed; a GitHub commit does not remotely install a new build.

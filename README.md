@@ -43,6 +43,22 @@
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
 
+## V29.1｜Filza、iPhone MobileGestalt 修改器、手表备份能否代替系统写权限？
+
+**用户问题：** “filza MobileGestalt 那些工具都不能修改 Apple Watch 的 plist 文件吗？或者没有其他办法了吗？” 本次是**工具能力与权限边界核验**，并非在 Mac/iPhone/Watch 上运行了新的写入测试。
+
+| 方案 | 已核查的事实 | 对 Ultra 1 / 23U95 的结论 |
+|---|---|---|
+| 原版 [Filza（TIGI 官方）](https://www.tigisoftware.com/default/?page_id=78) | 官方列明支持 iPhone、iPad、iPod touch，拥有 plist 编辑器；其读取对象取决于安装设备及实际文件权限 | **iPhone 上的 Filza 无法直接编辑另一台 Apple Watch 的受保护系统目录**。能打开本地导出的 `.plist` 不代表能写回手表 |
+| [WorstGestalt](https://github.com/GoldenNugget-Team/worstgestalt) / iPhone MG 修改器 | WorstGestalt 自述 iOS 26 可用 `bad_query` 等途径改**iPhone** 上的 MobileGestalt，部分其他 iOS 项目可能适用范围不同 | **这是 iOS 工具的兼容性声明，不是 Watch6,18/watchOS 26.6.1 成功写入证明**。避免把之前对 Erosion 的结论误写为“任何 iOS 26 都不能改 MG” |
+| iPhone Watch App 的容器及成对手表备份 | [Apple 官方备份说明](https://support.apple.com/en-my/108358) 列有表盘设置、外观、顺序等用户数据，但未列明受保护的 `systemgroup.com.apple.mobilegestaltcache` 可被备份编辑覆盖 | **可能影响受允许的表盘配置/同步，不是可证明的 `DeviceBrand` 写入渠道** |
+| 用 `.watchface` 导入 Hermès | [Apple ClockKit addWatchFace 官方 API](https://developer.apple.com/documentation/clockkit/clkwatchfacelibrary/addwatchface%28at%3Acompletionhandler%3A%29) 明确说明 Nike/Hermès 原生表盘限对应硬件，失败会回调错误 | 先改 iPhone 端表盘文件或导入有效 Circulaire 文件，也**不能保证绕过手表自身资格判断** |
+| 在手表中直接编辑受保护 plist | 已有 23U95 实机日志验证可读，但 `open(O_RDWR)` 被 `EPERM` 拒绝；Filza 的 plist 编辑功能、SFTP 客户端、Xcode 安装 App 均不能自动增加进程权限 | **只有具备真正有效的手表端写入权限/受信任系统服务才能操作**；目前没有验证到这种权限 |
+| 官方升级 watchOS 27 以使用其它工具 | [Apple 官方兼容列表](https://www.apple.com/my/os/watchos/) 包括 Ultra 2/3/4，**不包括第一代 Ultra** | **Ultra 1 无法通过官方更新升级到 watchOS 27**，不能推荐以此解决 |
+| 完整越狱/特权路径 | [公开 watchOS 26.x 兼容表](https://theapplewiki.com/wiki/Jailbreak/26.x) 对相关版本标注无可用工具 | 不能宣称物理上永远不可能，但截至本轮未核查到**匹配 Ultra 1/23U95 的可复现成功工具** |
+
+**结论：** 没有发现 Filza 或 iPhone 侧 MobileGestalt 编辑器能跨越手表的独立文件系统/权限边界；修改手表备份或导入真实 `.watchface` 并不等于改写手表 `MobileGestalt`。现阶段需要真正的**手表端**系统写权限；它目前仍被 `EPERM` 阻止。**本轮没有请求用户运行测试、没有修改 `BQCore.m`、没有宣称原生 Hermès 解锁。**
+
 ## V29｜23U95 系统写入权限专项核查（问题未解决）
 
 **唯一目标：** 在拥有者的 Apple Watch Ultra 第一代（`Watch6,18`，watchOS 26.6.1 `23U95`）取得**真实、可读回验证**的系统缓存写入能力，以便后续检验原生 Hermès 表盘能否被系统接纳。不是改变 App 里的按钮或伪造 `true` 返回值。
@@ -177,6 +193,19 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 **Recorded through November 11, 2026, 22:39 (Beijing Time, UTC+08:00).** Target device: first-generation Apple Watch Ultra (Watch6,18), watchOS 26.6.1 (23U95). **Native Hermès watchfaces are NOT unlocked.**
 
 Every timestamp below is the **actual GitHub commit time converted to Beijing Time**, not a claim of on-device operation at that minute. Device measurements were run by the owner; some repository changes and analysis were AI-assisted.
+
+### V29.1 — Filza / iPhone MobileGestalt tools / watch backup cannot substitute for watchOS write authority
+
+The owner asked whether Filza, iPhone MobileGestalt editors or other methods could modify their Watch's system plist. This was **a source-based capability review, not a device experiment**.
+
+- The [official Filza developer](https://www.tigisoftware.com/default/?page_id=78) describes an iPhone/iPad/iPod file manager with a plist editor. **Editing a local file on an iPhone does not expose the separate paired Watch's protected filesystem**.
+- [WorstGestalt](https://github.com/GoldenNugget-Team/worstgestalt) claims successful iOS 26 MobileGestalt modification using a `bad_query` fallback. It is explicitly an **iPhone** application; this neither confirms nor disproves a Watch6,18/watchOS 26.6.1 capability. The broad statement “no iOS 26 MG tool works” would be incorrect.
+- [Apple's Apple Watch backup guide](https://support.apple.com/en-my/108358) lists user-visible watch face configuration/settings in paired-iPhone backups, not a supported route for replacing the Watch's protected MobileGestalt system group.
+- [Apple's `CLKWatchFaceLibrary.addWatchFace` documentation](https://developer.apple.com/documentation/clockkit/clkwatchfacelibrary/addwatchface%28at%3Acompletionhandler%3A%29) explicitly limits Hermès faces to corresponding Hermès watch hardware; importing a real watchface file or modifying companion app data cannot be presumed to bypass native device eligibility.
+- [Apple watchOS 27 compatibility](https://www.apple.com/my/os/watchos/) **excludes the first-generation Ultra**. Updating this Watch to watchOS 27 to reuse the newer exploit projects is not an official option.
+- The actual owner-device `23U95` test remains **read permitted / `O_RDWR` denied with `EPERM`**. Without a proven Watch-specific privileged write capability, installing a generic plist editor does not resolve it.
+
+**No code or device changes, no new test command, no native Hermès activation.** Do not claim a cross-device iPhone-only exploit solves the watchOS protected-cache write gate.
 
 ### V29 — Actual 23U95 protected-write capability audit (UNSOLVED)
 

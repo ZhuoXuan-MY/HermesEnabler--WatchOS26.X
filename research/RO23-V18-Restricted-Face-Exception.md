@@ -1,4 +1,4 @@
-# RO23 V18 — Verifying the unresolved restricted-face exception call
+# HermesEnabler · watchOS 26.x — V18 — Verifying the unresolved restricted-face exception call
 
 Date: 2026-11-11. Target: first-gen Apple Watch Ultra (Watch6,18 / n199ap), watchOS 26.6.1 (23U95).
 

@@ -1,33 +1,13 @@
-# HermesEnabler 2
+# HermesEnabler · Étude de compatibilité watchOS 26.x
 
-[English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
+**Statut : BLOCKED — La méthode actuelle est bloquée. Aucun cadran Hermès natif n'a été déverrouillé.**
 
-![](image.png)
+Ce dépôt documente mes essais sur une **Apple Watch Ultra de première génération (Watch6,18 / n199ap)** sous **watchOS 26.6.1 (23U95)** ainsi que l'analyse des autorisations système et des restrictions des cadrans natifs.
 
-> Compatible uniquement avec watchOS 27.0 à watchOS 27.3 beta 1.
+La lecture du cache MobileGestalt protégé a fonctionné, mais son ouverture en écriture a renvoyé `EPERM`. ClockKit/NanoTimeKit impose également des vérifications indépendantes. **Ce dépôt n'est pas un outil de déverrouillage opérationnel et ne propose aucune IPA dont le déverrouillage a été vérifié.**
 
-## Installation
+Le préfixe `RO23` de certains anciens fichiers est un identifiant historique interne, pas un nom de produit ni une version compatible.
 
-### Installer l’IPA
+[Recherche complète et historique (chinois)](README.zh-CN.md) · [English summary](README.md#english-summary) · [Projet d'origine](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) · [LICENSE](LICENSE)
 
-1. Téléchargez l’IPA depuis [Releases](https://github.com/pookjw/HermesEnabler/releases).
-2. Installez-le avec [Sideloadly](https://sideloadly.io).
-3. Sur l’iPhone, ouvrez l’app **Watch → Ma montre → Apps** et installez **HermesEnabler2**.
-4. Ouvrez **HermesEnabler2** sur l’Apple Watch et suivez les étapes indiquées dans l’app.
-
-### Compiler avec Xcode
-
-1. Ouvrez [HermesEnabler2.xcodeproj](HermesEnabler2.xcodeproj) dans Xcode.
-2. Sélectionnez l’Apple Watch comme destination d’exécution, puis cliquez sur **Run**.
-3. Ouvrez **HermesEnabler2** sur l’Apple Watch et suivez les étapes indiquées dans l’app.
-
-## Précautions
-
-- Dans Sideloadly, désactivez **Use automatic bundle ID** et utilisez un Bundle Identifier fixe. Utilisez le même Bundle Identifier et le même Apple ID à chaque mise à jour pour conserver les données et la sauvegarde existantes.
-- Avant de supprimer l’app, restaurez impérativement votre sauvegarde MobileGestalt depuis l’app HermesEnabler2.
-
-## Crédits
-
-Ce projet intègre du code de [Gester](https://github.com/sasobhabha/Gester).
-
-Utilisez ce projet à vos propres risques.
+**Recherche indépendante, non affiliée à Apple ou Hermès.**

@@ -4,7 +4,7 @@
 
 **当前状态：BLOCKED — 当前技术路线受阻，尚未实现原生 Hermès 表盘解锁。**
 
-[简体中文](README.zh-CN.md) · [English](README.md#english-summary) · [完整开发记录](#完整开发记录) · [原作者项目](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
+[简体中文](README.zh-CN.md) · [English](README.md) · [完整开发记录](#完整开发记录) · [原作者项目](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
 
 ## 项目简介
 
@@ -54,10 +54,9 @@
 
 ## 完整开发记录
 
-我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**可以展开查看全部 53 条历史记录**，无需在首页首屏阅读所有日志。新增工作也会继续接到这里。
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 53 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
 
-<details>
-<summary><strong>展开：V14.2–V30 与后续文档更新（GitHub 提交时间，新 → 旧）</strong></summary>
+### V14.2–V30 及后续文档更新（GitHub 提交时间，新 → 旧）
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
@@ -99,10 +98,8 @@
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
 
-</details>
 
-<details>
-<summary><strong>展开：V0–V14.1 早期研究（Issue #17 报告时间，新 → 旧）</strong></summary>
+### V0–V14.1 早期研究（Issue #17 发布的报告时间，新 → 旧）
 
 这里的具体分钟是 **Issue #17 发帖/评论的发布时间**，不是每次实机测试的实际分钟，也不是当时的 Git 提交时间。V14 / V14.1 的精确执行时刻没有足够证据。
 
@@ -125,7 +122,6 @@
 | **11/10 23:20（Issue 发布）** | **V1 · 实机 Mach-O 只读扫描** | 搜索 `libMobileGestalt` 中 DeviceBrand 哈希与引用，找到真实键；最初描述符边界分析有误，后来 V3 修复。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17#issuecomment-6771229913) |
 | **11/10 19:57（Issue 创建）** | **最初本地实验 · V0** | 改版 HermesEnabler2 安装到 Ultra 1、配置 App Group、MG 只读读取 **13,328 B**、按 23U95 重新备份；强制写入 `open(O_RDWR)` **EPERM**；Geod-MCM 无容器，Class7 三种 flags **NO TOKEN**。 | [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) |
 
-</details>
 
 ## 研究归属与授权
 

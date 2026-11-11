@@ -1,12 +1,12 @@
 # RO23 V26 — Watch sandbox-escape feasibility: worse_query vs 23U95
 
 **Research date:** 2026-11-11 (北京时间 UTC+08:00).  
-**Target:** owner's Apple Watch Ultra 1 (Watch6,18 / n199ap), watchOS 26.6.1 build 23U95.  
+**Target:** my Apple Watch Ultra 1 (Watch6,18 / n199ap), watchOS 26.6.1 build 23U95.  
 **Status:** **No verified sandbox escape / protected cache write / Hermès activation on 23U95**.
 
 ## Why this branch is worth investigating
 
-The owner requested research beyond the already proven Poodle normal eligibility gate and asked whether a newly discussed *sandbox escape* should be tested.
+I requested research beyond the already proven Poodle normal eligibility gate and asked whether a newly discussed *sandbox escape* should be tested.
 
 Two independently reviewed public repositories now matter:
 
@@ -42,6 +42,6 @@ Both `worse_query` and `WatchRegion` are third-party demonstrations. The only pr
 
 The already known `NanoTimeKit` `0x55CE73DC` restricted-face exception is **still unresolved**, but it belongs to a separate FaceBundleManager branch. It cannot be assumed to be affected by an iOS sandbox escape. Continue researching it through the matching 23U95 shared cache, not by repeating V13–V25 status buttons.
 
-**No watch App code has been changed in V26. No exploit ran on the owner's watch. No protected file was written or face installed.**
+**No watch App code has been changed in V26. No exploit ran on my watch. No protected file was written or face installed.**
 
 References: [worse_query](https://github.com/forcequitOS/worse_query) · [WatchRegion](https://github.com/LogicSense1/WatchRegion) · [V17 manager](RO23-V17-FaceBundle-Loading-Chain.md) · [V25 Poodle gate](RO23-V25-Poodle-Selector-ClockKit.md).

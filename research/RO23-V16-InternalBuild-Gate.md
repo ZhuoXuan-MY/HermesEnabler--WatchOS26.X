@@ -1,4 +1,4 @@
-# RO23 V16 — NanoTimeKit Internal-Build Gate and Legacy Zeus Review
+# HermesEnabler · watchOS 26.x — V16 — NanoTimeKit Internal-Build Gate and Legacy Zeus Review
 
 **Date:** 2026-11-11 · **Target:** Watch6,18 / n199ap, watchOS 26.6.1, build 23U95
 

@@ -1,4 +1,4 @@
-> **V19.1 correction (2026-11-11):** The owner had already uploaded the precise Filza v27.2.2 source ZIP, which has now been verified and audited offline. The V19 statement that exact source could not be accessed is obsolete. See [V19.1 source and device audit](RO23-V19.1-Filza-Source-And-Bridge-Verification.md).
+> **V19.1 correction (2026-11-11):** I had already uploaded the precise Filza v27.2.2 source ZIP, which has now been verified and audited offline. The V19 statement that exact source could not be accessed is obsolete. See [V19.1 source and device audit](RO23-V19.1-Filza-Source-And-Bridge-Verification.md).
 
 # RO23 V19 — iPhone Filza 27.2.2 / Apple Watch identity and face-sync boundary
 
@@ -12,7 +12,7 @@ Original HermesEnabler work © Jinwoo Kim (@pookjw); RO23 research @ZhuoXuan-MY.
 
 **USER-SUPPLIED RELEASE SCREENSHOT:** `Filza 27.2.2 — App Manager names, sizes, faster discovery`, a stable release with `filza_public.ipa`, `filza_develop.ipa` and `SHA256SUMS`. The screenshot claims LaunchServices CSStore-based app-name lookup, per-container sizes, iOS 26 alternative `worse_query` flags for app/extension/daemon containers, and faster discovery.
 
-**NOT VERIFIED:** source code for **this exact** `git.jbjflab.top/admin/filza27.2` release. Its Gitea release and source archive are not accessible through the available web reader. Similar GitHub projects named Filza-27 are separate forks and must **not** be misrepresented as this project's v27.2.2 source. This also means we cannot certify IPA contents, entitlements, signature, precise write scopes, or trusted checksums from this evidence alone.
+**NOT VERIFIED:** source code for **this exact** `git.jbjflab.top/admin/filza27.2` release. Its Gitea release and source archive are not accessible through the available web reader. Similar GitHub projects named Filza-27 are separate forks and must **not** be misrepresented as this project's v27.2.2 source. This also means I cannot certify IPA contents, entitlements, signature, precise write scopes, or trusted checksums from this evidence alone.
 
 **INDEPENDENT VERIFIED UPSTREAM:** `forcequitOS/worse_query` explicitly claims iOS 26 app data containers, plugin/extension, internal daemon and App Group containers, but reserves `/var/containers/Data/System` and `/var/containers/Shared/SystemGroup/*` for **iOS 27**; author says this technique is not a jailbreak. Source:
 https://github.com/forcequitOS/worse_query
@@ -33,7 +33,7 @@ Historical digital-forensic studies and 2026 artifact research locate **pairing 
 | `/var/mobile/Containers/Shared/AppGroup/<UUID>/` | App Group shared data | worse_query README | **Potentially** reachable; not necessarily authoritative for pairing |
 | `/var/containers/Shared/SystemGroup/<UUID>/` | iOS protected system-group state | worse_query README | **No advertised iOS 26 access**, iOS 27 only |
 
-Historical forensic paths should be treated as **research leads**, not guaranteed exact paths on the user's current iPhone iOS build. Do not automatically open/modify sensitive pairing, Health, wallet or credentials data.
+Historical forensic paths should be treated as **research leads**, not guaranteed exact paths on my current iPhone iOS build. Do not automatically open/modify sensitive pairing, Health, wallet or credentials data.
 
 Evidence:
 - https://github.com/abrignoni/iLEAPP/issues/1876 (2026 Watch backup/sync path suggestions)
@@ -69,10 +69,10 @@ https://developer.apple.com/documentation/watchconnectivity/wcsession/watchdirec
 
 ## 4. Next discriminating test / 下一步最小检查（只读）
 
-**Goal:** establish whether the user's *specific* Filza 27.2.2 build on the paired iPhone can view any watch-related **app-container** metadata without touching other users' private data. This does **not** yet request changing watch identities.
+**Goal:** establish whether my *specific* Filza 27.2.2 build on the paired iPhone can view any watch-related **app-container** metadata without touching other users' private data. This does **not** yet request changing watch identities.
 
 1. First independently verify the iPhone's exact iOS build and the installed Filza release/signing provenance. Do **not** assume it behaves identically to another GitHub Filza fork; only the screenshot's release-notes claims are known.
-2. If Filza is already installed and the user trusts its signer, open **App Manager**. Search `Watch` and (if present) `com.apple.Bridge`; record only whether the app is listed and whether the **Data Container** can be opened. The exact bundle id may vary; do not infer absence from no search hit.
+2. If Filza is already installed and me trusts its signer, open **App Manager**. Search `Watch` and (if present) `com.apple.Bridge`; record only whether the app is listed and whether the **Data Container** can be opened. The exact bundle id may vary; do not infer absence from no search hit.
 3. Inside that **specific** data container, inspect **folder names only** (such as `Documents`, `Library`, `Preferences`, `Application Support`). Do not view or export arbitrary private app files, pairing tokens, serialized device IDs, account records or cryptographic data.
 4. Separately check whether Filza's UI explicitly exposes a `SystemGroup` section on that exact iOS build; do not assume a visible UI item means the directory can be read or written.
 5. Report `iPhone iOS version`, `Filza build`, `Watch app found? yes/no`, `container listable? yes/no`, and **redacted** top-level folder names. This can establish an access boundary without leaking serial numbers, UDIDs, device-registry UUIDs or private state.

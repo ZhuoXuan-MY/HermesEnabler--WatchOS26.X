@@ -78,3 +78,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Correlated release screenshot against worse_query's iOS 26 container scope, paired Watch DeviceRegistry/NanoPreferencesSync forensic paths, and Apple's hardware eligibility on importing faces.
 - Gitea source release could not be independently fetched; did not attribute unrelated Filza forks' source to this one.
 - Defined read-only, metadata-only on-device verification; no source code change, system mutation, or new project copy.
+
+
+### RO23 V19.1 — exact uploaded Filza source and on-iPhone Bridge container proof (2026-11-11)
+- Corrected prior inaccessible-source claim: verified v27.2.2 ZIP and source paths (WQFilzaIntegration, WQLSStore, WQWebDAVServer, WQSSHServer, Tweak).
+- Confirmed iPhone Filza `Watch [com.apple.Bridge]` data-container root listed; no system-group/watchOS access demonstrated.
+- Flagged WebDAV autostart/open-network bind/no-username-auth and optional SSH fixed `alpine` credentials. No watch code changes.

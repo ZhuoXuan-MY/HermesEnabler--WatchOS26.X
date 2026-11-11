@@ -49,3 +49,8 @@ With the device owner's explicit authorization, system-level read/write and jail
 ## RO23 V19 — iPhone/Watch pairing and Filza scope audit (2026-11-11)
 
 Compared the user's Filza 27.2.2 release screenshot against the independent `forcequitOS/worse_query` access matrix, Apple ClockKit docs and forensic locations of iPhone-side `DeviceRegistry` / `NanoPreferencesSync` watch-face backups. iOS 26 app containers may be visible but **neither full Watch pairing state nor watchOS system access follows**. The exact Gitea Filza 27.2.2 source is currently inaccessible, so its implementation has **not** been audited. Proposed read-only per-container test without handling serial numbers, tokens or unrelated data; no Xcode code modifications or new test UI. [V19 report](RO23-V19-Filza-iPhone-Watch-Sync.md).
+
+
+## RO23 V19.1 — Filza source reviewed and Bridge app data container verified (2026-11-11)
+
+Audited the user's exact `filza27.2-v27.2.2.zip` (SHA-256 `2711ade73f7a383862b6fa0c451fddb69595f970441196cac2d58ebc6c7f7b41`). The user's iPhone Filza screenshots confirm `Watch [com.apple.Bridge]` application container listing, with `tmp`, `SystemData`, `Library`, and `Documents`. The nested `SystemData` is not root/system-group access. Source review reveals a WebDAV autostart configuration (default enabled when unset), unauthenticated HTTP when username unset, and optional SSH using fixed `alpine` credentials. Do not infer watchOS file write access or native Hermes unlock. [Full V19.1 audit](RO23-V19.1-Filza-Source-And-Bridge-Verification.md).

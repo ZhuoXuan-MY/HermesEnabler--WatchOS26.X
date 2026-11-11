@@ -1,3 +1,5 @@
+> **V19.1 correction (2026-11-11):** The owner had already uploaded the precise Filza v27.2.2 source ZIP, which has now been verified and audited offline. The V19 statement that exact source could not be accessed is obsolete. See [V19.1 source and device audit](RO23-V19.1-Filza-Source-And-Bridge-Verification.md).
+
 # RO23 V19 — iPhone Filza 27.2.2 / Apple Watch identity and face-sync boundary
 
 **Date / 日期:** 2026-11-11

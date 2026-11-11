@@ -1,4 +1,4 @@
-# RO23 V21 — Confirmed Poodle target and conditional rejection path
+# HermesEnabler · watchOS 26.x — V21 — Confirmed Poodle target and conditional rejection path
 
 **Date:** 2026-11-11 · **Device:** Watch6,18 / n199ap · watchOS 26.6.1 (23U95).  
 **Status:** Hermès Circulaire `NTKPoodleFaceBundle` has **not** been enabled. This is a fresh cross-check of *two already-inspected primary sources*, not a live injection or a new watch run.

@@ -52,6 +52,27 @@
 
 **记录规则：** 后续每次提供测试指令、收到真实输出、取得结果或发现失败，都在 README 时间线新增一行（中英同步），标注真实 GitHub 提交时间及离线/手表实测边界；不能将“工具完成”标记成“表盘已启动”。完整原始指令摘要见 [V27.1 研究记录（PR 分支）](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.1-Stub-Binding-Audit.md)，下一脚本见 [V27.2（PR 分支）](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/scripts/ro23-v27-2-branch-targets.sh)。
 
+**本轮实际执行命令（V27.1，`--extended` 未运行）：**
+
+```bash
+set -o pipefail
+REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
+git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit
+git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-1-stub-binding-audit.sh \
+  | bash -s -- \
+  | tee "$HOME/Desktop/RO23-V27.1.txt"
+```
+
+**下一轮操作（V27.2，尚未执行）：**
+
+```bash
+set -o pipefail
+REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
+git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit &&
+git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
+  | bash -s -- 2>&1 | tee "$HOME/Desktop/RO23-V27.2.txt"
+```
+
 ## 当天已确认的实机数据
 
 | 项目 | 已确认结果 | 意义 |

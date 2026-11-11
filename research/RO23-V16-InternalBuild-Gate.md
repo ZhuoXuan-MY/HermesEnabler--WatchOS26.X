@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-11 · **Target:** Watch6,18 / n199ap, watchOS 26.6.1, build 23U95
 
-**Status: NATIVE HERMÈS FACES NOT UNLOCKED.** This report distinguishes static disassembly from the owner's actual watch logs. Credit: HermesEnabler 2 © Jinwoo Kim (@pookjw); RO23 device research @ZhuoXuan-MY, AI-assisted static analysis.
+**Status: NATIVE HERMÈS FACES NOT UNLOCKED.** This report distinguishes static disassembly from my actual watch logs. Credit: HermesEnabler 2 © Jinwoo Kim (@pookjw); RO23 device research @ZhuoXuan-MY, AI-assisted static analysis.
 
 ## Source integrity
 
@@ -73,7 +73,7 @@ The diagnostic invokes the exported private NanoTimeKit symbols read-only and re
 
 Interpretation: if `NTKInternalBuild=false`, the assembly short-circuits the other two flags regardless of the later stored setting. If `true` but the hardware-face predicate remains false, later preferences/cached state are implicated, but the exact internal rules are not yet established. An unavailable symbol is reported rather than inventing a Boolean.
 
-**Safety:** No cache write, preference edit, symbol hook, bundle injection, face installation, system service restart, or entitlement request. The only file change is an app-owned diagnostic log. It only runs when the user taps the button.
+**Safety:** No cache write, preference edit, symbol hook, bundle injection, face installation, system service restart, or entitlement request. The only file change is an app-owned diagnostic log. It only runs when me taps the button.
 
 ## Remaining work
 
@@ -86,7 +86,7 @@ Interpretation: if `NTKInternalBuild=false`, the assembly short-circuits the oth
 
 ## V16.1 actual on-device result — 2026-11-11
 
-The device owner has now built and run V16 on the same **Watch6,18 / watchOS 26.6.1 / 23U95** device. Exact app-owned log values:
+me has now built and run V16 on the same **Watch6,18 / watchOS 26.6.1 / 23U95** device. Exact app-owned log values:
 
 ```text
 [bqtool] RO23 RO23 V16 — NanoTimeKit internal-build gate (read only)

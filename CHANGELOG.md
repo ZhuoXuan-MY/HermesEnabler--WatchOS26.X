@@ -1,4 +1,4 @@
-# HermesEnabler RO23 — Public research snapshot changelog
+# HermesEnabler · watchOS 26.x — Research changelog
 
 ## 2026-11-11 — Project status changed to BLOCKED (not permanently abandoned)
 

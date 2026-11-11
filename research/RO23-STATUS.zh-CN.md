@@ -22,3 +22,8 @@
 用户已通过 Xcode 在 Ultra 1／23U95 实际运行合并工程里的 V13、V14.1 和 MG 缓存只读诊断。结果稳定为 `deviceBrand=0`（`__NSCFNumber`）、`deviceCategory=4`、`collectionType=9`、`NTKShowHardwareSpecificFaces=false`。缓存再次验证索引 103／偏移 `0x338`／有效位 1。原生 Hermès 表盘**仍未解锁**，所有表盘判断仍为限制状态。
 
 V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` 存在前置检查和 `ShowHardwareSpecificFaces` 配置键，但前置调用的实际身份未解析；**不能将配置键存在视为普通 Ultra 可开启该表盘的证据**。见 [V15 技术分析](RO23-V15-NanoTimeKit-Gate.md)。
+
+
+## V16：明确内部构建版本前置条件（2026-11-11）
+
+在 23U95 配套 NanoTimeKit 中，`_NTKInternalBuild`（`0x54601310`）直接跳到 `0x55CE731C`，而 `_NTKShowHardwareSpecificFaces`（`0x546014EC`）调用的也是**同一个目标**，返回零时立即跳到返回 `false` 的路径。这说明硬件专属表盘开关有内部构建版本的前置门槛。新增 **V16 · Internal-build gate** 只读按钮，读取 `NTKInternalBuild`、`NTKShowHardwareSpecificFaces`、`NTKShowInternalFaces`，不修改偏好设置、MG 或表盘。**V16 的真机数值还没有收到**，不能提前宣称结果。详见 [V16 报告](RO23-V16-InternalBuild-Gate.md)。

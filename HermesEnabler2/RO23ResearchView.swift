@@ -8,6 +8,7 @@ struct RO23ResearchView: View {
             Section("RO23 · read-only research") {
                 Button("V13 · Hermès 2025 eligibility") { output = RO23ClockKitReport() }
                 Button("V14.1 · Zeus eligibility") { output = RO23ZeusReport() }
+                Button("V16 · Internal-build gate") { output = RO23V16InternalBuildReport() }
                 Button("MG cache · read-only snapshot") { output = RO23CacheSnapshot() }
             }
             Section("Result") {

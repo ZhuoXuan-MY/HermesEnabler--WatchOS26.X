@@ -44,3 +44,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Device owner confirmed the merged Xcode project runs V13, V14.1 and MG snapshot diagnostics on Watch6,18 / 23U95.
 - Added offline NanoTimeKit analysis of NTKShowHardwareSpecificFaces precondition, cached setting and notification.
 - No new watch-side probes or protected system writes; native Hermès faces are not unlocked.
+
+
+### RO23 V16 — identify and measure the internal-build gate (2026-11-11)
+- Matched the private NanoTimeKit `_NTKInternalBuild` thunk at `0x54601310` to the exact external target called by `_NTKShowHardwareSpecificFaces`.
+- Reviewed the Zeus Poodle/Bellona restrictions: under the observed Ultra collectionType=9 and hardware-face flag=false, neither supplies a demonstrated unrestricted path.
+- Added a single on-demand, read-only V16 button to measure exported internal-build gate and control predicates. Real watch output not yet obtained. No unlock or protected writes.

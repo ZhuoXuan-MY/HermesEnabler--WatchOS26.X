@@ -153,3 +153,61 @@ NSString *RO23ZeusReport(void) {
     [log addObject:@"RO23 V14.1 END systemWrites=NO"];
     return Done(log);
 }
+
+// V16: minimal read-only check of NanoTimeKit's internal-build precondition.
+// Matching offline 23U95 code: NTKInternalBuild at VM 0x54601310 branches to
+// the same target used by NTKShowHardwareSpecificFaces at VM 0x546014EC.
+// A false result forces hardware-specific faces false before CFPreferences.
+// Do not change preferences, entitlements, protected caches, or watch faces.
+static void *RO23NanoTimeKitSymbol(const char *name) {
+    void *symbol = dlsym(RTLD_DEFAULT, name);
+    if (symbol) return symbol;
+    void *handle = dlopen("/System/Library/PrivateFrameworks/NanoTimeKit.framework/NanoTimeKit",
+                          RTLD_LAZY | RTLD_LOCAL);
+    return handle ? dlsym(handle, name) : NULL;
+}
+
+NSString *RO23V16InternalBuildReport(void) {
+    NSMutableArray<NSString *> *log = [NSMutableArray arrayWithObjects:
+        @"RO23 V16 — NanoTimeKit internal-build gate (read only)",
+        [NSString stringWithFormat:@"Build=%@", Build()], nil];
+    if (!RO23IsTargetBuild()) {
+        [log addObject:@"Not 23U95; stopped."];
+        [log addObject:@"RO23 V16 END systemWrites=NO"];
+        return Done(log);
+    }
+
+    typedef bool (*RO23Predicate)(void);
+    RO23Predicate internalBuild = (RO23Predicate)RO23NanoTimeKitSymbol("NTKInternalBuild");
+    RO23Predicate hardware = (RO23Predicate)RO23NanoTimeKitSymbol("NTKShowHardwareSpecificFaces");
+    RO23Predicate internalFaces = (RO23Predicate)RO23NanoTimeKitSymbol("NTKShowInternalFaces");
+
+    if (!internalBuild) {
+        [log addObject:@"NTKInternalBuild=unavailable (symbol not exported/resolved)"];
+        [log addObject:@"Gate reason: UNDETERMINED"];
+    } else {
+        bool internal = internalBuild();
+        [log addObject:[NSString stringWithFormat:@"NTKInternalBuild=%@", internal ? @"true" : @"false"]];
+        if (!internal) {
+            [log addObject:@"Static inference: internal-build early return prevents the hardware-face setting check."];
+        } else {
+            [log addObject:@"Static inference: internal-build gate passed; hardware-face setting/cached state is next."];
+        }
+    }
+
+    if (hardware)
+        [log addObject:[NSString stringWithFormat:@"NTKShowHardwareSpecificFaces=%@",
+                        hardware() ? @"true" : @"false"]];
+    else
+        [log addObject:@"NTKShowHardwareSpecificFaces=unavailable"];
+
+    if (internalFaces)
+        [log addObject:[NSString stringWithFormat:@"NTKShowInternalFaces=%@",
+                        internalFaces() ? @"true" : @"false"]];
+    else
+        [log addObject:@"NTKShowInternalFaces=unavailable"];
+
+    [log addObject:@"No preferences changed; no face loaded; no protected writes."];
+    [log addObject:@"RO23 V16 END systemWrites=NO"];
+    return Done(log);
+}

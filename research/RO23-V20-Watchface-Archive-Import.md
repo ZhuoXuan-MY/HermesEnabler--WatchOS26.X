@@ -1,4 +1,4 @@
-# RO23 V20 — .watchface descriptors versus native FaceBundle eligibility
+# HermesEnabler · watchOS 26.x — V20 — .watchface descriptors versus native FaceBundle eligibility
 
 **Date:** 2026-11-11 · **Target:** Apple Watch Ultra 1 (Watch6,18), watchOS 26.6.1 / 23U95.
 **Outcome:** Prepared read-only offline archive inspector. **No sample .watchface bytes were supplied**; Hermes bundle identity is **not yet known**. No native Hermès face has been installed or unlocked.

@@ -30,4 +30,4 @@
 
 本專案包含來自 [Gester](https://github.com/sasobhabha/Gester) 的程式碼。
 
-使用風險由您自行承擔。
+本專案為非官方研究用途，相關使用風險需自行評估。

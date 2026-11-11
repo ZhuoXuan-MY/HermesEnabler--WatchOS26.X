@@ -1,5 +1,18 @@
 # RO23 investigation: current evidence on Watch6,18 / 23U95
 
+**Official status: `BLOCKED` — native Hermès unlock unsuccessful on Watch6,18 / watchOS 26.6.1 (`23U95`)** (recorded 2026-11-11 23:43 Beijing Time). The current technique is blocked, **not** proven impossible in principle. Existing V0–V30 research, watch logs and source are retained. Historical “next steps” below are archival, not current instructions. See [README](../README.md) and [CHANGELOG](../CHANGELOG.md).
+
+### Evidence behind BLOCKED
+
+- The owner's Watch6,18 / 23U95 protected MobileGestalt cache read succeeded, but `open(O_RDWR)` returned **`EPERM`**. Consuming a Class-13 sandbox extension did **not** grant protected file write/create permission. Geod-MCM and the tested Class-7 variants did not furnish writable access.
+- Face eligibility is a second, independent blocker: real device `deviceCategory=4` fails the Hermès 2025 category whitelist, and the matched Circulaire/Poodle restriction function returns restricted with `collectionType=9` and `NTKShowHardwareSpecificFaces=false`. A hypothetical writable cache alone would **not** establish native face activation.
+- Public `worse_query` SystemGroup support is documented for **iOS 27**, not demonstrated for this **watchOS 26** target; iPhone Filza/EscapeOS and ordinary App Groups do not grant remote watchOS SystemGroup write authority.
+- The V27.2 branch identity `_CLKIsFaceSnapshotService` describes a face snapshot exception, **not an ordinary native face-unlock authorization**.
+
+**Development is paused pending material new evidence.** Do not resume repeated read-only probes, speculative protected writes, or fake “force-enable” UI. Reopen only with (1) a reproducible **Watch6,18/23U95** authorized privileged write or equivalent route, (2) verified safe readback/persistence and (3) live native Hermès eligibility, addition and durable display. **Current milestones: 0/3.** This is a research archive, not a working unlock.
+
+---
+
 **NOT UNLOCKED.** Native Hermès faces are not activated on the user's stock Ultra 1.
 
 Original app: [Jinwoo Kim / @pookjw](https://github.com/pookjw/HermesEnabler), MIT license. Field research and issue logs: [@ZhuoXuan-MY](https://github.com/pookjw/HermesEnabler/issues/17), with AI-assisted analysis.

@@ -43,11 +43,11 @@ Offline `llvm-objdump --macho --disassemble` confirmed exactly **two direct call
     cbz w0, 0x546015A4
 ```
 
-`0x55CE731C` and `0x55CE73DC` differ by `0xC0` bytes, but their **relative address is not proof of shared semantics or identity**. `_os_variant_has_internal_ui` appears as an undefined external symbol in the extracted NanoTimeKit symbol table; the standalone extraction does **not** prove it corresponds to either particular branch destination. The owner's V16 log measured `NTKInternalBuild=false`, `NTKShowHardwareSpecificFaces=false`, `NTKShowInternalFaces=false`. No write-based unlock follows from those values.
+`0x55CE731C` and `0x55CE73DC` differ by `0xC0` bytes, but their **relative address is not proof of shared semantics or identity**. `_os_variant_has_internal_ui` appears as an undefined external symbol in the extracted NanoTimeKit symbol table; the standalone extraction does **not** prove it corresponds to either particular branch destination. my V16 log measured `NTKInternalBuild=false`, `NTKShowHardwareSpecificFaces=false`, `NTKShowInternalFaces=false`. No write-based unlock follows from those values.
 
 ## Decisive next step — resolve BOTH addresses using the *already extracted* full shared cache
 
-The shared cache remains on the device owner's Mac and was **not uploaded** with the small NanoTimeKit ZIP, so we cannot conclusively map the two addresses locally. No new OTA download or extraction is needed. Run read-only symbol lookups against the existing Watch6,18 / 23U95 cache:
+The shared cache remains on my Mac and was **not uploaded** with the small NanoTimeKit ZIP, so I cannot conclusively map the two addresses locally. No new OTA download or extraction is needed. Run read-only symbol lookups against the existing Watch6,18 / 23U95 cache:
 
 ```bash
 ROOT="$HOME/Downloads/RO23-23U95-Static"

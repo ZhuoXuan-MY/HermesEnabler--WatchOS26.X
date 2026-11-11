@@ -1,14 +1,14 @@
 # RO23 开发日志｜Apple Watch Ultra 1 · 23U95
 
-**研究进度截至：2026-11-11 18:54（马来西亚时间，UTC+08:00）**  
+**研究进度截至：2026-11-11 18:54（北京时间，UTC+08:00）**  
 **研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
 **当前结果：原生 Hermès 表盘尚未解锁。**
 
-这里按**实际 GitHub 提交时间**记录我们对 RO23 衍生项目的每次修改、验证资料的入库和技术判断。以下“几点几分”来自 GitHub commit 的 UTC 时间换算为马来西亚时间；**不是声称在该分钟直接操作、刷写或测试了你的手表**。实际手表诊断由设备所有者运行，源码与报告修改有 AI 辅助。
+这里按**实际 GitHub 提交时间**记录我们对 RO23 衍生项目的每次修改、验证资料的入库和技术判断。以下“几点几分”来自 GitHub commit 的 UTC 时间换算为北京时间；**不是声称在该分钟直接操作、刷写或测试了你的手表**。实际手表诊断由设备所有者运行，源码与报告修改有 AI 辅助。
 
 ## 2026 年 11 月 11 日｜逐分钟开发记录（新 → 旧）
 
-| 时间 (MYT) | 版本 | 具体做了什么 | GitHub 提交 |
+| 时间 (Beijing Time) | 版本 | 具体做了什么 | GitHub 提交 |
 |---|---|---|---|
 | **18:54** | **V25 Poodle 能力方法解析** | 直接读取已上传的真实 23U95 Zeus 与 ClockKit 二进制：解析 `0x469C0` 为 `supportsPDRCapability:`，核实 ClockKit `0x49C6E724` 始终返回 true；交叉验证 `deviceCategory`、`collectionType` 跳板并新增可复现的只读 Python 工具。Poodle 仍受限，未解锁。 | [`440fc7c`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/440fc7c2e2ff91b608b4fe3a004e464ae12a1ece) |
 | **18:41** | **V24 Poodle 完整函数验证** | 成功分析 23U95 原始 Zeus 反汇编，从 51,891 行输出中定位 Poodle 的 29 条指令；证实对 Ultra 1 已测属性，不论额外能力函数返回什么，完整 `isRestrictedForDevice:` 静态逻辑都返回受限制。修复 LLVM/otool 脚本，仅输出目标指令，未解锁。 | [`056cfc7`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/056cfc7b883a9e9fc87f0821c6bffd29df240680) |

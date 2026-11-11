@@ -4,6 +4,9 @@
 
 **Finding:** For the **observed** Ultra 1 values `deviceCategory=4`, `collectionType=9`, `NTKShowHardwareSpecificFaces=false`, the full extracted `+[NTKPoodleFace isRestrictedForDevice:]` **evaluates restricted for both possible outcomes of its additional capability call**. This is complete **static path evaluation joined to live watch getters**, not a live call of the private Poodle class and **not an unlock**.
 
+
+> **V25 correction (2026-11-11):** The unknown Poodle call `0x469C0` is **`-[CLKDevice supportsPDRCapability:]`**, proven by decoding the exact Zeus ObjC selector stub and references. Matching ClockKit at `0x49C6E724` returns **true** (`mov w0,#1; ret`), independently verified from original bytes. The result for measured Ultra 1 remains **RESTRICTED**. [See V25 source audit](RO23-V25-Poodle-Selector-ClockKit.md).
+
 ## Primary evidence
 
 The device owner executed the V23 script directly against the already extracted `NTKZeusFaceBundle`. Original local binary SHA-256: `2b34d3d411b77ee73f3892638f419eda83b7bedc4653ecf44adf7c975bbd72e4`. The SHA-256 matched. LLVM path: `/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-objdump`.

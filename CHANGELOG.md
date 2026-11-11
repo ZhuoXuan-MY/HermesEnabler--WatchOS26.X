@@ -151,3 +151,10 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Analyzed owner-supplied 23U95 Zeus output, matching SHA-256, 51,891 log lines; reconstructed all 29 instructions of +[NTKPoodleFace isRestrictedForDevice:] 0x13B4–0x1424.
 - Complete static decision: category==1 -> restricted; capability call 0x469C0 false -> restricted; if true, collectionType==5 -> unrestricted else !NTKShowHardwareSpecificFaces. Given actual Ultra1 category4/collection9/hardwarefalse, both capability outcomes yield restricted.
 - Updated V21 script to filter actual instruction PCs for both LLVM and otool; 29 lines instead of 50k+. No app/UI changes, device writes, or native Hermès unlock.
+
+
+### RO23 V25 — genuine ObjC stub-to-selector resolution in matching firmware (2026-11-11)
+- Inspected real user-uploaded Zeus (663,040 bytes; sha256 2b34d3...) and ClockKit (1,425,840 bytes; sha256 5fc1784...).
+- Resolved Zeus 0x469C0 via arm64_32 __objc_stubs → __objc_selrefs[0x4F0A8] → __objc_methname[0x40445] to `supportsPDRCapability:`; independently resolved category and collection getter stubs.
+- Verified matching ClockKit `-[CLKDevice supportsPDRCapability:]` at VM 0x49C6E724 consists of MOV W0,#1; RET. Poodle's method rejects measured Ultra 1 values despite this predicate always returning true.
+- Added a read-only standard-library Python verifier, tested successfully against actual uploaded binary files. No watch code changes, system writes, or unlock.

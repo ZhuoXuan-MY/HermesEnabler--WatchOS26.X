@@ -79,3 +79,8 @@ Device owner successfully ran V22 on first-gen Ultra / 23U95. The on-watch outpu
 ## RO23 V24 — Full Poodle eligibility function reconstructed (2026-11-11)
 
 Owner's actual V23 Mac dump verifies the matching SHA-256 `2b34d3…` and supplies the entire 29-instruction Poodle function at `0x13B4–0x1424`. Its early test is `deviceCategory==1`; an unresolved capability call `0x469C0` with constant `0xD5DDA3E7` rejects on zero. If this call succeeds, the watch's `collectionType=9` and `NTKShowHardwareSpecificFaces=false` still force **restricted=true**. Therefore the **complete static function**, with the known on-watch values, rejects Poodle regardless of the unknown capability outcome; no direct dynamic Poodle method call or unlock was performed. Fixed the offline script that printed ~51,891 lines: it now emits only the relevant 29 instructions under LLVM or otool. [V24 full analysis](RO23-V24-Poodle-Full-Gate.md).
+
+
+## RO23 V25 — ObjC selector and ClockKit return independently verified (2026-11-11)
+
+Analyzed **the actual uploaded 23U95 Zeus and ClockKit Mach-O binaries**, not a name guess. Zeus stub `0x469C0` → `__objc_selrefs[0x4F0A8]` → `__objc_methname[0x40445]` = **`supportsPDRCapability:`**. Matching `-[CLKDevice supportsPDRCapability:]` at `0x49C6E724` consists solely of `mov w0,#1; ret`, so this specific Poodle capability check always succeeds on this ClockKit build. The owner's category 4 / collection 9 / hardware-face false still produce **Poodle restricted=true**. A read-only SHA-checked Python verifier was executed successfully on both original binaries and added to the repository. No native face activation. [V25 report](RO23-V25-Poodle-Selector-ClockKit.md).

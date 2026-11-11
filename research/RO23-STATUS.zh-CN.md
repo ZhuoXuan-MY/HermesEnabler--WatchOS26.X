@@ -97,3 +97,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V24：已取得 Poodle 完整前置分支并确认静态资格结果（2026-11-11）
 
 用户成功运行 Xcode LLVM，确认 23U95 `NTKZeusFaceBundle` SHA-256 完全匹配并上传完整反汇编。已从约 51,891 行中定位 `0x13B4–0x1424` 的**29 条 Poodle 函数指令**。完整逻辑：类别 `1` 直接受限；额外能力判断 `0x469C0`（常量 `0xD5DDA3E7`）返回 0 直接受限；否则 `collectionType==5` 才直接允许；其他类型最终取反 `NTKShowHardwareSpecificFaces`。结合实机类别 `4`、collection `9`、hardware flag `false`，**无论额外能力判断返回什么，整个静态方法都计算受限**。这比 V22 的条件分支结论更进一步，但**尚未在手表进程中实际调用 Poodle 类方法，也未解锁 Hermès**。已修复脚本在 LLVM 下输出整份 5 万多行汇编的问题，改为 LLVM/otool 均只输出 29 条指令。详见 [V24 完整报告](RO23-V24-Poodle-Full-Gate.md)。
+
+
+## RO23 V25：Poodle 未知能力检查已解析为真实 ClockKit 方法（2026-11-11）
+
+直接打开此前上传的原始 23U95 `RO23-V14-Zeus.zip` 和 `RO23-V12-ClockKit.zip`，校验二进制哈希后追踪 **Zeus 跳板 `0x469C0` → `__objc_selrefs` 地址 `0x4F0A8` → `__objc_methname` 地址 `0x40445`**，真实方法名是 **`supportsPDRCapability:`**；相同固件 `-[CLKDevice supportsPDRCapability:]` 的 `0x49C6E724` 仅有 `mov w0,#1; ret`，始终返回 true。这样 V24 中唯一未知的能力判断也已解释。结合实机类别 4、collection 9 和 hardware-face=false，Poodle **仍被完整资格方法拒绝**。新增已对两份原始固件实际测试通过的纯标准库只读 Python 校验工具，原始 Apple 二进制不上传公共仓库、无需新增手表按钮。详见 [V25](RO23-V25-Poodle-Selector-ClockKit.md)。

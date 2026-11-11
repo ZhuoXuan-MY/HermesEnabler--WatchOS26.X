@@ -1,4 +1,4 @@
-# RO23 investigation: current evidence on Watch6,18 / 23U95
+# HermesEnabler · watchOS 26.x — Research status (Watch6,18 / 23U95)
 
 **Official status: `BLOCKED` — native Hermès unlock unsuccessful on Watch6,18 / watchOS 26.6.1 (`23U95`)** (recorded 2026-11-11 23:43 Beijing Time). The current technique is blocked, **not** proven impossible in principle. Existing V0–V30 research, watch logs and source are retained. Historical “next steps” below are archival, not current instructions. See [README](../README.md) and [CHANGELOG](../CHANGELOG.md).
 

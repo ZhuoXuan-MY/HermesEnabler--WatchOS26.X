@@ -96,3 +96,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Actual Filza screenshot: com.apple.ClockKit.plist Dictionary[1], String HandFactoryCachedBuild=24B5089g.
 - Correlated cache build string with iOS 27.2 beta 2 (2026-09-21). Does not establish current iPhone build or watch Hermès authorization.
 - No system write or Xcode source changes; next test is only listing CreateWatchFace component app-container top level.
+
+
+### RO23 V19.4 — CreateWatchFace component preference metadata (2026-11-11)
+- Owner confirms listing two preference plists in com.apple.NanoTimeKit.CreateWatchFace container; observed cached builds 20F66, 21C66 and UltraFaceWasAddedToLibrary=YES.
+- File-to-key mapping inferred from byte sizes only because editing screenshots omit filename.
+- No verified Hermes authorization, category mutation or watchOS system write. No executable changes or new Xcode/UI artifacts.

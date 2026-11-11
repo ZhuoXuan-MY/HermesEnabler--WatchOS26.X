@@ -67,3 +67,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V19.3：ClockKit plist 唯一真实键值（2026-11-11）
 
 用户实际打开 iPhone Watch 应用数据容器 `Library/Preferences/com.apple.ClockKit.plist`（80 B），发现 `Dictionary[1]` 只有一个 String：`HandFactoryCachedBuild = 24B5089g`。独立构建版本资料证实 `24B5089g` 对应 **iOS 27.2 Beta 2（2026-09-21）**；它不等于 Ultra 1 的 `23U95`，亦不能证明当前 iPhone 仍是该 Beta。该字段的内部用途尚未逆向核实，只能从名称判断可能是某个版本缓存，不是已经验证的爱马仕授权开关。**不得改写该值或点击 Save**。接下来查看独立 `com.apple.NanoTimeKit.CreateWatchFace` 组件能否打开数据容器及其顶层目录；无需碰配对令牌。见 [V19.3 记录](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。
+
+
+## RO23 V19.4：CreateWatchFace 组件偏好键（2026-11-11）
+
+用户实机截图证明 iPhone 的 `com.apple.NanoTimeKit.CreateWatchFace` 组件 `Library/Preferences` 中有两个文件：`com.apple.NanoTimeKit.face.plist`（111 B）和 `com.apple.ClockKit.plist`（77 B）；两张编辑器截图显示 `HandFactoryCachedBuild=20F66` + `UltraFaceWasAddedToLibrary=YES`，以及另一份 `HandFactoryCachedBuild=21C66`。**编辑界面未显示原文件名**，根据字节数把双键归于 NanoTimeKit.face 只是合理推断。字段 `UltraFaceWasAddedToLibrary` 可能记录 Ultra 专属表盘被添加的状态，但含义尚未经源码证明，不等于 Hermès 授权或手表端硬件资格改变。**不得编辑、删除或保存修改；没有解锁。** 详见 [V19.4 记录](RO23-V19.1-Filza-Source-And-Bridge-Verification.md)。

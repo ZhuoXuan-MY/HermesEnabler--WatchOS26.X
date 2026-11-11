@@ -56,3 +56,8 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Put the V16 read-only test directly on the main screen with a visible V16.1 marker and inline result.
 - Preserve other diagnostics in a secondary screen; no system writes or face installation.
 - Requires pull + fresh Xcode watch installation to appear on the device.
+
+
+### RO23 V16.1 — on-device result confirmed (2026-11-11)
+- Confirmed real Watch6,18 / 23U95: NTKInternalBuild=false, NTKShowHardwareSpecificFaces=false, NTKShowInternalFaces=false; no writes or face installation.
+- Identified that internal-build precondition short-circuits a preference-only hardware-face display attempt; no additional executable changes in this documentation update.

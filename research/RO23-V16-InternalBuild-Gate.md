@@ -82,3 +82,25 @@ Interpretation: if `NTKInternalBuild=false`, the assembly short-circuits the oth
 3. The demonstrated `EPERM` protected MG write restriction and Hermès2025 category mismatch remain unchanged. **There is no verified stock Ultra 1 native Hermès unlock yet.**
 
 [Upstream](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17).
+
+
+## V16.1 actual on-device result — 2026-11-11
+
+The device owner has now built and run V16 on the same **Watch6,18 / watchOS 26.6.1 / 23U95** device. Exact app-owned log values:
+
+```text
+[bqtool] RO23 RO23 V16 — NanoTimeKit internal-build gate (read only)
+Build=23U95
+NTKInternalBuild=false
+Static inference: internal-build early return prevents the hardware-face setting check.
+NTKShowHardwareSpecificFaces=false
+NTKShowInternalFaces=false
+No preferences changed; no face loaded; no protected writes.
+RO23 V16 END systemWrites=NO
+```
+
+**Evidence level: device observation.** The internal-build predicate was dynamically called and returned `false`; both downstream visibility predicates returned `false`. Coupled with the previously verified `cbz` branch, this confirms the *specific* short-circuit applies to the running watch build. It is more than a guess about the existence of a setting, but it does **not** prove that every Hermès face relies on this same flag.
+
+**Research impact:** simply adding a user preference named `ShowHardwareSpecificFaces` is not a demonstrated way to enable Zeus on this device, because the internal-build check short-circuits the logic. No more watch-side repeats of V13/V14/V16 are needed. Future analysis should focus on the independent, publicly reachable NanoTimeKit FaceBundle eligibility/registration path and any *supported* device capability APIs. The earlier system-group `EPERM` and Hermès2025 `deviceCategory=4` mismatch remain independent blockers.
+
+No native Hermès face has been installed or enabled; no protected modifications were performed by the diagnostic.

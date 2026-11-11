@@ -32,3 +32,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## V16.1：修正手表按钮入口
 
 此前 V16 只显示在 Read-only diagnostics 二级页面，不在首页。已将 V16 · Internal-build gate 直接放在手表首页，并显示 RO23 V16.1 installed · read-only 版本标识和实际运行结果。此修改只涉及 UI，不修改 MobileGestalt 或安装表盘。用户需要从 GitHub 同步并在 Xcode 重新编译部署，旧版应用不会自动更新。
+
+
+## V16.1 真机运行结果（2026-11-11）
+
+用户已经在同一台 Ultra 1 / 23U95 上成功执行新按钮，获得真实日志：**`NTKInternalBuild=false`、`NTKShowHardwareSpecificFaces=false`、`NTKShowInternalFaces=false`**，`systemWrites=NO`。结合已核实的 `cbz` 分支，可确定本机内部版本检查未通过，并使硬件专属表盘显示谓词提前返回 false。**不能由此推论所有爱马仕表盘的全部路径均不可能**，但仅写 `ShowHardwareSpecificFaces` 偏好键没有已验证的作用。无需反复测试同样的三个返回值。见 [V16 真机证据](RO23-V16-InternalBuild-Gate.md)。

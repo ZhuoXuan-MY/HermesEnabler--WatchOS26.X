@@ -1,6 +1,6 @@
 # RO23 开发日志｜Apple Watch Ultra 1 · 23U95
 
-**研究进度截至：2026-11-11 18:54（北京时间，UTC+08:00）**  
+**研究进度截至：2026-11-11 19:21（北京时间，UTC+08:00）**  
 **研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
 **当前结果：原生 Hermès 表盘尚未解锁。**
 
@@ -10,6 +10,7 @@
 
 | 时间 (Beijing Time) | 版本 | 具体做了什么 | GitHub 提交 |
 |---|---|---|---|
+| **19:21** | **V26 watchOS 沙箱逃逸评估** | 核查 `worse_query` 与 `WatchRegion` 真正源码；发现后者面向 watchOS 27，并声称在 Ultra 4 / 27.3 beta 修改过 MG 地区缓存，但目前 Ultra 1 / 23U95 未验证、RO23 签名无 App Group。未运行漏洞或写系统，仅继续非普通资格路径研究。 | [`a00a01b`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/a00a01b8792bc827e99373b40258ebdec179f524) |
 | **18:54** | **V25 Poodle 能力方法解析** | 直接读取已上传的真实 23U95 Zeus 与 ClockKit 二进制：解析 `0x469C0` 为 `supportsPDRCapability:`，核实 ClockKit `0x49C6E724` 始终返回 true；交叉验证 `deviceCategory`、`collectionType` 跳板并新增可复现的只读 Python 工具。Poodle 仍受限，未解锁。 | [`440fc7c`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/440fc7c2e2ff91b608b4fe3a004e464ae12a1ece) |
 | **18:41** | **V24 Poodle 完整函数验证** | 成功分析 23U95 原始 Zeus 反汇编，从 51,891 行输出中定位 Poodle 的 29 条指令；证实对 Ultra 1 已测属性，不论额外能力函数返回什么，完整 `isRestrictedForDevice:` 静态逻辑都返回受限制。修复 LLVM/otool 脚本，仅输出目标指令，未解锁。 | [`056cfc7`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/056cfc7b883a9e9fc87f0821c6bffd29df240680) |
 | **18:33** | **V23 反汇编工具修复** | 用户 Mac 已成功验证 23U95 Zeus 二进制 SHA-256，但缺少 `llvm-objdump`；修改原 V21 脚本，在 LLVM 不可用时自动使用 Xcode `otool` 并仅打印 Poodle 目标指令。无需重装工具或修改手表。 | [`bf32ec8`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bf32ec8452e31539f5e3855f9ba760174530c776) |
@@ -48,6 +49,7 @@
 
 ## 研究文件与源码
 
+- [V26｜watchOS 沙箱逃逸与 Ultra 1 适配评估](research/RO23-V26-WatchOS-Sandbox-Feasibility.md)
 - [V25｜Poodle 能力选择器与 ClockKit 返回值验证](research/RO23-V25-Poodle-Selector-ClockKit.md)
 - [V24｜Poodle 完整静态资格函数分析](research/RO23-V24-Poodle-Full-Gate.md)
 - [V22｜Poodle 手表端实测入口与限制分支](research/RO23-V22-Poodle-Runtime-Gate.md)
@@ -71,12 +73,13 @@
 
 ## English — timestamped development history
 
-**Recorded through November 11, 2026, 18:54 (Beijing Time, UTC+08:00).** Target device: first-generation Apple Watch Ultra (Watch6,18), watchOS 26.6.1 (23U95). **Native Hermès watchfaces are NOT unlocked.**
+**Recorded through November 11, 2026, 19:21 (Beijing Time, UTC+08:00).** Target device: first-generation Apple Watch Ultra (Watch6,18), watchOS 26.6.1 (23U95). **Native Hermès watchfaces are NOT unlocked.**
 
 Every timestamp below is the **actual GitHub commit time converted to Beijing Time**, not a claim of on-device operation at that minute. Device measurements were run by the owner; some repository changes and analysis were AI-assisted.
 
 | Time (Beijing Time) | Version | Verified repository change / evidence recorded | Commit |
 |---|---|---|---|
+| **19:21** | **V26 watchOS sandbox audit** | Audited actual worse_query and WatchRegion code. WatchRegion targets watchOS 27 and reports an Ultra 4 / 27.3 beta region-cache modification, but does not validate an Ultra 1 / 23U95 exploit; current RO23 signing lacks an App Group. No exploit ran or system files changed. | [`a00a01b`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/a00a01b8792bc827e99373b40258ebdec179f524) |
 | **18:54** | **V25 capability selector resolved** | Inspected genuine uploaded 23U95 Zeus/ClockKit binaries: `0x469C0` resolves to `supportsPDRCapability:`, whose ClockKit implementation at `0x49C6E724` returns true. Independently confirmed category/collection stubs and added a tested read-only stdlib verifier. Poodle stays restricted; no unlock. | [`440fc7c`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/440fc7c2e2ff91b608b4fe3a004e464ae12a1ece) |
 | **18:41** | **V24 full Poodle gate** | Analyzed the actual 23U95 Zeus disassembly (29 relevant Poodle instructions among 51,891 log lines); full static method evaluates restricted for measured Ultra 1 values irrespective of the unknown capability predicate. Fixed LLVM/otool output filtering. No face unlock. | [`056cfc7`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/056cfc7b883a9e9fc87f0821c6bffd29df240680) |
 | **18:33** | **V23 disassembler fallback** | Owner confirmed the 23U95 Zeus SHA-256 matches, but `llvm-objdump` was absent. Updated existing V21 script to automatically fall back to Xcode `otool` for Poodle-range disassembly, with no extra install or device changes. | [`bf32ec8`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bf32ec8452e31539f5e3855f9ba760174530c776) |
@@ -105,6 +108,6 @@ Every timestamp below is the **actual GitHub commit time converted to Beijing Ti
 
 The real watch reported `deviceCategory=4`, `collectionType=9`, `deviceBrand=0` and `NTKInternalBuild=false`. The verified Circulaire ZIP references `com.apple.NTKPoodleFaceBundle`; a known Poodle fallback computes “restricted” with the measured collection/hardware-face values **if that path is reached**. The earlier Poodle branches and private restricted-face exception remain unresolved. None of the work so far demonstrates an authenticated system write or successful native Hermès face activation.
 
-**Research:** [V25](research/RO23-V25-Poodle-Selector-ClockKit.md) · [V24](research/RO23-V24-Poodle-Full-Gate.md) · [V22](research/RO23-V22-Poodle-Runtime-Gate.md) · [V21](research/RO23-V21-Poodle-Gate-Mapping.md) · [V20.1](research/RO23-V20-Watchface-Archive-Import.md) · [V17](research/RO23-V17-FaceBundle-Loading-Chain.md) · [V16](research/RO23-V16-InternalBuild-Gate.md) · [Full changelog](CHANGELOG.md)
+**Research:** [V26](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) · [V25](research/RO23-V25-Poodle-Selector-ClockKit.md) · [V24](research/RO23-V24-Poodle-Full-Gate.md) · [V22](research/RO23-V22-Poodle-Runtime-Gate.md) · [V21](research/RO23-V21-Poodle-Gate-Mapping.md) · [V20.1](research/RO23-V20-Watchface-Archive-Import.md) · [V17](research/RO23-V17-FaceBundle-Loading-Chain.md) · [V16](research/RO23-V16-InternalBuild-Gate.md) · [Full changelog](CHANGELOG.md)
 
 **Attribution:** Original HermesEnabler 2 by [Jinwoo Kim (@pookjw)](https://github.com/pookjw/HermesEnabler). RO23 watch research by [@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY), with AI-assisted documentation and code changes. Preserve upstream MIT and third-party notices in [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). This fork is unofficial and is not an established watchOS 26 unlock.

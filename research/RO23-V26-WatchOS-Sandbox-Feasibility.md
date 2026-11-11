@@ -1,4 +1,4 @@
-# RO23 V26 — Watch sandbox-escape feasibility: worse_query vs 23U95
+# HermesEnabler · watchOS 26.x — V26 — Watch sandbox-escape feasibility: worse_query vs 23U95
 
 **Research date:** 2026-11-11 (北京时间 UTC+08:00).  
 **Target:** my Apple Watch Ultra 1 (Watch6,18 / n199ap), watchOS 26.6.1 build 23U95.  

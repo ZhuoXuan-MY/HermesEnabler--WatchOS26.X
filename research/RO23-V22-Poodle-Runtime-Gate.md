@@ -5,7 +5,7 @@
 **Goal:** Turn earlier V16/V21 inferences into a clearly classified, one-tap, Poodle-specific watch report. Actual V22 watch measurements are **not yet received**. Native Hermès faces remain **not unlocked**.
 
 
-> **Updated by V24 (2026-11-11):** The owner has now supplied the full 23U95 Zeus disassembly. The entire Poodle restriction function was reconstructed, and its outcome for observed Ultra 1 values is **RESTRICTED regardless of the unknown capability-call result**. The V21 conditional-only interpretation below is historical. See [V24 full gate analysis](RO23-V24-Poodle-Full-Gate.md).
+> **Updated by V24 (2026-11-11):** I have now supplied the full 23U95 Zeus disassembly. The entire Poodle restriction function was reconstructed, and its outcome for observed Ultra 1 values is **RESTRICTED regardless of the unknown capability-call result**. The V21 conditional-only interpretation below is historical. See [V24 full gate analysis](RO23-V24-Poodle-Full-Gate.md).
 
 ## What changed in the existing watch app
 
@@ -27,7 +27,7 @@
 | `NTKPoodleFace.isRestrictedForDevice(actual in-process)` | **Real class method, only if already registered** | Read the private class's original result without attempting to load the bundle |
 | `...unavailable (class/method not registered)` | **Absence of measurement** | Does not establish the bundle is missing from watchOS, or that Poodle is unrestricted |
 
-The private `isRestrictedForDevice:` is only called when `NTKPoodleFace` is **already registered** in the current process and responds to the method. It is **not injected**, and the class is never force-loaded. Its behavior on the user's watch **cannot be asserted before testing**. If it is unavailable, we still get the measured device/predicate results, and existing offline V21 disassembly remains the appropriate way to inspect earlier branches.
+The private `isRestrictedForDevice:` is only called when `NTKPoodleFace` is **already registered** in the current process and responds to the method. It is **not injected**, and the class is never force-loaded. Its behavior on my watch **cannot be asserted before testing**. If it is unavailable, I still get the measured device/predicate results, and existing offline V21 disassembly remains the appropriate way to inspect earlier branches.
 
 ## Expected comparison with prior real logs (not a prediction of V22 output)
 
@@ -47,7 +47,7 @@ If the new run reproduces these values, the **previously identified conditional 
 
 This is an **actual source-code change**, unlike docs-only V17–V21. It requires one normal update of the **same local Git checkout** followed by Xcode watch build/install; GitHub cannot automatically install it on the watch.
 
-No Apple Watch was available in the remote GitHub editing environment. **Compilation, signing, and runtime are unverified until the owner runs them.**
+No Apple Watch was available in the remote GitHub editing environment. **Compilation, signing, and runtime are unverified until me runs them.**
 
 To verify the correct source is open, inspect the main Watch App `ContentView.swift` for `RO23 V22 · read-only diagnostics` and `V22 · Poodle eligibility` before building. Do not create or clone additional projects.
 
@@ -56,7 +56,7 @@ To verify the correct source is open, inspect the main Watch App `ContentView.sw
 
 ## V22.2 — Actual Ultra 1 on-device result (owner supplied, 2026-11-11)
 
-The owner **successfully compiled, installed and ran the V22 diagnostic on the watch**. Full app log (verbatim values, no estimated return from an unregistered class):
+I **successfully compiled, installed and ran the V22 diagnostic on the watch**. Full app log (verbatim values, no estimated return from an unregistered class):
 
 ```text
 [bqtool] RO23 RO23 V22 — Hermès Circulaire / Poodle (read only)
@@ -89,6 +89,6 @@ RO23 V22 END systemWrites=NO
 
 This confirms V22's home UI and executable test were successfully deployed. **It does not prove the native Poodle bundle is absent from firmware:** the earlier matching OTA evidence locates its class in the shared `NTKZeusFaceBundle`, which this app intentionally does not force-load.
 
-**Next investigation should NOT be another button with the same inputs.** The remaining high-value evidence is the *complete early control-flow* of `+[NTKPoodleFace isRestrictedForDevice:]` in the owner's already extracted **23U95** Zeus binary (address `0x13B4` through the conditional branch at `0x13F0`). The existing `scripts/ro23-v21-poodle-disasm.sh` performs this analysis offline after validating the exact binary SHA-256. Resolve the unknown `0x55CE73DC` stub separately using cache bind metadata. We have not run either on the user's Mac and must not invent their results.
+**Next investigation should NOT be another button with the same inputs.** The remaining high-value evidence is the *complete early control-flow* of `+[NTKPoodleFace isRestrictedForDevice:]` in my already extracted **23U95** Zeus binary (address `0x13B4` through the conditional branch at `0x13F0`). The existing `scripts/ro23-v21-poodle-disasm.sh` performs this analysis offline after validating the exact binary SHA-256. Resolve the unknown `0x55CE73DC` stub separately using cache bind metadata. I have not run either on my Mac and must not invent their results.
 
 No new runtime changes, private hooks, face installation, or system-file mutations were performed by this log.

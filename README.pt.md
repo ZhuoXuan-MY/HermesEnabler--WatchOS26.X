@@ -1,33 +1,13 @@
-# HermesEnabler 2
+# HermesEnabler · Pesquisa de compatibilidade com watchOS 26.x
 
-[English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
+**Status: BLOCKED — A abordagem atual está bloqueada. Nenhum mostrador Hermès nativo foi desbloqueado.**
 
-![](image.png)
+Este repositório documenta meus testes com um **Apple Watch Ultra de primeira geração (Watch6,18 / n199ap)** no **watchOS 26.6.1 (23U95)**, incluindo análises das permissões do sistema e das verificações de elegibilidade dos mostradores.
 
-> Compatível somente com watchOS 27.0 até watchOS 27.3 beta 1.
+Foi possível ler o cache protegido do MobileGestalt, mas a abertura para escrita retornou `EPERM`. ClockKit/NanoTimeKit também impõe restrições independentes. **Não é uma ferramenta de desbloqueio funcional e não há IPA com desbloqueio comprovado.**
 
-## Instalação
+O prefixo `RO23` em arquivos antigos é apenas um identificador interno histórico, não o nome do projeto nem uma versão compatível.
 
-### Instalar o IPA
+[Pesquisa e histórico completos (chinês)](README.zh-CN.md) · [English summary](README.md#english-summary) · [Projeto original](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) · [LICENSE](LICENSE)
 
-1. Baixe o IPA em [Releases](https://github.com/pookjw/HermesEnabler/releases).
-2. Instale-o usando o [Sideloadly](https://sideloadly.io).
-3. No iPhone, abra o app **Watch → Meu Relógio → Apps** e instale o **HermesEnabler2**.
-4. Abra o **HermesEnabler2** no Apple Watch e siga as etapas exibidas no app.
-
-### Compilar com o Xcode
-
-1. Abra [HermesEnabler2.xcodeproj](HermesEnabler2.xcodeproj) no Xcode.
-2. Selecione o Apple Watch como destino de execução e clique em **Run**.
-3. Abra o **HermesEnabler2** no Apple Watch e siga as etapas exibidas no app.
-
-## Precauções
-
-- No Sideloadly, desative **Use automatic bundle ID** e use um Bundle Identifier fixo. Use o mesmo Bundle Identifier e o mesmo Apple ID em todas as atualizações para preservar os dados e o backup existentes.
-- Antes de apagar o app, restaure sempre o backup do MobileGestalt pelo app HermesEnabler2.
-
-## Créditos
-
-Este projeto incorpora código do [Gester](https://github.com/sasobhabha/Gester).
-
-Use por sua conta e risco.
+**Pesquisa independente, sem vínculo oficial com Apple ou Hermès.**

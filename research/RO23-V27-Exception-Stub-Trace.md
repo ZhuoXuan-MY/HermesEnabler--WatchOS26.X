@@ -6,7 +6,7 @@
 
 ## 已有证据与新目标
 
-V24/V25 已完整还原正常的 `NTKPoodleFace isRestrictedForDevice:` 函数。你希望不再重复该普通资格路径，因此 V27 专门检查 **NanoTimeKit 在受限表盘被报告为 restricted 后，额外调用的系统级谓词**。
+V24/V25 已完整还原正常的 `NTKPoodleFace isRestrictedForDevice:` 函数。我希望不再重复该普通资格路径，因此 V27 专门检查 **NanoTimeKit 在受限表盘被报告为 restricted 后，额外调用的系统级谓词**。
 
 来自已核对的 V17/V18 23U95 静态反汇编：
 
@@ -23,11 +23,11 @@ V24/V25 已完整还原正常的 `NTKPoodleFace isRestrictedForDevice:` 函数�
 0x544B1178  cbz w0, 0x544B1188
 ```
 
-另一个地址 `0x55CE731C` 与 V16 内部构建检查有关。两者相差 `0xC0`，但**相近地址绝不等于同一符号或同一授权策略**。此前用户通过 `ipsw dyld a2s` 查这两个地址只得到了 `__TEXT_STUBS ?`。V27 故意不重复 `a2s`。
+另一个地址 `0x55CE731C` 与 V16 内部构建检查有关。两者相差 `0xC0`，但**相近地址绝不等于同一符号或同一授权策略**。此前我通过 `ipsw dyld a2s` 查这两个地址只得到了 `__TEXT_STUBS ?`。V27 故意不重复 `a2s`。
 
 ## 新增实际工具
 
-`scripts/ro23-v27-exception-stub-trace.sh` 已针对用户本来就有的 23U95 dyld shared cache 编写。它通过现有 `ipsw` CLI，对上述**两个地址分别**执行：
+`scripts/ro23-v27-exception-stub-trace.sh` 已针对我已有的 23U95 dyld shared cache 编写。它通过现有 `ipsw` CLI，对上述**两个地址分别**执行：
 
 1. `ipsw dyld a2f` —— 获取函数所属信息；
 2. `ipsw dyld a2o` —— 定位缓存映射与文件偏移；
@@ -43,7 +43,7 @@ git -C "$REPO" show origin/main:scripts/ro23-v27-exception-stub-trace.sh | bash
 
 不新建工程、不更改签名、不安装 watch App、不修改两台设备。注意 `ipsw` 可能生成其自身的本地分析索引，但**不会因此改写输入固件本体**。
 
-**验证边界：** 命令参数已对照官方文档 [a2f](https://blacktop.github.io/ipsw/docs/cli/ipsw/dyld/a2f/)、[a2o](https://blacktop.github.io/ipsw/docs/cli/ipsw/dyld/a2o/) 和 [disass](https://blacktop.github.io/ipsw/docs/cli/ipsw/dyld/disass/)；**本脚本尚未在用户 Mac 上实际运行**，因此未声称已经解出 `0x55CE73DC` 的最终函数身份。
+**验证边界：** 命令参数已对照官方文档 [a2f](https://blacktop.github.io/ipsw/docs/cli/ipsw/dyld/a2f/)、[a2o](https://blacktop.github.io/ipsw/docs/cli/ipsw/dyld/a2o/) 和 [disass](https://blacktop.github.io/ipsw/docs/cli/ipsw/dyld/disass/)；**本脚本尚未在我的 Mac 上实际运行**，因此未声称已经解出 `0x55CE73DC` 的最终函数身份。
 
 ## 与 worse_query / WatchRegion 的关系
 

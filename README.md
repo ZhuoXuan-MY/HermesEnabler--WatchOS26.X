@@ -1,6 +1,6 @@
 # RO23 开发日志｜Apple Watch Ultra 1 · 23U95
 
-**研究进度截至：2026-11-11 22:05（北京时间，UTC+08:00）**  
+**研究进度截至：2026-11-11 22:13（北京时间，UTC+08:00）**  
 **研究设备：** Apple Watch Ultra 第一代（Watch6,18 / n199ap）· watchOS 26.6.1（23U95）  
 **当前结果：原生 Hermès 表盘尚未解锁。**
 
@@ -10,6 +10,8 @@
 
 | 时间（北京时间） | 版本 | 具体做了什么 | GitHub 提交 |
 |---|---|---|---|
+| **22:13** | **V27.2 真实 ClockKit 函数解析成功** | 你在 Mac 对真实 Watch6,18 / 23U95 dyld 缓存运行 V27.2，8 项查询均成功。确认 `0x55CE73DC → 0x49C76990 = _CLKIsFaceSnapshotService`，以及 `0x55CE731C → 0x49C2ED64 = _CLKInternalBuild`；两者都在 ClockKit。前者是表盘快照服务谓词，**不能视为普通设备的 Hermès 解锁授权**。按真实函数边界纠正 48 条指令越界误读。未安装/启动表盘。 | [`819bd60`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/819bd6038171e54e870904a0e8b1d5d49efa6a6c) |
+| **22:12** | **V27.3 快照服务及表盘添加检查脚本** | 在现有 [PR #1](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/pull/1) 分支新增只读分析：追踪 `_CLKIsFaceSnapshotService` 初始化调用 `0x49C99CFC`，并分别检查 `_NTKCanAddWatchFace` 的配置、可用性、受限表盘判断。**脚本尚未在你的 Mac 上运行**，无任何设备写入。 | [`e30ff95`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e30ff957822f5a1fd6bbef351533d4ac1cf622cd) |
 | **22:05** | **V27.2 真实函数入口追踪脚本** | 根据你实际提供的 23U95 Stub Island 反汇编，新加离线只读脚本，直接检查 `0x49C76990`、`0x49C2ED64` 的所属映像、函数、偏移与前 48 条指令；脚本已提交，**尚未在你的 Mac 上运行**。原生表盘未解锁。 | [`178dfc2`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/178dfc222a70a2fd1eb75a0297dd6e68665449cf) |
 | **22:05** | **V27.1 真实固件日志回收** | 你已在 Mac 上执行 V27.1，确认两个地址属于 dsc.18 的 `__TEXT_STUBS` 跳板；`ADRP+ADD+BR` 分别跳往 **`0x49C76990`**（受限表盘例外）及 **`0x49C2ED64`**（内部构建相关）。4 次失败均为 Stub Island 的 `a2f/a2o` 归属查询失败，4 组反汇编成功；未运行 `--extended`，未证明功能解锁。 | [`a19d7c0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/a19d7c06f1c2c534ebd5ae6796b631d21f30f2ae) |
 | **21:57** | **V27.1 离线 Stub 审计工具** | 在独立研究分支增加 `a2s/a2f/a2o/disass` 的只读脚本，同时核对两处 NanoTimeKit 调用位置；准备时只有模拟命令验证，随后才得到你的真实 Mac 结果。代码未合入 `main`，见 [PR #1](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/pull/1)。 | [`5ae5706`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/5ae5706b7b9993852dd21ab6ce533fc997fe672e) |
@@ -38,6 +40,33 @@
 | **15:07** | **V14.2.1** | 修复 `Boolean` 与系统类型命名冲突（改为 `RO23ReadBool`），移除无法使用的占位 App Group entitlement。 | [`ebc7693`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/ebc7693db5bb3fc34a59a726015df8f14cd2ea44) |
 | **14:58** | **资源修复** | 修复 Watch 与 iPhone Companion 的图标资源构建问题，使用可编译占位图标（非原始图标）。 | [`e2bb4d4`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e2bb4d4323dead5d241ba45f2f3a60da504a9097) |
 | **14:55** | **V14.2 合并** | 合并上游 HermesEnabler 2 工程、Watch App 和 iPhone Companion；加入 V13/V14.1/MG 只读诊断与 23U95 界面保护。 | [`bfa6f12`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/bfa6f1240ee3241cacd364749d98fb05e4c2bfb1) |
+
+## V27.2 真实结果与 V27.3 下一步（2026-11-11）
+
+**你已经执行的操作：** 从 GitHub 研究分支获取 `scripts/ro23-v27-2-branch-targets.sh`，在 Mac 上对原有 `Watch6,18/23U95` ARM64_32 共享缓存做静态检查；结果为 **`Completed: 0 command(s) failed`**。这是 **8 个离线 ipsw 查询成功**，不是手表上的 Hermès 表盘启动成功。
+
+| 代码作用 | 真实 ClockKit 符号 | 函数地址及结束地址 | 证据 |
+|---|---|---|---|
+| 受限表盘查找后的例外调用 | **`_CLKIsFaceSnapshotService`** | `0x49C76990–0x49C769C0` | 原始 Stub `0x55CE73DC` 分支；`ipsw a2s/a2f` 已核实 |
+| 内部版本判断 | **`_CLKInternalBuild`** | `0x49C2ED64–0x49C2ED94` | 原始 Stub `0x55CE731C` 分支；`ipsw a2s/a2f` 已核实 |
+
+- 两个函数均在 `/System/Library/Frameworks/ClockKit.framework/ClockKit`。
+- `_CLKIsFaceSnapshotService` 内部调用 `0x49C99CFC` 进行缓存相关初始化；其具体判断逻辑**尚未解析**。
+- V27.2 的 `--count 48` 把紧邻的其他函数也输出了，**从 `0x49C769C0` 和 `0x49C2ED94` 起的代码不属于上述两个函数**。
+- Snapshot Service 的例外不证明普通表盘添加流程已获授权；此前 Poodle 常规限制及 `_NTKCanAddWatchFace` 的其他验证仍有效。
+
+**已准备的下一次操作（V27.3，目前尚未执行）：** 以下命令读取现有固件，不会安装 IPA、更改签名、运行越狱或修改 Watch/iPhone 系统文件。运行产生的日志保存在桌面。
+
+```bash
+set -o pipefail
+REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
+git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit &&
+git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-3-snapshot-service-and-add-gates.sh \
+  | bash -s -- 2>&1 \
+  | tee "$HOME/Desktop/RO23-V27.3.txt"
+```
+
+完整核验记录：[V27.2 ClockKit 函数边界与原始证据](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md)；脚本：[V27.3](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/scripts/ro23-v27-3-snapshot-service-and-add-gates.sh)。
 
 ## V27.1 最新的真实固件结果（Mac 离线运行，不是手表端动态执行）
 
@@ -87,6 +116,7 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 
 ## 研究文件与源码
 
+- [V27.2｜真实 ClockKit 快照服务与内部构建符号](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md)
 - [V27｜NanoTimeKit 受限表盘特殊跳板追踪](research/RO23-V27-Exception-Stub-Trace.md)
 - [V26｜watchOS 沙箱逃逸与 Ultra 1 适配评估](research/RO23-V26-WatchOS-Sandbox-Feasibility.md)
 - [V25｜Poodle 能力选择器与 ClockKit 返回值验证](research/RO23-V25-Poodle-Selector-ClockKit.md)
@@ -112,9 +142,24 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 
 ## English — timestamped development history
 
-**Recorded through November 11, 2026, 22:05 (Beijing Time, UTC+08:00).** Target device: first-generation Apple Watch Ultra (Watch6,18), watchOS 26.6.1 (23U95). **Native Hermès watchfaces are NOT unlocked.**
+**Recorded through November 11, 2026, 22:13 (Beijing Time, UTC+08:00).** Target device: first-generation Apple Watch Ultra (Watch6,18), watchOS 26.6.1 (23U95). **Native Hermès watchfaces are NOT unlocked.**
 
 Every timestamp below is the **actual GitHub commit time converted to Beijing Time**, not a claim of on-device operation at that minute. Device measurements were run by the owner; some repository changes and analysis were AI-assisted.
+
+### V27.2 owner result and V27.3 action (2026-11-11)
+
+The owner executed the V27.2 script on Mac against the existing **Watch6,18 / 23U95** ARM64_32 dyld cache; **all eight ipsw commands passed**. Both resolved symbols are in ClockKit: `_CLKIsFaceSnapshotService` at `0x49C76990–0x49C769C0`, and `_CLKInternalBuild` at `0x49C2ED64–0x49C2ED94`. The snapshot function calls an as-yet unanalyzed cache-initialization helper `0x49C99CFC`. V27.2's 48-instruction dumps included **neighboring functions beyond these verified ends**, so do not mix their instructions into the predicate bodies. A snapshot-service exception is **not** a normal Add-to-Library authorization or native unlock. See the [full V27.2 evidence](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md).
+
+**V27.3 proposed Mac command — not yet executed.** It statically inspects the snapshot service helper and independent `_NTKCanAddWatchFace` checks without touching the watch:
+
+```bash
+set -o pipefail
+REPO="$HOME/Downloads/HermesEnabler-RO23-Live"
+git -C "$REPO" fetch origin research/ro23-v27-1-stub-binding-audit &&
+git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-3-snapshot-service-and-add-gates.sh \
+  | bash -s -- 2>&1 \
+  | tee "$HOME/Desktop/RO23-V27.3.txt"
+```
 
 ### Latest owner-verified V27.1 firmware output (offline Mac analysis)
 
@@ -143,6 +188,8 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 
 | Time (Beijing Time) | Version | Verified repository change / evidence recorded | Commit |
 |---|---|---|---|
+| **22:13** | **V27.2 real ClockKit functions resolved** | The owner's **real Watch6,18/23U95 Mac** run succeeded (8/8 commands). The `0x55CE73DC` face exception stub resolves to **`_CLKIsFaceSnapshotService`** at `0x49C76990`, and separate `0x55CE731C` resolves to **`_CLKInternalBuild`** at `0x49C2ED64`; both belong to ClockKit. Snapshot-service scope does **not** establish an ordinary Hermès unlock. Corrected interpretation at real function boundaries; no native face launch. | [`819bd60`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/819bd6038171e54e870904a0e8b1d5d49efa6a6c) |
+| **22:12** | **V27.3 snapshot/init + face-add gate tracer** | Added a read-only research script on [PR #1](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/pull/1) to inspect the `_CLKIsFaceSnapshotService` init helper `0x49C99CFC` and independent NanoTimeKit `_NTKCanAddWatchFace` stages. **Not yet executed on the owner's Mac**; no device writes. | [`e30ff95`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e30ff957822f5a1fd6bbef351533d4ac1cf622cd) |
 | **22:05** | **V27.2 actual branch destination tracer** | Added a new offline read-only script to inspect `0x49C76990` and `0x49C2ED64`: image, function, image offset, and first 48 instructions. **Not yet executed against the owner's real cache**; no native unlock. | [`178dfc2`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/178dfc222a70a2fd1eb75a0297dd6e68665449cf) |
 | **22:05** | **V27.1 owner-provided genuine 23U95 cache output** | The owner ran V27.1 on Mac. Both original addresses are `dsc.18 __TEXT_STUBS` islands. Exact `ADRP/ADD/BR` jump targets are **`0x49C76990`** (restricted-face exception) and **`0x49C2ED64`** (distinct internal-build-related stub). Four `a2f/a2o` failures reflect stub-island image lookup limitations; four disassembly windows succeeded. `--extended` was not run. No unlock. | [`a19d7c0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/a19d7c06f1c2c534ebd5ae6796b631d21f30f2ae) |
 | **21:57** | **V27.1 offline stub audit tool** | Added the read-only `a2s/a2f/a2o/disass` audit on the separate [PR #1](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/pull/1) research branch; initially only mock-tested, subsequently used by the owner. No watch modifications. | [`5ae5706`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/5ae5706b7b9993852dd21ab6ce533fc997fe672e) |
@@ -174,8 +221,8 @@ git -C "$REPO" show FETCH_HEAD:scripts/ro23-v27-2-branch-targets.sh \
 
 ### Current evidence and limitations
 
-The real watch reported `deviceCategory=4`, `collectionType=9`, `deviceBrand=0` and `NTKInternalBuild=false`. The verified Circulaire ZIP references `com.apple.NTKPoodleFaceBundle`; a known Poodle fallback computes “restricted” with the measured collection/hardware-face values **if that path is reached**. The earlier Poodle branches and private restricted-face exception remain unresolved. None of the work so far demonstrates an authenticated system write or successful native Hermès face activation.
+The real watch reported `deviceCategory=4`, `collectionType=9`, `deviceBrand=0` and `NTKInternalBuild=false`. The verified Circulaire ZIP references `com.apple.NTKPoodleFaceBundle`; a known Poodle fallback computes “restricted” with the measured collection/hardware-face values **if that path is reached**. The complete Poodle static restriction path has been decoded in V25; the formerly unknown FaceBundleManager exception now resolves to ClockKit `_CLKIsFaceSnapshotService` in the owner's real V27.2 cache trace. That is a **snapshot-service check, not evidence of a normal watchface unlock**. Neither the snapshot-service initializer nor all ordinary add-to-library gates have been validated, and no protected system write or native Hermès activation has been demonstrated.
 
-**Research:** [V27](research/RO23-V27-Exception-Stub-Trace.md) · [V26](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) · [V25](research/RO23-V25-Poodle-Selector-ClockKit.md) · [V24](research/RO23-V24-Poodle-Full-Gate.md) · [V22](research/RO23-V22-Poodle-Runtime-Gate.md) · [V21](research/RO23-V21-Poodle-Gate-Mapping.md) · [V20.1](research/RO23-V20-Watchface-Archive-Import.md) · [V17](research/RO23-V17-FaceBundle-Loading-Chain.md) · [V16](research/RO23-V16-InternalBuild-Gate.md) · [Full changelog](CHANGELOG.md)
+**Research:** [V27.2](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/blob/research/ro23-v27-1-stub-binding-audit/research/RO23-V27.2-ClockKit-Snapshot-Service.md) · [V27](research/RO23-V27-Exception-Stub-Trace.md) · [V26](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) · [V25](research/RO23-V25-Poodle-Selector-ClockKit.md) · [V24](research/RO23-V24-Poodle-Full-Gate.md) · [V22](research/RO23-V22-Poodle-Runtime-Gate.md) · [V21](research/RO23-V21-Poodle-Gate-Mapping.md) · [V20.1](research/RO23-V20-Watchface-Archive-Import.md) · [V17](research/RO23-V17-FaceBundle-Loading-Chain.md) · [V16](research/RO23-V16-InternalBuild-Gate.md) · [Full changelog](CHANGELOG.md)
 
 **Attribution:** Original HermesEnabler 2 by [Jinwoo Kim (@pookjw)](https://github.com/pookjw/HermesEnabler). RO23 watch research by [@ZhuoXuan-MY](https://github.com/ZhuoXuan-MY), with AI-assisted documentation and code changes. Preserve upstream MIT and third-party notices in [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). This fork is unofficial and is not an established watchOS 26 unlock.

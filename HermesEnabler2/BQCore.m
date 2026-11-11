@@ -1,6 +1,3 @@
-#include <stdbool.h>
-#include <stdint.h>
-#import <mach-o/loader.h>
 #import "BQCore.h"
 #import <dlfcn.h>
 #import <zlib.h>
@@ -15,13 +12,12 @@
 #import <errno.h>
 #import <string.h>
 #import <stdlib.h>
+#import <math.h>
 #import <objc/message.h>
 #import <WatchKit/WatchKit.h>
-#import <mach-o/dyld.h>
-#import <mach-o/getsect.h>
-
 
 NSString * const BQErrorDomain = @"BQErrorDomain";
+NSString * const BQNoSandboxTokenError = @"the MCM query returned no sandbox token — send Documents/bqtool.log";
 
 static NSString * const kMGGroup = @"systemgroup.com.apple.mobilegestaltcache";
 static NSString * const kMGCaches = @"/private/var/containers/Shared/SystemGroup/systemgroup.com.apple.mobilegestaltcache/Library/Caches";
@@ -412,11 +408,7 @@ static int64_t bq_query_escape(uint64_t cls, NSString *ident, BOOL group,
     int64_t h = (tok && g.consume) ? g.consume(tok) : -5;
     BQLog(@"strategy %@: cls=%llu ident=%@ part=%llu result=%p path=%@ token=%s consume=%lld",
           label, cls, ident, part, res, path ?: @"(null)", tok ? "YES" : "NO", (long long)h);
-    // HermesEnabler safe MG access diagnostics v2: add failure context.
-    if (!res || !tok) bq_log_query_error(q, label);
-    if (res && !tok) {
-        BQLog(@"MCM_DIAGNOSTIC: container result present but no sandbox token for %@; app-group entitlement does not imply access to the requested target", label);
-    }
+    if (!res) bq_log_query_error(q, label);
     if (tok) free(tok);
     g.query_free(q);
     if (h >= 0 && outPath) *outPath = path;
@@ -654,12 +646,6 @@ static int64_t bq_escape_symlink(NSString *target, NSString **linkOut) {
     return last;
 }
 
-
-// RO23 public snapshot: Class 7 app-group path-swap probe removed.
-NSString *BQProbeClass7Flags23U95(void) {
-    return @"Historical Class-7 flag probe removed from public research snapshot.";
-}
-
 int64_t BQEscape(NSString *target, NSString **linkOut) {
     if (!target.length) return -1;
     bq_load_mcm();
@@ -780,7 +766,7 @@ static NSString *bq_escape_error(int64_t h) {
         return NSLocalizedString(@"class-2 fallback could not move Library — this build needs an app group on 27.2", nil);
     }
     if (h == -5) {
-        return NSLocalizedString(@"the MCM query returned no sandbox token — send Documents/bqtool.log", nil);
+        return BQNoSandboxTokenError;
     }
     return [NSString stringWithFormat:NSLocalizedString(@"escape failed (%lld)", nil), (long long)h];
 }
@@ -804,21 +790,102 @@ NSString *BQBackupPath(void) {
     return [BQDocuments() stringByAppendingPathComponent:@"OriginalGestalt.plist"];
 }
 
-// watchOS 26 compatibility diagnostics (safe)
-BOOL BQBackupVerified(void) {
-    NSData *data = [NSData dataWithContentsOfFile:BQBackupPath()];
-    if (!data.length) return NO;
-    id object = [NSPropertyListSerialization propertyListWithData:data
-                                                       options:0 format:NULL error:NULL];
-    if (![object isKindOfClass:[NSDictionary class]]) return NO;
-    NSDictionary *plist = (NSDictionary *)object;
-    return [plist[@"CacheData"] isKindOfClass:[NSData class]] &&
-           [plist[@"CacheExtra"] isKindOfClass:[NSDictionary class]] &&
-           [plist[@"CacheUUID"] isKindOfClass:[NSString class]];
+BOOL BQBackupExists(void) {
+    NSDictionary *plist = [NSDictionary dictionaryWithContentsOfFile:BQBackupPath()];
+    return [plist[@"CacheExtra"] isKindOfClass:[NSDictionary class]] &&
+           [plist[@"CacheData"] isKindOfClass:[NSData class]];
 }
 
-BOOL BQBackupExists(void) {
-    return [[NSFileManager defaultManager] fileExistsAtPath:BQBackupPath()];
+static NSString *bq_backups_directory(void) {
+    return [BQDocuments() stringByAppendingPathComponent:@"MGBackups"];
+}
+
+static BOOL bq_valid_gestalt_data(NSData *data) {
+    if (!data.length) return NO;
+    NSDictionary *plist = [NSPropertyListSerialization propertyListWithData:data options:0 format:NULL error:NULL];
+    return [plist isKindOfClass:[NSDictionary class]] &&
+           [plist[@"CacheExtra"] isKindOfClass:[NSDictionary class]] &&
+           [plist[@"CacheData"] isKindOfClass:[NSData class]];
+}
+
+static NSString *bq_create_gestalt_backup(NSString *kind, NSString **err) {
+    BOOL initial = [kind isEqualToString:@"initial"];
+    if (initial && [[NSFileManager defaultManager] fileExistsAtPath:BQBackupPath()]) {
+        if (err) *err = @"An initial backup already exists and will not be overwritten.";
+        return nil;
+    }
+    if (!initial && !BQBackupExists()) {
+        if (err) *err = @"Create the initial backup first.";
+        return nil;
+    }
+    NSString *link = nil;
+    int64_t h = BQEscape(kMGCaches, &link);
+    if (h < 0) {
+        if (err) *err = bq_escape_error(h);
+        return nil;
+    }
+    NSData *data = [NSData dataWithContentsOfFile:[link stringByAppendingPathComponent:@"com.apple.MobileGestalt.plist"]];
+    BQEndEscape(h);
+    if (!bq_valid_gestalt_data(data)) {
+        if (err) *err = @"MobileGestalt plist is missing or invalid.";
+        return nil;
+    }
+    NSString *identifier = initial ? @"initial" : [NSString stringWithFormat:@"%@-%@", kind, [NSUUID UUID].UUIDString];
+    NSString *path;
+    if (initial) {
+        path = BQBackupPath();
+    } else {
+        NSError *directoryError = nil;
+        [[NSFileManager defaultManager] createDirectoryAtPath:bq_backups_directory()
+                                  withIntermediateDirectories:YES attributes:nil error:&directoryError];
+        if (directoryError) {
+            if (err) *err = directoryError.localizedDescription;
+            return nil;
+        }
+        path = [bq_backups_directory() stringByAppendingPathComponent:[identifier stringByAppendingPathExtension:@"plist"]];
+    }
+    if (![data writeToFile:path atomically:YES] ||
+        ![[NSData dataWithContentsOfFile:path] isEqualToData:data]) {
+        if (err) *err = @"Backup could not be verified.";
+        return nil;
+    }
+    BQLog(@"MG %@ backup created: %@ (%lu bytes)", kind, identifier, (unsigned long)data.length);
+    return identifier;
+}
+
+NSString *BQCreateGestaltBackup(BOOL initial, NSString **err) {
+    return bq_create_gestalt_backup(initial ? @"initial" : @"manual", err);
+}
+
+static BOOL bq_auto_backup(NSString **err) {
+    return bq_create_gestalt_backup(@"auto", err) != nil;
+}
+
+NSArray<NSDictionary *> *BQListGestaltBackups(void) {
+    NSMutableArray<NSDictionary *> *result = [NSMutableArray array];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if (BQBackupExists()) {
+        NSDictionary *attributes = [fm attributesOfItemAtPath:BQBackupPath() error:nil];
+        [result addObject:@{ @"id": @"initial", @"date": attributes[NSFileCreationDate] ?: [NSDate distantPast], @"initial": @YES }];
+    }
+    for (NSString *name in [fm contentsOfDirectoryAtPath:bq_backups_directory() error:nil]) {
+        NSString *identifier = name.stringByDeletingPathExtension;
+        BOOL automatic = [identifier hasPrefix:@"auto-"];
+        BOOL manual = [identifier hasPrefix:@"manual-"];
+        NSString *uuid = (automatic ? [identifier substringFromIndex:5] :
+                          manual ? [identifier substringFromIndex:7] : identifier);
+        if (![name.pathExtension isEqualToString:@"plist"] || ![[NSUUID alloc] initWithUUIDString:uuid]) continue;
+        NSString *path = [bq_backups_directory() stringByAppendingPathComponent:name];
+        if (!bq_valid_gestalt_data([NSData dataWithContentsOfFile:path])) continue;
+        NSDictionary *attributes = [fm attributesOfItemAtPath:path error:nil];
+        [result addObject:@{ @"id": identifier, @"date": attributes[NSFileCreationDate] ?: [NSDate distantPast],
+                             @"initial": @NO, @"kind": automatic ? @"Automatic" : @"Manual" }];
+    }
+    [result sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
+        if ([a[@"initial"] boolValue] != [b[@"initial"] boolValue]) return [a[@"initial"] boolValue] ? NSOrderedAscending : NSOrderedDescending;
+        return [b[@"date"] compare:a[@"date"]];
+    }];
+    return result;
 }
 
 NSString *BQMobileGestaltPath(void) {
@@ -836,891 +903,55 @@ void BQSetInPlaceWrite(BOOL on) {
     BQLog(@"in-place write = %d", on);
 }
 
-// RO23: bq_write_all removed from research-only public snapshot.
-
-
-// RO23: bq_write_data removed; all MobileGestalt writes are blocked.
-
-
-
-// MG V5 READONLY: inspect an unverified candidate layout.
-// This function never modifies the source file or the plist.
-static void BQInspectDeviceBrandV5(NSDictionary *plist) {
-    NSData *data = plist[@"CacheData"];
-    NSString *uuid = plist[@"CacheUUID"];
-    NSDictionary *extra = plist[@"CacheExtra"];
-
-    if (![data isKindOfClass:[NSData class]] ||
-        ![uuid isKindOfClass:[NSString class]] ||
-        ![extra isKindOfClass:[NSDictionary class]]) {
-        BQLog(@"MG V5 READONLY: INVALID STRUCTURE");
-        return;
+static BOOL bq_write_all(int fd, const uint8_t *buf, size_t len) {
+    size_t off = 0;
+    while (off < len) {
+        ssize_t n = write(fd, buf + off, len - off);
+        if (n <= 0) return NO;
+        off += (size_t)n;
     }
-
-    // Reference offsets: supported watchOS 26.6 build 23U67.
-    // These are NOT verified for watchOS 26.5 or 26.6.1.
-    const NSUInteger valueOffset = 0x338;
-    const NSUInteger presentOffset = 0x164F;
-    const NSUInteger slotSize = 8;
-
-    BOOL lengthMatches = (data.length == 0x18A5);
-    BOOL uuidMatches = [uuid isEqualToString:
-        @"A4C66635-ED53-4978-87E5-943E7429FCF2"];
-
-    BQLog(@"MG V5 READONLY: UUID=%@ CacheData=%lu",
-          uuid, (unsigned long)data.length);
-
-    BQLog(@"MG V5 REFERENCE 23U67: lengthMatch=%@ uuidMatch=%@",
-          lengthMatches ? @"YES" : @"NO",
-          uuidMatches ? @"YES" : @"NO");
-
-    if (data.length < valueOffset + slotSize ||
-        data.length <= presentOffset) {
-        BQLog(@"MG V5: candidate offsets out of range");
-        return;
-    }
-
-    const unsigned char *bytes = data.bytes;
-
-    uint32_t candidate =
-        (uint32_t)bytes[valueOffset] |
-        ((uint32_t)bytes[valueOffset + 1] << 8) |
-        ((uint32_t)bytes[valueOffset + 2] << 16) |
-        ((uint32_t)bytes[valueOffset + 3] << 24);
-
-    NSMutableString *hex = [NSMutableString string];
-
-    for (NSUInteger i = 0; i < slotSize; i++) {
-        [hex appendFormat:@"%02X", bytes[valueOffset + i]];
-    }
-
-    id brandOverride = extra[@"fuKL2rMywRgQF1wowOA/cg"];
-
-    BQLog(@"MG V5 CANDIDATE: offset=0x338 raw=%@ value=%u",
-          hex, (unsigned)candidate);
-
-    BQLog(@"MG V5 CANDIDATE: presentOffset=0x164F byte=%u",
-          (unsigned)bytes[presentOffset]);
-
-    BQLog(@"MG V5 CANDIDATE: CacheExtra brandOverride=%@",
-          brandOverride ? @"PRESENT" : @"ABSENT");
-
-    BQLog(@"MG V5 RESULT: candidate only; not a verified layout. NO WRITES.");
+    return YES;
 }
 
-
-// V6: runtime MobileGestalt descriptor analysis, read-only.
-
-// V6.4: read-only Mach-O section parser for arm64_32 and arm64.
-static BOOL BQMGSectionV64(
-    const struct mach_header *h,
-    intptr_t slide,
-    const char *segmentName,
-    const char *sectionName,
-    const uint8_t **outBytes,
-    size_t *outSize
-) {
-    if (!h || !outBytes || !outSize) return NO;
-
-    BOOL wide = h->magic == MH_MAGIC_64;
-    if (!wide && h->magic != MH_MAGIC) return NO;
-
-    if (h->ncmds == 0 || h->ncmds > 4096 ||
-        h->sizeofcmds > 1024 * 1024) return NO;
-
-    const uint8_t *cursor = (const uint8_t *)h +
-        (wide ? sizeof(struct mach_header_64)
-              : sizeof(struct mach_header));
-
-    size_t remaining = h->sizeofcmds;
-
-    for (uint32_t i = 0; i < h->ncmds; i++) {
-        if (remaining < sizeof(struct load_command))
-            return NO;
-
-        struct load_command command;
-        memcpy(&command, cursor, sizeof(command));
-
-        if (command.cmdsize < sizeof(command) ||
-            command.cmdsize > remaining) return NO;
-
-        uint64_t address = 0;
-        uint64_t length = 0;
-
-        if (!wide && command.cmd == LC_SEGMENT &&
-            command.cmdsize >= sizeof(struct segment_command)) {
-
-            struct segment_command seg;
-            memcpy(&seg, cursor, sizeof(seg));
-
-            if (strncmp(seg.segname, segmentName, 16) == 0 &&
-                seg.nsects <= (command.cmdsize - sizeof(seg)) /
-                              sizeof(struct section)) {
-
-                for (uint32_t j = 0; j < seg.nsects; j++) {
-                    struct section sec;
-                    memcpy(&sec,
-                           cursor + sizeof(seg) +
-                           j * sizeof(sec),
-                           sizeof(sec));
-
-                    if (strncmp(sec.sectname, sectionName, 16) == 0) {
-                        address = sec.addr;
-                        length = sec.size;
-                        break;
-                    }
-                }
+static BOOL bq_write_data(NSString *path, NSData *data, NSString **err) {
+    NSData *original = [NSData dataWithContentsOfFile:path];
+    if (BQInPlaceWrite()) {
+        int fd = open(path.fileSystemRepresentation, O_RDWR | O_CLOEXEC | O_NOFOLLOW);
+        if (fd >= 0) {
+            BOOL ok = (ftruncate(fd, 0) == 0) &&
+                      bq_write_all(fd, data.bytes, data.length) &&
+                      (fsync(fd) == 0);
+            if (!ok && original.length) {
+                BQLog(@"in-place write failed; rolling back original (%lu bytes)", (unsigned long)original.length);
+                ftruncate(fd, 0);
+                lseek(fd, 0, SEEK_SET);
+                bq_write_all(fd, original.bytes, original.length);
+                fsync(fd);
             }
-        } else if (wide && command.cmd == LC_SEGMENT_64 &&
-                   command.cmdsize >= sizeof(struct segment_command_64)) {
-
-            struct segment_command_64 seg;
-            memcpy(&seg, cursor, sizeof(seg));
-
-            if (strncmp(seg.segname, segmentName, 16) == 0 &&
-                seg.nsects <= (command.cmdsize - sizeof(seg)) /
-                              sizeof(struct section_64)) {
-
-                for (uint32_t j = 0; j < seg.nsects; j++) {
-                    struct section_64 sec;
-                    memcpy(&sec,
-                           cursor + sizeof(seg) +
-                           j * sizeof(sec),
-                           sizeof(sec));
-
-                    if (strncmp(sec.sectname, sectionName, 16) == 0) {
-                        address = sec.addr;
-                        length = sec.size;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (length != 0) {
-            if (length > 32 * 1024 * 1024) return NO;
-
-            int64_t mapped = (int64_t)address + (int64_t)slide;
-            if (mapped <= 0 ||
-                (uint64_t)mapped > UINTPTR_MAX) return NO;
-
-            *outBytes = (const uint8_t *)(uintptr_t)mapped;
-            *outSize = (size_t)length;
-            return YES;
-        }
-
-        cursor += command.cmdsize;
-        remaining -= command.cmdsize;
-    }
-
-    return NO;
-}
-
-static void BQRuntimeDeviceBrandProbeV6(NSDictionary *plist) {
-    NSData *cache = plist[@"CacheData"];
-    NSString *uuid = plist[@"CacheUUID"];
-
-    if (![cache isKindOfClass:[NSData class]] ||
-        ![uuid isKindOfClass:[NSString class]] ||
-        !cache.length || cache.length % 9 != 0) {
-        BQLog(@"MG V6.4: invalid cache");
-        return;
-    }
-
-    NSUInteger slots = cache.length / 9;
-    if (slots > 16384) return;
-
-    // Use dyld's image list; do not assume a 64-bit Mach-O header.
-    const struct mach_header *header = NULL;
-    intptr_t slide = 0;
-
-    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
-        const char *name = _dyld_get_image_name(i);
-        if (!name || !strstr(name, "libMobileGestalt.dylib"))
-            continue;
-
-        const struct mach_header *candidate =
-            _dyld_get_image_header(i);
-
-        if (!candidate) continue;
-
-        if (candidate->magic == MH_MAGIC ||
-            candidate->magic == MH_MAGIC_64) {
-            header = candidate;
-            slide = _dyld_get_image_vmaddr_slide(i);
-            break;
-        }
-    }
-
-    if (!header) {
-        BQLog(@"MG V6.4: Mach-O image unavailable");
-        return;
-    }
-
-    BOOL wide = header->magic == MH_MAGIC_64;
-    size_t pointerSize = wide ? 8 : 4;
-
-    BQLog(@"MG V6.4: Mach-O magic=0x%08X cpu=0x%X pointerSize=%lu",
-          header->magic, (unsigned)header->cputype,
-          (unsigned long)pointerSize);
-
-    BQLog(@"MG V6.4: CacheUUID=%@ slots=%lu",
-          uuid, (unsigned long)slots);
-
-    const uint8_t *strings = NULL;
-    size_t stringSize = 0;
-
-    if (!BQMGSectionV64(header, slide, "__TEXT", "__cstring",
-                        &strings, &stringSize)) {
-        BQLog(@"MG V6.4: __cstring section unavailable");
-        return;
-    }
-
-    const char *target = "fuKL2rMywRgQF1wowOA/cg";
-    uintptr_t targetAddress = 0;
-    NSUInteger keyHits = 0;
-
-    for (size_t i = 0; i + 22 < stringSize; i++) {
-        if ((i == 0 || strings[i - 1] == 0) &&
-            strings[i + 22] == 0 &&
-            memcmp(strings + i, target, 22) == 0) {
-
-            targetAddress = (uintptr_t)(strings + i);
-            keyHits++;
-        }
-    }
-
-    BQLog(@"MG V6.4: cstringBytes=%lu DeviceBrandKeyHits=%lu",
-          (unsigned long)stringSize,
-          (unsigned long)keyHits);
-
-    if (keyHits != 1) {
-        BQLog(@"MG V6.4 RESULT: KEY NOT UNIQUE OR ABSENT. NO WRITES.");
-        return;
-    }
-
-    BQLog(@"MG V6.4: keyAddress=%p",
-          (void *)targetAddress);
-
-    const char *segments[] = {
-        "__AUTH_CONST", "__DATA_CONST",
-        "__DATA", "__AUTH", "__TEXT"
-    };
-
-    NSUInteger matches = 0;
-    NSUInteger scanned = 0;
-
-    for (size_t part = 0; part < 5; part++) {
-        const uint8_t *sectionBytes = NULL;
-        size_t sectionSize = 0;
-
-        if (!BQMGSectionV64(header, slide,
-                            segments[part], "__const",
-                            &sectionBytes, &sectionSize))
-            continue;
-
-        scanned++;
-
-        for (size_t offset = 0;
-             offset + pointerSize <= sectionSize;
-             offset += pointerSize) {
-
-            uint64_t pointer = 0;
-            memcpy(&pointer, sectionBytes + offset, pointerSize);
-
-            if (pointer != (uint64_t)targetAddress)
-                continue;
-
-            matches++;
-
-            if (matches <= 8) {
-                size_t available = sectionSize - offset;
-                size_t length = available < 48 ? available : 48;
-
-                NSMutableString *hex =
-                    [NSMutableString stringWithCapacity:length * 2];
-
-                for (size_t j = 0; j < length; j++)
-                    [hex appendFormat:@"%02X",
-                     (unsigned)sectionBytes[offset + j]];
-
-                BQLog(@"MG V6.4 REF: %s+0x%lX bytes=%@",
-                      segments[part],
-                      (unsigned long)offset, hex);
-
-                // V6.6: test 64-byte descriptor alignment.
-                // Hypothesis only. All accesses are read-only.
-                if (pointerSize == 4 && stringSize >= 23) {
-                    for (int relative = -2; relative <= 2; relative++) {
-                        int64_t start =
-                            (int64_t)offset + (int64_t)relative * 64;
-
-                        if (start < 0 ||
-                            (uint64_t)start + 64 > sectionSize)
-                            continue;
-
-                        const uint8_t *record =
-                            sectionBytes + (size_t)start;
-
-                        uint32_t keyPointer = 0;
-                        int16_t index = -1;
-                        uint32_t type = 0;
-
-                        memcpy(&keyPointer, record, 4);
-                        memcpy(&index, record + 0x3A, 2);
-                        memcpy(&type, record + 0x3C, 4);
-
-                        NSString *hash = @"NOT A KEY POINTER";
-                        uint64_t base = (uint64_t)(uintptr_t)strings;
-
-                        if ((uint64_t)keyPointer >= base) {
-                            uint64_t delta =
-                                (uint64_t)keyPointer - base;
-
-                            if (delta <= (uint64_t)stringSize - 23) {
-                                const uint8_t *keyBytes =
-                                    strings + (size_t)delta;
-
-                                if (keyBytes[22] == 0) {
-                                    BOOL valid = YES;
-
-                                    for (int k = 0; k < 22; k++) {
-                                        uint8_t c = keyBytes[k];
-
-                                        if (!((c >= 'A' && c <= 'Z') ||
-                                              (c >= 'a' && c <= 'z') ||
-                                              (c >= '0' && c <= '9') ||
-                                              c == '+' || c == '/')) {
-                                            valid = NO;
-                                            break;
-                                        }
-                                    }
-
-                                    if (valid) {
-                                        NSString *candidate =
-                                            [[NSString alloc]
-                                             initWithBytes:keyBytes
-                                             length:22
-                                             encoding:NSUTF8StringEncoding];
-
-                                        if (candidate) hash = candidate;
-                                    }
-                                }
-                            }
-                        }
-
-                        BOOL plausible =
-                            ![hash isEqualToString:@"NOT A KEY POINTER"] &&
-                            index >= -1 &&
-                            index < (NSInteger)slots &&
-                            type >= 1 && type <= 11;
-
-                        BQLog(
-                          @"MG V6.6 ROW: relative=%+d sectionOffset=0x%lX key=%@ index=%d type=%u plausible=%@",
-                          relative,
-                          (unsigned long)start,
-                          hash, (int)index, (unsigned)type,
-                          plausible ? @"YES" : @"NO");
-                    }
-
-                    const NSUInteger candidates[] = {103, 206};
-
-                    for (NSUInteger i = 0; i < 2; i++) {
-                        NSUInteger index = candidates[i];
-                        NSUInteger valueOffset = index * 8;
-                        NSUInteger presentOffset = slots * 8 + index;
-
-                        if (valueOffset + 8 > cache.length ||
-                            presentOffset >= cache.length)
-                            continue;
-
-                        const uint8_t *cacheBytes = cache.bytes;
-                        uint64_t rawValue = 0;
-
-                        memcpy(&rawValue,
-                               cacheBytes + valueOffset, 8);
-
-                        BQLog(
-                          @"MG V6.6 SAMPLE: index=%lu raw=0x%016llX present=%u",
-                          (unsigned long)index,
-                          (unsigned long long)rawValue,
-                          (unsigned)cacheBytes[presentOffset]);
-                    }
-                }
-
-
-                // V6.5: inspect neighboring bytes, read-only.
-                size_t begin = offset >= 48 ? offset - 48 : 0;
-                size_t finish = sectionSize - offset >= 64
-                    ? offset + 64 : sectionSize;
-
-                NSMutableString *context = [NSMutableString string];
-
-                for (size_t k = begin; k < finish; k += 4) {
-                    if (k == offset)
-                        [context appendString:@" <TARGET> "];
-
-                    [context appendString:@" "];
-
-                    for (size_t j = k; j < k + 4 && j < finish; j++) {
-                        [context appendFormat:@"%02X", sectionBytes[j]];
-                    }
-                }
-
-                BQLog(@"MG V6.5: contextStart=0x%lX target=0x%lX",
-                      (unsigned long)begin,
-                      (unsigned long)offset);
-
-                BQLog(@"MG V6.5 CONTEXT:%@", context);
-
-                if (offset + 8 <= sectionSize) {
-                    uint32_t nextValue = 0;
-                    memcpy(&nextValue, sectionBytes + offset + 4, 4);
-
-                    Dl_info nextInfo = {0};
-                    int found = dladdr(
-                        (const void *)(uintptr_t)nextValue,
-                        &nextInfo);
-
-                    BQLog(@"MG V6.5: secondWord=0x%08X image=%s symbol=%s",
-                          nextValue,
-                          found && nextInfo.dli_fname
-                            ? nextInfo.dli_fname : "unknown",
-                          found && nextInfo.dli_sname
-                            ? nextInfo.dli_sname : "unknown");
-                }
-
-            }
-        }
-    }
-
-
-    // V6.7: compare candidate descriptor offsets across keys.
-    // Read-only. No offsets are approved for writing.
-    if (pointerSize == 4 && stringSize >= 23) {
-        const char *testSegments[] = {
-            "__DATA_CONST", "__AUTH_CONST", "__DATA"
-        };
-
-        NSMutableSet<NSString *> *seen =
-            [NSMutableSet set];
-
-        NSUInteger controls = 0;
-        NSUInteger valid3A = 0, valid9A = 0;
-        NSUInteger targetCount = 0;
-
-        uint64_t stringBase = (uint64_t)(uintptr_t)strings;
-
-        for (NSUInteger part = 0; part < 3; part++) {
-            const uint8_t *sectionBytes = NULL;
-            size_t sectionSize = 0;
-
-            if (!BQMGSectionV64(
-                    header, slide, testSegments[part],
-                    "__const", &sectionBytes, &sectionSize))
-                continue;
-
-            for (size_t offset = 0;
-                 offset + 0xA0 <= sectionSize;
-                 offset += 4) {
-
-                uint32_t pointer = 0;
-                memcpy(&pointer, sectionBytes + offset, 4);
-
-                uint64_t address = pointer;
-
-                if (address < stringBase ||
-                    address - stringBase >
-                        (uint64_t)stringSize - 23)
-                    continue;
-
-                size_t pos = (size_t)(address - stringBase);
-
-                if ((pos && strings[pos - 1] != 0) ||
-                    strings[pos + 22] != 0)
-                    continue;
-
-                BOOL validKey = YES;
-                for (size_t j = 0; j < 22; j++) {
-                    uint8_t c = strings[pos + j];
-
-                    if (!((c >= 'A' && c <= 'Z') ||
-                          (c >= 'a' && c <= 'z') ||
-                          (c >= '0' && c <= '9') ||
-                          c == '+' || c == '/')) {
-                        validKey = NO;
-                        break;
-                    }
-                }
-
-                if (!validKey) continue;
-
-                NSString *key = [[NSString alloc]
-                    initWithBytes:strings + pos
-                    length:22
-                    encoding:NSUTF8StringEncoding];
-
-                if (!key || [seen containsObject:key])
-                    continue;
-
-                [seen addObject:key];
-
-                int16_t index3A = 0, index9A = 0;
-                uint32_t type3C = 0, type9C = 0;
-
-                memcpy(&index3A,
-                       sectionBytes + offset + 0x3A, 2);
-                memcpy(&type3C,
-                       sectionBytes + offset + 0x3C, 4);
-
-                memcpy(&index9A,
-                       sectionBytes + offset + 0x9A, 2);
-                memcpy(&type9C,
-                       sectionBytes + offset + 0x9C, 4);
-
-                BOOL plausible3A =
-                    index3A >= 0 &&
-                    (NSUInteger)index3A < slots &&
-                    type3C >= 1 && type3C <= 11;
-
-                BOOL plausible9A =
-                    index9A >= 0 &&
-                    (NSUInteger)index9A < slots &&
-                    type9C >= 1 && type9C <= 11;
-
-                BOOL isTarget =
-                    [key isEqualToString:
-                     @"fuKL2rMywRgQF1wowOA/cg"];
-
-                if (isTarget) {
-                    targetCount++;
-
-                    BQLog(
-                      @"MG V6.7 TARGET: section=%s offset=0x%lX",
-                      testSegments[part],
-                      (unsigned long)offset);
-
-                    BQLog(
-                      @"MG V6.7 TARGET: +3A index=%d type=%u valid=%@",
-                      (int)index3A, (unsigned)type3C,
-                      plausible3A ? @"YES" : @"NO");
-
-                    BQLog(
-                      @"MG V6.7 TARGET: +9A index=%d type=%u valid=%@",
-                      (int)index9A, (unsigned)type9C,
-                      plausible9A ? @"YES" : @"NO");
-                } else {
-                    controls++;
-
-                    if (plausible3A) valid3A++;
-                    if (plausible9A) valid9A++;
-
-                    if (controls <= 8) {
-                        BQLog(
-                          @"MG V6.7 CONTROL: key=%@ +3A=%d/%u +9A=%d/%u",
-                          key,
-                          (int)index3A, (unsigned)type3C,
-                          (int)index9A, (unsigned)type9C);
-                    }
-                }
-            }
-        }
-
-        BQLog(
-          @"MG V6.7 SUMMARY: target=%lu controls=%lu valid3A=%lu valid9A=%lu",
-          (unsigned long)targetCount,
-          (unsigned long)controls,
-          (unsigned long)valid3A,
-          (unsigned long)valid9A);
-
-        BQLog(
-          @"MG V6.7 RESULT: CANDIDATE LAYOUTS ONLY. NO WRITES.");
-    }
-
-
-    // V6.8: test metadata preceding 32-bit key references.
-    // Read-only statistical analysis, not a verified layout.
-    if (pointerSize == 4 && stringSize >= 23) {
-        const char *names[] = {
-            "__DATA_CONST", "__AUTH_CONST", "__DATA"
-        };
-
-        NSMutableSet<NSString *> *seen =
-            [NSMutableSet set];
-        NSMutableIndexSet *uniqueIndices =
-            [NSMutableIndexSet indexSet];
-
-        NSUInteger controls = 0;
-        NSUInteger validControls = 0;
-        NSUInteger flag13Controls = 0;
-        NSUInteger targetHits = 0;
-        NSUInteger resolvedBrandIndex = NSNotFound;
-
-        uint64_t stringBase =
-            (uint64_t)(uintptr_t)strings;
-
-        for (NSUInteger part = 0; part < 3; part++) {
-            const uint8_t *data = NULL;
-            size_t length = 0;
-
-            if (!BQMGSectionV64(
-                    header, slide, names[part],
-                    "__const", &data, &length))
-                continue;
-
-            for (size_t off = 8;
-                 off + 4 <= length;
-                 off += 4) {
-
-                uint32_t ptr = 0;
-                memcpy(&ptr, data + off, 4);
-
-                if ((uint64_t)ptr < stringBase)
-                    continue;
-
-                uint64_t delta =
-                    (uint64_t)ptr - stringBase;
-
-                if (delta > (uint64_t)stringSize - 23)
-                    continue;
-
-                size_t pos = (size_t)delta;
-
-                if ((pos && strings[pos - 1] != 0) ||
-                    strings[pos + 22] != 0)
-                    continue;
-
-                BOOL validKey = YES;
-
-                for (NSUInteger i = 0; i < 22; i++) {
-                    uint8_t c = strings[pos + i];
-
-                    if (!((c >= 'A' && c <= 'Z') ||
-                          (c >= 'a' && c <= 'z') ||
-                          (c >= '0' && c <= '9') ||
-                          c == '+' || c == '/')) {
-                        validKey = NO;
-                        break;
-                    }
-                }
-
-                if (!validKey) continue;
-
-                NSString *key = [[NSString alloc]
-                    initWithBytes:strings + pos
-                    length:22
-                    encoding:NSUTF8StringEncoding];
-
-                if (!key || [seen containsObject:key])
-                    continue;
-
-                [seen addObject:key];
-
-                uint16_t flags = 0;
-                uint16_t index = 0;
-                uint32_t type = 0;
-
-                memcpy(&flags, data + off - 8, 2);
-                memcpy(&index, data + off - 6, 2);
-                memcpy(&type, data + off - 4, 4);
-
-                BOOL plausible =
-                    index < slots &&
-                    type >= 1 && type <= 11;
-
-                BOOL target =
-                    [key isEqualToString:
-                     @"fuKL2rMywRgQF1wowOA/cg"];
-
-                if (target) {
-                    targetHits++;
-                    if (plausible && flags == 13 && type == 11)
-                        resolvedBrandIndex = index;
-
-                    BQLog(
-                      @"MG V6.8 TARGET: section=%s ref=0x%lX flags=%u index=%u type=%u plausible=%@",
-                      names[part], (unsigned long)off,
-                      (unsigned)flags, (unsigned)index,
-                      (unsigned)type,
-                      plausible ? @"YES" : @"NO");
-                } else {
-                    controls++;
-
-                    if (plausible) {
-                        validControls++;
-                        [uniqueIndices addIndex:index];
-
-                        if (flags == 13)
-                            flag13Controls++;
-                    }
-
-                    if (controls <= 10) {
-                        BQLog(
-                          @"MG V6.8 CONTROL: flags=%u index=%u type=%u plausible=%@",
-                          (unsigned)flags, (unsigned)index,
-                          (unsigned)type,
-                          plausible ? @"YES" : @"NO");
-                    }
-                }
-            }
-        }
-
-        BQLog(
-          @"MG V6.8 SUMMARY: target=%lu controls=%lu plausible=%lu uniqueIndices=%lu flag13=%lu",
-          (unsigned long)targetHits,
-          (unsigned long)controls,
-          (unsigned long)validControls,
-          (unsigned long)uniqueIndices.count,
-          (unsigned long)flag13Controls);
-
-
-        // V6.9: independent read-only API comparison.
-        if (targetHits == 1 &&
-            resolvedBrandIndex < slots &&
-            cache.length == slots * 9) {
-
-            NSUInteger index = resolvedBrandIndex;
-            NSUInteger valueOffset = index * 8;
-            NSUInteger presentOffset = slots * 8 + index;
-
-            const uint8_t *bytes = cache.bytes;
-            int32_t cachedValue = 0;
-
-            memcpy(&cachedValue, bytes + valueOffset, 4);
-
-            uint8_t present = bytes[presentOffset];
-
-            BQLog(
-              @"MG V6.9 CACHE: index=%lu valueOffset=0x%lX presentOffset=0x%lX value=%d present=%u",
-              (unsigned long)index,
-              (unsigned long)valueOffset,
-              (unsigned long)presentOffset,
-              cachedValue, (unsigned)present);
-
-            void *lib = dlopen(
-                "/usr/lib/libMobileGestalt.dylib",
-                RTLD_LAZY | RTLD_LOCAL);
-
-            if (lib) {
-                typedef int32_t (*MGReadIntFn)(
-                    CFStringRef, int32_t);
-
-                MGReadIntFn readAnswer = (MGReadIntFn)
-                    dlsym(lib, "MGGetSInt32Answer");
-
-                if (readAnswer) {
-                    int32_t live = readAnswer(
-                        CFSTR("DeviceBrand"), INT32_MIN);
-
-                    if (live == INT32_MIN) {
-                        BQLog(
-                          @"MG V6.9 API: UNAVAILABLE OR NO ANSWER");
-                    } else {
-                        BQLog(
-                          @"MG V6.9 API: live=%d cached=%d match=%@",
-                          live, cachedValue,
-                          present == 1 && live == cachedValue
-                            ? @"YES" : @"NO");
-                    }
-                } else {
-                    BQLog(@"MG V6.9 API: SYMBOL UNAVAILABLE");
-                }
-
-                dlclose(lib);
-            } else {
-                BQLog(@"MG V6.9 API: LIBRARY UNAVAILABLE");
-            }
-
-            BQLog(@"MG V6.9 RESULT: READONLY. NO WRITES.");
+            close(fd);
+            if (ok) return YES;
+            BQLog(@"in-place write failed, falling back to atomic");
         } else {
-            BQLog(@"MG V6.9: TARGET INDEX NOT UNIQUE OR INVALID");
+            BQLog(@"in-place open failed: %s", strerror(errno));
         }
-
-        BQLog(
-          @"MG V6.8 RESULT: PRECEDING METADATA HYPOTHESIS ONLY. NO WRITES.");
     }
-
-    BQLog(@"MG V6.4: sectionsScanned=%lu references=%lu",
-          (unsigned long)scanned,
-          (unsigned long)matches);
-
-    BQLog(@"MG V6.4 RESULT: READONLY DESCRIPTOR SEARCH COMPLETE. NO WRITES.");
+    NSString *tmp = [path stringByAppendingString:@".bqtmp"];
+    if (![data writeToFile:tmp atomically:NO]) {
+        if (err) *err = NSLocalizedString(@"temp write failed", nil);
+        return NO;
+    }
+    int fd = open(tmp.fileSystemRepresentation, O_RDONLY);
+    if (fd >= 0) { fsync(fd); close(fd); }
+    int r = rename(tmp.fileSystemRepresentation, path.fileSystemRepresentation);
+    if (r != 0) {
+        if (err) *err = [NSString stringWithFormat:NSLocalizedString(@"rename failed: %@", nil), [NSString stringWithUTF8String:strerror(errno)]];
+        unlink(tmp.fileSystemRepresentation);
+        return NO;
+    }
+    return YES;
 }
 
 NSMutableDictionary *BQLoadGestalt(NSString **err) {
-
-    // MG DIRECT READ V3: read-only access before MCM fallback.
-    NSError *directError = nil;
-    NSData *directData = [NSData dataWithContentsOfFile:BQMobileGestaltPath()
-                                               options:0
-                                                 error:&directError];
-
-    if (directData.length > 0) {
-        NSError *parseError = nil;
-        id parsed = [NSPropertyListSerialization
-            propertyListWithData:directData
-                         options:NSPropertyListMutableContainersAndLeaves
-                          format:NULL
-                           error:&parseError];
-
-        if ([parsed isKindOfClass:[NSDictionary class]] &&
-            [parsed[@"CacheData"] isKindOfClass:[NSData class]] &&
-            [parsed[@"CacheExtra"] isKindOfClass:[NSDictionary class]] &&
-            [parsed[@"CacheUUID"] isKindOfClass:[NSString class]]) {
-
-            BQLog(@"MG DIRECT READ V3: SUCCESS, %lu bytes",
-                  (unsigned long)directData.length);
-
-            if (!BQBackupExists()) {
-                NSError *backupError = nil;
-                BOOL saved = [directData writeToFile:BQBackupPath()
-                                            options:NSDataWritingAtomic
-                                              error:&backupError];
-                NSData *verify = saved
-                    ? [NSData dataWithContentsOfFile:BQBackupPath()]
-                    : nil;
-
-                if (!saved || ![verify isEqualToData:directData]) {
-                    BQLog(@"MG DIRECT READ V3: BACKUP FAILED: %@",
-                          backupError);
-                    if (err) *err = @"Direct read worked, but backup verification failed.";
-                    return nil;
-                }
-
-                BQLog(@"MG DIRECT READ V3: BACKUP VERIFIED");
-            } else {
-                BQLog(@"MG DIRECT READ V3: existing backup preserved");
-            }
-
-
-            // MG V4: inspect metadata and test a write-capable
-            // file descriptor without writing or changing anything.
-            NSData *snapshot = [NSData dataWithContentsOfFile:BQBackupPath()];
-            NSData *cacheData = parsed[@"CacheData"];
-            BOOL matches = snapshot && [snapshot isEqualToData:directData];
-
-            // RO23: active write-open probe disabled in public build.
-
-            BQLog(@"MG V4 SNAPSHOT: UUID=%@ CacheData=%lu CacheExtra=%lu Backup=%lu MatchesCurrent=%@",
-                  parsed[@"CacheUUID"],
-                  (unsigned long)cacheData.length,
-                  (unsigned long)[parsed[@"CacheExtra"] count],
-                  (unsigned long)snapshot.length,
-                  matches ? @"YES" : @"NO");
-
-            BQLog(@"MG V4 WRITE HANDLE: SKIPPED in public research build");
-
-            BQInspectDeviceBrandV5((NSDictionary *)parsed);
-            BQRuntimeDeviceBrandProbeV6((NSDictionary *)parsed);
-            return [parsed mutableCopy];
-        }
-
-        BQLog(@"MG DIRECT READ V3: INVALID PLIST: %@", parseError);
-    } else {
-        BQLog(@"MG DIRECT READ V3: READ FAILED: %@", directError);
-    }
-
-    // Fall through to the original MCM access implementation.
     NSString *link = nil;
     int64_t h = BQEscape(kMGCaches, &link);
     if (h < 0) {
@@ -1728,35 +959,145 @@ NSMutableDictionary *BQLoadGestalt(NSString **err) {
         return nil;
     }
     NSString *plist = [link stringByAppendingPathComponent:@"com.apple.MobileGestalt.plist"];
-    NSData *data = [NSData dataWithContentsOfFile:plist];
     NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithContentsOfFile:plist];
-    if (data.length && !BQBackupExists()) {
-        [data writeToFile:BQBackupPath() atomically:YES];
-        BQLog(@"MG backup created (%lu bytes)", (unsigned long)data.length);
-    }
     BQEndEscape(h);
     if (!dict) {
-        if (err) *err = @"MobileGestalt plist missing or invalid";
+        if (err) *err = NSLocalizedString(@"MobileGestalt plist missing or invalid", nil);
         return nil;
     }
     BQLog(@"MG loaded: %lu CacheExtra key(s), %lu byte(s)",
-          (unsigned long)[dict[@"CacheExtra"] count], (unsigned long)data.length);
+          (unsigned long)[dict[@"CacheExtra"] count], (unsigned long)[dict[@"CacheData"] length]);
     return dict;
 }
 
-// RO23 PUBLIC RESEARCH SNAPSHOT: MobileGestalt writes are intentionally removed.
 BOOL BQSaveGestalt(NSDictionary *dict, NSString **err) {
-    (void)dict;
-    if (err) *err = @"RO23 research build: protected MobileGestalt writes are disabled.";
-    BQLog(@"RO23 SAFETY: BQSaveGestalt blocked; no system write attempted");
-    return NO;
+    if (![dict isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"invalid dictionary", nil);
+        return NO;
+    }
+    NSError *e = nil;
+    NSData *data = [NSPropertyListSerialization dataWithPropertyList:dict
+                                                              format:NSPropertyListBinaryFormat_v1_0
+                                                             options:0 error:&e];
+    if (!data.length) {
+        if (err) *err = [NSString stringWithFormat:NSLocalizedString(@"serialize failed: %@", nil), e];
+        return NO;
+    }
+    if (!bq_auto_backup(err)) return NO;
+    NSString *link = nil;
+    int64_t h = BQEscape(kMGCaches, &link);
+    if (h < 0) {
+        if (err) *err = bq_escape_error(h);
+        return NO;
+    }
+    NSString *plist = [link stringByAppendingPathComponent:@"com.apple.MobileGestalt.plist"];
+    BOOL ok = bq_write_data(plist, data, err);
+    if (ok) {
+        NSMutableDictionary *check = [NSMutableDictionary dictionaryWithContentsOfFile:plist];
+        if (!check) {
+            ok = NO;
+            if (err) *err = NSLocalizedString(@"post-write verification failed", nil);
+        } else {
+            BQLog(@"MG saved: %lu bytes, %lu CacheExtra keys",
+                  (unsigned long)data.length, (unsigned long)[check[@"CacheExtra"] count]);
+        }
+    }
+    BQEndEscape(h);
+    return ok;
 }
 
-// RO23 PUBLIC RESEARCH SNAPSHOT: a backup is not a license to overwrite live MG.
 BOOL BQRestoreGestalt(NSString **err) {
-    if (err) *err = @"RO23 research build: restoring the protected cache is disabled.";
-    BQLog(@"RO23 SAFETY: BQRestoreGestalt blocked; no system write attempted");
-    return NO;
+    return BQRestoreGestaltBackup(@"initial", err);
+}
+
+BOOL BQRestoreGestaltBackup(NSString *identifier, NSString **err) {
+    NSString *path = nil;
+    if ([identifier isEqualToString:@"initial"]) path = BQBackupPath();
+    else if ([identifier hasPrefix:@"auto-"] || [identifier hasPrefix:@"manual-"] ||
+             [[NSUUID alloc] initWithUUIDString:identifier]) {
+        NSString *uuid = [identifier hasPrefix:@"auto-"] ? [identifier substringFromIndex:5] :
+                         [identifier hasPrefix:@"manual-"] ? [identifier substringFromIndex:7] : identifier;
+        if (![[NSUUID alloc] initWithUUIDString:uuid]) {
+            if (err) *err = @"Invalid backup identifier.";
+            return NO;
+        }
+        path = [bq_backups_directory() stringByAppendingPathComponent:[identifier stringByAppendingPathExtension:@"plist"]];
+    }
+    NSData *backup = path ? [NSData dataWithContentsOfFile:path] : nil;
+    if (!bq_valid_gestalt_data(backup)) {
+        if (err) *err = @"Selected backup is missing or invalid.";
+        return NO;
+    }
+    NSDictionary *backupPlist = [NSPropertyListSerialization propertyListWithData:backup options:0 format:NULL error:NULL];
+    NSString *link = nil;
+    int64_t h = BQEscape(kMGCaches, &link);
+    if (h < 0) {
+        if (err) *err = bq_escape_error(h);
+        return NO;
+    }
+    NSString *plist = [link stringByAppendingPathComponent:@"com.apple.MobileGestalt.plist"];
+    NSDictionary *current = [NSDictionary dictionaryWithContentsOfFile:plist];
+    if (![current[@"CacheUUID"] isEqual:backupPlist[@"CacheUUID"]] ||
+        [current[@"CacheData"] length] != [backupPlist[@"CacheData"] length]) {
+        BQEndEscape(h);
+        if (err) *err = @"Backup cache layout does not match this watch.";
+        return NO;
+    }
+    BQEndEscape(h);
+    if (!bq_auto_backup(err)) return NO;
+    h = BQEscape(kMGCaches, &link);
+    if (h < 0) {
+        if (err) *err = bq_escape_error(h);
+        return NO;
+    }
+    plist = [link stringByAppendingPathComponent:@"com.apple.MobileGestalt.plist"];
+    current = [NSDictionary dictionaryWithContentsOfFile:plist];
+    if (![current[@"CacheUUID"] isEqual:backupPlist[@"CacheUUID"]] ||
+        [current[@"CacheData"] length] != [backupPlist[@"CacheData"] length]) {
+        BQEndEscape(h);
+        if (err) *err = @"MobileGestalt layout changed before restore; no data was written.";
+        return NO;
+    }
+    BOOL ok = bq_write_data(plist, backup, err);
+    if (ok) {
+        NSData *check = [NSData dataWithContentsOfFile:plist];
+        ok = [check isEqualToData:backup];
+        if (!ok && err) *err = @"Restored file did not match the selected backup.";
+        BQLog(@"MG restored from %@: %lu bytes ok=%d", identifier, (unsigned long)backup.length, ok);
+    }
+    BQEndEscape(h);
+    return ok;
+}
+
+BOOL BQDeleteGestaltBackup(NSString *identifier, NSString **err) {
+    if ([identifier isEqualToString:@"initial"]) {
+        if (err) *err = @"The initial backup is protected and cannot be deleted.";
+        return NO;
+    }
+    BOOL automatic = [identifier hasPrefix:@"auto-"];
+    BOOL manual = [identifier hasPrefix:@"manual-"];
+    if (!automatic && !manual) {
+        if (err) *err = @"Invalid backup identifier.";
+        return NO;
+    }
+    NSString *uuid = [identifier substringFromIndex:(automatic ? 5 : 7)];
+    if (![[NSUUID alloc] initWithUUIDString:uuid]) {
+        if (err) *err = @"Invalid backup identifier.";
+        return NO;
+    }
+    NSString *path = [bq_backups_directory() stringByAppendingPathComponent:[identifier stringByAppendingPathExtension:@"plist"]];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if (![fm fileExistsAtPath:path]) {
+        if (err) *err = @"Selected backup no longer exists.";
+        return NO;
+    }
+    NSError *removeError = nil;
+    if (![fm removeItemAtPath:path error:&removeError]) {
+        if (err) *err = removeError.localizedDescription ?: @"Backup could not be deleted.";
+        return NO;
+    }
+    BQLog(@"MG backup deleted: %@", identifier);
+    return YES;
 }
 
 typedef struct {
@@ -1769,97 +1110,714 @@ typedef struct {
 
 static const BQDeviceBrandLayout kDeviceBrandLayouts[] = {
     {"24S5284h", "DB380F61-0014-418D-9799-876666B459E3", 0x1950, 0x348, 0x16e9},
-    {"23U67", "A4C66635-ED53-4978-87E5-943E7429FCF2", 0x18a5, 0x338, 0x164f},
+    {"24R359", "6F8372B0-1583-4031-A4BC-A54A18B0DD5A", 0x1947, 0x348, 0x16e1},
     {"24R364", "6F8372B0-1583-4031-A4BC-A54A18B0DD5A", 0x1947, 0x348, 0x16e1},
     {"24R365", "6F8372B0-1583-4031-A4BC-A54A18B0DD5A", 0x1947, 0x348, 0x16e1},
     {"24S118", "32B4CA84-FBDA-496C-9B79-2101D597158B", 0x1950, 0x348, 0x16e9},
+    {"24S132", "32B4CA84-FBDA-496C-9B79-2101D597158B", 0x1950, 0x348, 0x16e9},
 };
 
-// watchOS 26 compatibility diagnostics (safe): diagnostics only, no privilege change.
-NSString *BQCompatibilitySummary(void) {
-    BOOL initialized = BQCoreInit();
-    char buildBuffer[128] = {0};
-    size_t size = sizeof(buildBuffer);
-    BOOL hasBuild = (sysctlbyname("kern.osversion", buildBuffer, &size, NULL, 0) == 0);
-    NSString *build = hasBuild ? [NSString stringWithUTF8String:buildBuffer] : @"unknown";
-    NSString *version = [WKInterfaceDevice currentDevice].systemVersion ?: @"unknown";
-    NSString *group = BQGroupID() ?: @"(none)";
-    BOOL hasGroupContainer = BQGroupRoot().length > 0;
-    BOOL verifiedBuild = NO;
-    if (hasBuild) {
-        for (size_t i = 0; i < sizeof(kDeviceBrandLayouts) / sizeof(kDeviceBrandLayouts[0]); i++) {
-            if (strcmp(buildBuffer, kDeviceBrandLayouts[i].build) == 0) {
-                verifiedBuild = YES;
-                break;
-            }
+BOOL BQSetHermesEnabled(BOOL enabled, NSString **err) {
+    if (!BQBackupExists()) {
+        if (err) *err = NSLocalizedString(@"Back up MobileGestalt first.", nil);
+        return NO;
+    }
+    NSData *backup = [NSData dataWithContentsOfFile:BQBackupPath()];
+    id backupPlist = backup ? [NSPropertyListSerialization propertyListWithData:backup options:0 format:NULL error:NULL] : nil;
+    if (![backupPlist isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"The MobileGestalt backup is invalid.", nil);
+        return NO;
+    }
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    char build[128] = {0};
+    size_t buildLength = sizeof(build);
+    if (sysctlbyname("kern.osversion", build, &buildLength, NULL, 0) != 0) {
+        if (err) *err = NSLocalizedString(@"Could not identify the watchOS build.", nil);
+        return NO;
+    }
+    const BQDeviceBrandLayout *layout = NULL;
+    for (size_t i = 0; i < sizeof(kDeviceBrandLayouts) / sizeof(kDeviceBrandLayouts[0]); i++) {
+        if (strcmp(build, kDeviceBrandLayouts[i].build) == 0) {
+            layout = &kDeviceBrandLayouts[i];
+            break;
         }
     }
-    NSString *layoutStatus = verifiedBuild ? @"configured in source" : @"NOT verified in source";
-    NSString *backupStatus = BQBackupVerified() ? @"valid backup present" :
-                             (BQBackupExists() ? @"backup file INVALID" : @"no backup yet");
-    NSString *knownBuildNote = @"";
-    if ([build isEqualToString:@"23T570"]) {
-        knownBuildNote = @"\nwatchOS 26.5 recognized; layout not verified.";
-    } else if ([build isEqualToString:@"23U95"]) {
-        knownBuildNote = @"\nwatchOS 26.6.1 recognized; layout not verified.";
+    if (!layout) {
+        if (err) *err = [NSString stringWithFormat:NSLocalizedString(@"DeviceBrand CacheData layout is not verified for build %@.", nil), [NSString stringWithUTF8String:build]];
+        return NO;
     }
-    return [NSString stringWithFormat:
-        @"watchOS %@ (build %@)\nCore initialization: %@\nApp Group: %@\nApp Group container: %@\nBackup: %@\nHermes layout: %@%@\nSandbox token: NOT TESTED by diagnostics. If Backup MG reports token=NO (-5), the OS access issue remains.",
-        version, build, initialized ? @"OK" : @"FAILED", group,
-        hasGroupContainer ? @"available" : @"unavailable", backupStatus,
-        layoutStatus, knownBuildNote];
+    id extra = plist[@"CacheExtra"];
+    id cacheData = plist[@"CacheData"];
+    id backupExtra = backupPlist[@"CacheExtra"];
+    id backupCacheData = backupPlist[@"CacheData"];
+    if (![extra isKindOfClass:[NSDictionary class]] || ![cacheData isKindOfClass:[NSData class]] ||
+        ![backupExtra isKindOfClass:[NSDictionary class]] || ![backupCacheData isKindOfClass:[NSData class]] ||
+        ![plist[@"CacheUUID"] isEqual:[NSString stringWithUTF8String:layout->cacheUUID]] ||
+        ![backupPlist[@"CacheUUID"] isEqual:[NSString stringWithUTF8String:layout->cacheUUID]] ||
+        [cacheData length] != layout->dataLength || [backupCacheData length] != layout->dataLength ||
+        layout->valueOffset > layout->dataLength - sizeof(uint32_t) ||
+        layout->presentOffset >= layout->dataLength) {
+        if (err) *err = NSLocalizedString(@"Unexpected MobileGestalt cache layout; no changes written.", nil);
+        return NO;
+    }
+    const NSUInteger valueOffset = layout->valueOffset;
+    const NSUInteger presentOffset = layout->presentOffset;
+    NSMutableData *modifiedData = [cacheData mutableCopy];
+    uint8_t *bytes = modifiedData.mutableBytes;
+    const uint8_t *backupBytes = (const uint8_t *)[backupCacheData bytes];
+    if (enabled && bytes[presentOffset] != 1) {
+        if (err) *err = NSLocalizedString(@"DeviceBrand is not present in CacheData; no changes written.", nil);
+        return NO;
+    }
+    // DeviceBrand is a little-endian signed 32-bit integer, in an 8-byte slot.
+    const uint8_t one[] = {1, 0, 0, 0};
+    if (enabled) memcpy(bytes + valueOffset, one, sizeof(one));
+    else {
+        memcpy(bytes + valueOffset, backupBytes + valueOffset, sizeof(uint32_t));
+        bytes[presentOffset] = backupBytes[presentOffset];
+    }
+    NSMutableDictionary *changed = [extra mutableCopy];
+    NSString *brandKey = @"fuKL2rMywRgQF1wowOA/cg";
+    id originalBrandOverride = backupExtra[brandKey];
+    if (enabled || !originalBrandOverride) [changed removeObjectForKey:brandKey];
+    else changed[brandKey] = originalBrandOverride;
+    plist[@"CacheData"] = modifiedData;
+    plist[@"CacheExtra"] = changed;
+    if (!BQSaveGestalt(plist, err)) return NO;
+    NSMutableDictionary *check = BQLoadGestalt(err);
+    if (!check) return NO;
+    NSData *saved = check[@"CacheData"];
+    NSDictionary *savedExtra = check[@"CacheExtra"];
+    if (![saved isKindOfClass:[NSData class]] || saved.length != layout->dataLength ||
+        ![savedExtra isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"The cache was written, but DeviceBrand could not be verified.", nil);
+        return NO;
+    }
+    const uint8_t *savedBytes = (const uint8_t *)saved.bytes;
+    BOOL dataMatches = enabled
+        ? (memcmp(savedBytes + valueOffset, one, sizeof(one)) == 0 && savedBytes[presentOffset] == 1)
+        : (memcmp(savedBytes + valueOffset, backupBytes + valueOffset, sizeof(uint32_t)) == 0 &&
+           savedBytes[presentOffset] == backupBytes[presentOffset]);
+    id expectedBrandOverride = enabled ? nil : originalBrandOverride;
+    BOOL extraMatches = expectedBrandOverride ? [savedExtra[brandKey] isEqual:expectedBrandOverride]
+                                               : savedExtra[brandKey] == nil;
+    if (!dataMatches || !extraMatches) {
+        if (err) *err = NSLocalizedString(@"The cache was written, but DeviceBrand could not be verified.", nil);
+        return NO;
+    }
+    return YES;
 }
 
-
-// RO23 public snapshot: legacy Geod/23U95 direct writers removed.
-// Removed from public RO23 snapshot: historical forced-write experiment.
-// DeviceBrand index 206/offset 0x670 was a descriptor-boundary error.
-
-
-// Removed from public RO23 snapshot: historical forced-write experiment.
-// DeviceBrand index 206/offset 0x670 was a descriptor-boundary error.
-
-
-// The UI and public API deliberately cannot activate an unverified face on 23U95.
 BOOL BQEnableHermes(NSString **err) {
-    if (err) *err = @"RO23 is research-only; native Hermès activation was not achieved.";
-    BQLog(@"RO23 SAFETY: enabling Hermès blocked; no system write attempted");
-    return NO;
+    return BQSetHermesEnabled(YES, err);
 }
 
-// All state-changing capability overrides are disabled in this public snapshot.
-static BOOL bq_enableMGCacheExtraKeys(NSArray<NSString *> *keys, NSString **err) {
-    (void)keys;
-    if (err) *err = @"RO23 research build: capability overrides are disabled.";
-    BQLog(@"RO23 SAFETY: CacheExtra override blocked; no system write attempted");
-    return NO;
+BOOL BQGetHermesEnabled(BOOL *enabled, NSString **err) {
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    char build[128] = {0};
+    size_t buildLength = sizeof(build);
+    if (sysctlbyname("kern.osversion", build, &buildLength, NULL, 0) != 0) {
+        if (err) *err = NSLocalizedString(@"Could not identify the watchOS build.", nil);
+        return NO;
+    }
+    const BQDeviceBrandLayout *layout = NULL;
+    for (size_t i = 0; i < sizeof(kDeviceBrandLayouts) / sizeof(kDeviceBrandLayouts[0]); i++) {
+        if (strcmp(build, kDeviceBrandLayouts[i].build) == 0) {
+            layout = &kDeviceBrandLayouts[i];
+            break;
+        }
+    }
+    NSData *cacheData = plist[@"CacheData"];
+    if (!layout || ![cacheData isKindOfClass:[NSData class]] ||
+        ![plist[@"CacheUUID"] isEqual:[NSString stringWithUTF8String:layout->cacheUUID]] ||
+        cacheData.length != layout->dataLength || layout->valueOffset > layout->dataLength - sizeof(uint32_t)) {
+        if (err) *err = NSLocalizedString(@"DeviceBrand CacheData layout is unavailable or unverified.", nil);
+        return NO;
+    }
+    const uint8_t *bytes = (const uint8_t *)cacheData.bytes;
+    BOOL isHermes = bytes[layout->presentOffset] == 1 &&
+        bytes[layout->valueOffset] == 1 && bytes[layout->valueOffset + 1] == 0 &&
+        bytes[layout->valueOffset + 2] == 0 && bytes[layout->valueOffset + 3] == 0;
+    if (enabled) *enabled = isHermes;
+    return YES;
 }
 
-BOOL BQEnableAODSupport(NSString **err) {
+// main-screen-class CacheData layouts derived from each build’s MobileGestalt table.
+static BOOL bq_ultraCache(NSDictionary *plist, NSMutableData **dataOut, NSUInteger *valueOffset, NSUInteger *presentOffset, NSString **err) {
+    char build[128] = {0};
+    size_t buildLength = sizeof(build);
+    if (sysctlbyname("kern.osversion", build, &buildLength, NULL, 0) != 0) {
+        if (err) *err = NSLocalizedString(@"Could not identify the watchOS build.", nil);
+        return NO;
+    }
+    NSString *uuid = nil;
+    NSUInteger length = 0, value = 0, present = 0;
+    if (strcmp(build, "24S5284h") == 0) uuid = @"DB380F61-0014-418D-9799-876666B459E3";
+    else if (strcmp(build, "24S132") == 0 || strcmp(build, "24S118") == 0) uuid = @"32B4CA84-FBDA-496C-9B79-2101D597158B";
+    else if (strcmp(build, "24R359") == 0 || strcmp(build, "24R364") == 0 || strcmp(build, "24R365") == 0) {
+        uuid = @"6F8372B0-1583-4031-A4BC-A54A18B0DD5A";
+        length = 0x1947; value = 0xea8; present = 0x184d;
+    }
+    if (uuid && length == 0) { length = 0x1950; value = 0xeb0; present = 0x1856; }
+    NSData *data = plist[@"CacheData"];
+    if (!uuid || ![plist[@"CacheUUID"] isEqual:uuid] || ![data isKindOfClass:[NSData class]] || data.length != length || ![plist[@"CacheExtra"] isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"Ultra Faces cache layout is not supported on this watchOS build.", nil);
+        return NO;
+    }
+    if (dataOut) *dataOut = [data mutableCopy];
+    if (valueOffset) *valueOffset = value;
+    if (presentOffset) *presentOffset = present;
+    return YES;
+}
+
+BOOL BQGetUltraFacesEnabled(BOOL *enabled, NSString **err) {
+    NSDictionary *plist = BQLoadGestalt(err);
+    NSMutableData *data = nil;
+    NSUInteger valueOffset = 0, presentOffset = 0;
+    if (!plist || !bq_ultraCache(plist, &data, &valueOffset, &presentOffset, err)) return NO;
+    const uint8_t *bytes = data.bytes;
+    const uint8_t ultra[] = {29, 0, 0, 0};
+    if (enabled) *enabled = plist[@"CacheExtra"][@"fdh+s6j3VijuyrK7xLjd7g"] == nil && bytes[presentOffset] == 1 && memcmp(bytes + valueOffset, ultra, sizeof(ultra)) == 0;
+    return YES;
+}
+
+BOOL BQSetUltraFacesEnabled(BOOL enabled, NSString **err) {
+    NSData *backupFile = [NSData dataWithContentsOfFile:BQBackupPath()];
+    NSDictionary *backup = backupFile ? [NSPropertyListSerialization propertyListWithData:backupFile options:0 format:NULL error:NULL] : nil;
+    if (![backup isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"Back up MobileGestalt first.", nil);
+        return NO;
+    }
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    NSMutableData *data = nil, *original = nil;
+    NSUInteger valueOffset = 0, presentOffset = 0;
+    if (!plist || !bq_ultraCache(plist, &data, &valueOffset, &presentOffset, err) || !bq_ultraCache(backup, &original, NULL, NULL, err)) return NO;
+    uint8_t *bytes = data.mutableBytes;
+    const uint8_t *backupBytes = original.bytes;
+    if (enabled && bytes[presentOffset] != 1) {
+        if (err) *err = NSLocalizedString(@"main-screen-class is not present in CacheData.", nil);
+        return NO;
+    }
+    const uint8_t ultra[] = {29, 0, 0, 0};
+    if (enabled) memcpy(bytes + valueOffset, ultra, sizeof(ultra));
+    else {
+        memcpy(bytes + valueOffset, backupBytes + valueOffset, sizeof(ultra));
+        bytes[presentOffset] = backupBytes[presentOffset];
+    }
+    NSString *key = @"fdh+s6j3VijuyrK7xLjd7g";
+    NSMutableDictionary *extra = [plist[@"CacheExtra"] mutableCopy];
+    id originalOverride = backup[@"CacheExtra"][key];
+    if (enabled || !originalOverride) [extra removeObjectForKey:key];
+    else extra[key] = originalOverride;
+    plist[@"CacheData"] = data;
+    plist[@"CacheExtra"] = extra;
+    if (!BQSaveGestalt(plist, err)) return NO;
+    NSDictionary *saved = BQLoadGestalt(err);
+    NSMutableData *savedData = nil;
+    if (!saved || !bq_ultraCache(saved, &savedData, NULL, NULL, err)) return NO;
+    const uint8_t *savedBytes = savedData.bytes;
+    id expectedOverride = enabled ? nil : originalOverride;
+    id savedOverride = saved[@"CacheExtra"][key];
+    if (memcmp(savedBytes + valueOffset, bytes + valueOffset, sizeof(ultra)) != 0 || savedBytes[presentOffset] != bytes[presentOffset] || (expectedOverride ? ![savedOverride isEqual:expectedOverride] : savedOverride != nil)) {
+        if (err) *err = NSLocalizedString(@"Ultra Faces cache changes could not be verified.", nil);
+        return NO;
+    }
+    return YES;
+}
+
+static BOOL bq_setMGCacheExtraKeys(NSArray<NSString *> *keys, BOOL enabled, NSString **err) {
+    if (!BQBackupExists()) {
+        if (err) *err = NSLocalizedString(@"Back up MobileGestalt first.", nil);
+        return NO;
+    }
+
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    id cacheExtra = plist[@"CacheExtra"];
+    if (![cacheExtra isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"MobileGestalt CacheExtra is missing or invalid.", nil);
+        return NO;
+    }
+
+    NSMutableDictionary *updated = [cacheExtra mutableCopy];
+    NSNumber *storedValue = @(enabled);
+    for (NSString *key in keys) updated[key] = storedValue;
+    plist[@"CacheExtra"] = updated;
+    if (!BQSaveGestalt(plist, err)) return NO;
+
+    NSMutableDictionary *check = BQLoadGestalt(err);
+    NSDictionary *savedExtra = check[@"CacheExtra"];
+    for (NSString *key in keys) {
+        id value = savedExtra[key];
+        if (![value respondsToSelector:@selector(boolValue)] || [value boolValue] != enabled) {
+            if (err) *err = [NSString stringWithFormat:NSLocalizedString(@"MobileGestalt override %@ did not save the requested state.", nil), key];
+            return NO;
+        }
+    }
+    BQLog(@"MG CacheExtra %@ %@", enabled ? @"enabled" : @"disabled", [keys componentsJoinedByString:@", "]);
+    return YES;
+}
+
+static BOOL bq_getMGCacheExtraKeys(NSArray<NSString *> *keys, BOOL *enabled, NSString **err) {
+    if (!BQCoreInit()) {
+        if (err) *err = @"MobileGestalt access is unavailable on this device.";
+        return NO;
+    }
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    id cacheExtra = plist[@"CacheExtra"];
+    if (![cacheExtra isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"MobileGestalt CacheExtra is missing or invalid.", nil);
+        return NO;
+    }
+    BOOL allEnabled = YES;
+    NSDictionary *extra = cacheExtra;
+    for (NSString *key in keys) {
+        id value = extra[key];
+        if (![value respondsToSelector:@selector(boolValue)] || ![value boolValue]) {
+            allEnabled = NO;
+            break;
+        }
+    }
+    if (enabled) *enabled = allEnabled;
+    return YES;
+}
+
+static BOOL bq_setMGCacheExtraStrings(NSDictionary<NSString *, NSString *> *changes, NSString **err) {
+    if (!BQBackupExists()) {
+        if (err) *err = NSLocalizedString(@"Back up MobileGestalt first.", nil);
+        return NO;
+    }
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    id cacheExtra = plist[@"CacheExtra"];
+    if (![cacheExtra isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"MobileGestalt CacheExtra is missing or invalid.", nil);
+        return NO;
+    }
+    NSMutableDictionary *updated = [cacheExtra mutableCopy];
+    [updated addEntriesFromDictionary:changes];
+    plist[@"CacheExtra"] = updated;
+    if (!BQSaveGestalt(plist, err)) return NO;
+
+    NSMutableDictionary *check = BQLoadGestalt(err);
+    NSDictionary *savedExtra = check[@"CacheExtra"];
+    for (NSString *key in changes) {
+        if (![savedExtra[key] isEqual:changes[key]]) {
+            if (err) *err = [NSString stringWithFormat:@"MobileGestalt override %@ did not save the requested value.", key];
+            return NO;
+        }
+    }
+    BQLog(@"MG CacheExtra strings updated: %@", changes);
+    return YES;
+}
+
+static NSString * const kMGRegionCodeKey = @"h63QSdBCiT/z0WU6rdQv6Q";
+static NSString * const kMGSalesRegionKey = @"zHeENZu+wbg7PUprwNwBWg";
+static NSString * const kMGLegacySalesRegionKey = @"yK+xavymRGZ3xWc1tb8XDg";
+
+NSString *BQGetRegionCode(NSString **err) {
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return nil;
+    id value = plist[@"CacheExtra"][kMGRegionCodeKey];
+    if (value && ![value isKindOfClass:[NSString class]]) {
+        if (err) *err = @"RegionCode has an unsupported value type.";
+        return nil;
+    }
+    return value;
+}
+
+NSString *BQGetSalesRegion(NSString **err) {
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return nil;
+    NSDictionary *extra = plist[@"CacheExtra"];
+    id current = extra[kMGSalesRegionKey];
+    id legacy = extra[kMGLegacySalesRegionKey];
+    if ((current && ![current isKindOfClass:[NSString class]]) ||
+        (legacy && ![legacy isKindOfClass:[NSString class]])) {
+        if (err) *err = @"Sales region has an unsupported value type.";
+        return nil;
+    }
+    if (current && legacy && ![current isEqual:legacy]) {
+        if (err) *err = @"Sales region fields disagree; choose a value to align them.";
+        return nil;
+    }
+    return current ?: legacy;
+}
+
+BOOL BQSetRegionCode(NSString *code, NSString **err) {
+    if (![code isKindOfClass:[NSString class]] || code.length == 0) {
+        if (err) *err = @"RegionCode must not be empty.";
+        return NO;
+    }
+    return bq_setMGCacheExtraStrings(@{ kMGRegionCodeKey: code }, err);
+}
+
+BOOL BQSetSalesRegion(NSString *suffix, NSString **err) {
+    if (![suffix isKindOfClass:[NSString class]] || suffix.length == 0) {
+        if (err) *err = @"Sales region suffix must not be empty.";
+        return NO;
+    }
+    if (!BQBackupExists()) {
+        if (err) *err = NSLocalizedString(@"Back up MobileGestalt first.", nil);
+        return NO;
+    }
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    id cacheExtra = plist[@"CacheExtra"];
+    if (![cacheExtra isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"MobileGestalt CacheExtra is missing or invalid.", nil);
+        return NO;
+    }
+    NSMutableDictionary *changes = [NSMutableDictionary dictionary];
+    if (cacheExtra[kMGSalesRegionKey]) changes[kMGSalesRegionKey] = suffix;
+    if (cacheExtra[kMGLegacySalesRegionKey]) changes[kMGLegacySalesRegionKey] = suffix;
+    // Newer layouts normally use the current key. Do not add both variants.
+    if (changes.count == 0) changes[kMGSalesRegionKey] = suffix;
+    return bq_setMGCacheExtraStrings(changes, err);
+}
+
+static NSString * const kMGScreenWidthKey = @"g7YQ1Djxh4YiKlEeaoGhzg";
+static NSString * const kMGScreenHeightKey = @"OjzOua0LkOegX7pQdgMksw";
+
+BOOL BQGetScreenResolution(NSInteger *width, NSInteger *height, BOOL *overridden, NSString **err) {
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    if (!plist) return NO;
+    NSDictionary *extra = plist[@"CacheExtra"];
+    if (![extra isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = NSLocalizedString(@"MobileGestalt CacheExtra is missing or invalid.", nil);
+        return NO;
+    }
+    id storedWidth = extra[kMGScreenWidthKey];
+    id storedHeight = extra[kMGScreenHeightKey];
+    if ((storedWidth && ![storedWidth isKindOfClass:[NSNumber class]]) ||
+        (storedHeight && ![storedHeight isKindOfClass:[NSNumber class]])) {
+        if (err) *err = @"Screen dimensions have an unsupported value type.";
+        return NO;
+    }
+    CGSize native = [WKInterfaceDevice currentDevice].screenBounds.size;
+    CGFloat scale = [WKInterfaceDevice currentDevice].screenScale;
+    NSInteger currentWidth = storedWidth ? [storedWidth integerValue] : (NSInteger)llround(native.width * scale);
+    NSInteger currentHeight = storedHeight ? [storedHeight integerValue] : (NSInteger)llround(native.height * scale);
+    if (currentWidth <= 0 || currentHeight <= 0) {
+        if (err) *err = @"Screen dimensions are invalid.";
+        return NO;
+    }
+    if (width) *width = currentWidth;
+    if (height) *height = currentHeight;
+    NSDictionary *original = [NSDictionary dictionaryWithContentsOfFile:BQBackupPath()][@"CacheExtra"];
+    id originalWidth = original[kMGScreenWidthKey];
+    id originalHeight = original[kMGScreenHeightKey];
+    if (overridden) *overridden = !((storedWidth == originalWidth || [storedWidth isEqual:originalWidth]) &&
+                                   (storedHeight == originalHeight || [storedHeight isEqual:originalHeight]));
+    return YES;
+}
+
+BOOL BQSetScreenResolution(NSInteger width, NSInteger height, NSString **err) {
+    BOOL restore = width == 0 && height == 0;
+    if (!restore && !((width == 324 && height == 394) ||
+                      (width == 368 && height == 448) ||
+                      (width == 352 && height == 430) ||
+                      (width == 396 && height == 484) ||
+                      (width == 374 && height == 446) ||
+                      (width == 416 && height == 496))) {
+        if (err) *err = @"Unsupported screen resolution preset.";
+        return NO;
+    }
+    if (!BQBackupExists()) {
+        if (err) *err = NSLocalizedString(@"Back up MobileGestalt first.", nil);
+        return NO;
+    }
+    NSMutableDictionary *plist = BQLoadGestalt(err);
+    NSDictionary *extra = plist[@"CacheExtra"];
+    NSDictionary *backup = [NSDictionary dictionaryWithContentsOfFile:BQBackupPath()];
+    NSDictionary *original = backup[@"CacheExtra"];
+    if (!plist || ![extra isKindOfClass:[NSDictionary class]] ||
+        ![original isKindOfClass:[NSDictionary class]]) {
+        if (err) *err = @"MobileGestalt or its backup is invalid.";
+        return NO;
+    }
+    NSMutableDictionary *updated = [extra mutableCopy];
+    if (restore) {
+        for (NSString *key in @[kMGScreenWidthKey, kMGScreenHeightKey]) {
+            id value = original[key];
+            if (value) updated[key] = value;
+            else [updated removeObjectForKey:key];
+        }
+    } else {
+        updated[kMGScreenWidthKey] = @(width);
+        updated[kMGScreenHeightKey] = @(height);
+    }
+    plist[@"CacheExtra"] = updated;
+    if (!BQSaveGestalt(plist, err)) return NO;
+    NSDictionary *saved = BQLoadGestalt(err)[@"CacheExtra"];
+    for (NSString *key in @[kMGScreenWidthKey, kMGScreenHeightKey]) {
+        id expected = updated[key];
+        id actual = saved[key];
+        if (expected ? ![expected isEqual:actual] : actual != nil) {
+            if (err) *err = @"Screen resolution write could not be verified.";
+            return NO;
+        }
+    }
+    BQLog(@"MG screen dimensions %@", restore ? @"restored from backup" : [NSString stringWithFormat:@"%ld x %ld", (long)width, (long)height]);
+    return YES;
+}
+
+BOOL BQGetAODSupport(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"2OOJf1VhaM7NxfRok3HbWQ",
+        @"j8/Omm6s1lsmTDFsXjsBfA"
+    ], enabled, err);
+}
+
+BOOL BQGetAODSecondsSupport(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"aoJSd/MXk7M40NgXTM6x+g"
+    ], enabled, err);
+}
+
+BOOL BQGetActionButton(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"FBw/2WrPE2supEKosxxoTw"
+    ], enabled, err);
+}
+
+BOOL BQGetDoubleTap(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"l1CWke97nbaAcWDqA6T5LA"
+    ], enabled, err);
+}
+
+BOOL BQGetDepthCapability(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"Ijs+pw5tRyxqSy5kfgZNuQ" // DeviceSupportsAbsoluteDepth
+    ], enabled, err);
+}
+
+BOOL BQGetAbsoluteAltimeter(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"PFnuFyqMMnGUQQnTqS5byg" // DeviceSupportsAbsoluteAltimeter
+    ], enabled, err);
+}
+
+BOOL BQGetAlwaysOnCompass(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"aCQx2Qq/TChnNAq1rr6Egw" // DeviceSupportsAlwaysOnCompass
+    ], enabled, err);
+}
+
+BOOL BQGetAODVibrancy(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"ykpu7qyhqFweVMKtxNylWA" // DeviceSupportsAODVibrancy
+    ], enabled, err);
+}
+
+BOOL BQGetWatchKeyboard(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"MQJ1mlVrhOwaUUVJehJSVA" // WatchKeyboardCapability
+    ], enabled, err);
+}
+
+BOOL BQGetPeriodicALSUpdates(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"Leuy56dCZmAMYoVCQGTfPA" // DeviceSupportsPeriodicALSUpdates
+    ], enabled, err);
+}
+
+BOOL BQGetRaiseToSpeak(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"4D8XW4YwJI7QvyPhv1TEdw" // DeviceSupportsRaiseToSpeak
+    ], enabled, err);
+}
+
+BOOL BQGetContinuousHeartRate(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"W2RPjaqovtsgiRB6ScePGA" // DeviceSupportsContinuousHeartRate
+    ], enabled, err);
+}
+
+BOOL BQGetCompassOrienteering(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"GPIs61LYNpcwZqwlFr7bbg" // DeviceSupportsCompassOrienteering
+    ], enabled, err);
+}
+
+BOOL BQGetEnvironmentalDosimetry(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"SaW+DA+cbiqDHrex8MTABA" // DeviceSupportsEnvironmentalDosimetry
+    ], enabled, err);
+}
+
+BOOL BQGetBatteryInformation(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"Kao6GNYdAy5hwXblxeGYJQ" // DeviceSupportsBatteryInformation
+    ], enabled, err);
+}
+
+BOOL BQGetAlwaysListening(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"U+73bmG4kBGj6kpreQXUTQ" // DeviceSupportsAlwaysListening
+    ], enabled, err);
+}
+
+BOOL BQGetRotateToWake(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"nmOy2K5HzAAs2QNAi8wR+Q" // SupportsRotateToWake
+    ], enabled, err);
+}
+
+BOOL BQGetSwimmingWorkouts(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[
+        @"cRjPy4Ef+KZwJ+nfPeBV5Q" // DeviceSupportsSwimmingWorkouts
+    ], enabled, err);
+}
+
+BOOL BQSetAODSupport(BOOL enabled, NSString **err) {
     // DeviceSupportsAlwaysOnDisplay is the main capability; ClockKit also
     // reads DeviceSupportsAlwaysOnTime while loading CLKDevice information.
-    return bq_enableMGCacheExtraKeys(@[
+    return bq_setMGCacheExtraKeys(@[
         @"2OOJf1VhaM7NxfRok3HbWQ", // DeviceSupportsAlwaysOnDisplay
         @"j8/Omm6s1lsmTDFsXjsBfA"  // DeviceSupportsAlwaysOnTime
-    ], err);
+    ], enabled, err);
 }
 
-BOOL BQEnableAODSecondsSupport(NSString **err) {
+BOOL BQSetAODSecondsSupport(BOOL enabled, NSString **err) {
     // Enables the AOD flipbook path used by BacklightServices 1 Hz updates.
-    return bq_enableMGCacheExtraKeys(@[
+    return bq_setMGCacheExtraKeys(@[
         @"aoJSd/MXk7M40NgXTM6x+g" // DeviceSupportsAlwaysOnDisplayFlipbook
-    ], err);
+    ], enabled, err);
 }
 
-BOOL BQEnableActionButton(NSString **err) {
+BOOL BQSetActionButton(BOOL enabled, NSString **err) {
     // NanoCompassWaypoints 27.3b1 implements isUltraDevice() by calling
     // MGGetBoolAnswer("WatchAppButtonCapability"). The CacheExtra hash below
     // is the matching MobileGestalt key hash present in this build.
-    return bq_enableMGCacheExtraKeys(@[
+    return bq_setMGCacheExtraKeys(@[
         @"FBw/2WrPE2supEKosxxoTw"
-    ], err);
+    ], enabled, err);
 }
 
+BOOL BQSetDoubleTap(BOOL enabled, NSString **err) {
+    // WatchGestures' WAGDeviceSupportsElton() calls
+    // MGGetBoolAnswer("DeviceSupportsElton"); Double Tap is handled as Elton.
+    return bq_setMGCacheExtraKeys(@[
+        @"l1CWke97nbaAcWDqA6T5LA" // DeviceSupportsElton
+    ], enabled, err);
+}
+
+BOOL BQSetDepthCapability(BOOL enabled, NSString **err) {
+    // Depth sensor capability used by supported Apple Watch models.
+    return bq_setMGCacheExtraKeys(@[
+        @"Ijs+pw5tRyxqSy5kfgZNuQ" // DeviceSupportsAbsoluteDepth
+    ], enabled, err);
+}
+
+BOOL BQSetAbsoluteAltimeter(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"PFnuFyqMMnGUQQnTqS5byg" // DeviceSupportsAbsoluteAltimeter
+    ], enabled, err);
+}
+
+BOOL BQSetAlwaysOnCompass(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"aCQx2Qq/TChnNAq1rr6Egw" // DeviceSupportsAlwaysOnCompass
+    ], enabled, err);
+}
+
+BOOL BQSetAODVibrancy(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"ykpu7qyhqFweVMKtxNylWA" // DeviceSupportsAODVibrancy
+    ], enabled, err);
+}
+
+BOOL BQSetPeriodicALSUpdates(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"Leuy56dCZmAMYoVCQGTfPA" // DeviceSupportsPeriodicALSUpdates
+    ], enabled, err);
+}
+
+BOOL BQSetWatchKeyboard(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"MQJ1mlVrhOwaUUVJehJSVA" // WatchKeyboardCapability
+    ], enabled, err);
+}
+
+BOOL BQSetRaiseToSpeak(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"4D8XW4YwJI7QvyPhv1TEdw" // DeviceSupportsRaiseToSpeak
+    ], enabled, err);
+}
+
+BOOL BQSetContinuousHeartRate(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"W2RPjaqovtsgiRB6ScePGA" // DeviceSupportsContinuousHeartRate
+    ], enabled, err);
+}
+
+BOOL BQSetCompassOrienteering(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"GPIs61LYNpcwZqwlFr7bbg" // DeviceSupportsCompassOrienteering
+    ], enabled, err);
+}
+
+BOOL BQSetEnvironmentalDosimetry(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"SaW+DA+cbiqDHrex8MTABA" // DeviceSupportsEnvironmentalDosimetry
+    ], enabled, err);
+}
+
+BOOL BQSetBatteryInformation(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"Kao6GNYdAy5hwXblxeGYJQ" // DeviceSupportsBatteryInformation
+    ], enabled, err);
+}
+
+BOOL BQSetAlwaysListening(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"U+73bmG4kBGj6kpreQXUTQ" // DeviceSupportsAlwaysListening
+    ], enabled, err);
+}
+
+BOOL BQSetRotateToWake(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"nmOy2K5HzAAs2QNAi8wR+Q" // SupportsRotateToWake
+    ], enabled, err);
+}
+
+BOOL BQSetSwimmingWorkouts(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[
+        @"cRjPy4Ef+KZwJ+nfPeBV5Q" // DeviceSupportsSwimmingWorkouts
+    ], enabled, err);
+}
+
+// These hashes are the MobileGestalt capability fields used by the
+// corresponding Intelligence presets. watchOS may ignore fields that its
+// build, hardware, language, or Apple services do not support.
+BOOL BQGetAppleIntelligence(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[@"A62OafQ85EJAiiqKn4agtg"], enabled, err);
+}
+
+BOOL BQGetOnDeviceSiri(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[@"K/R1GfGfCkXvEhaPS2Vrng"], enabled, err);
+}
+
+BOOL BQGetAudioIntelligence(BOOL *enabled, NSString **err) {
+    return bq_getMGCacheExtraKeys(@[@"rb2tKZxlj0Gm2tBmUQSLqQ"], enabled, err);
+}
+
+BOOL BQSetAppleIntelligence(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[@"A62OafQ85EJAiiqKn4agtg"], enabled, err);
+}
+
+BOOL BQSetOnDeviceSiri(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[@"K/R1GfGfCkXvEhaPS2Vrng"], enabled, err);
+}
+
+BOOL BQSetAudioIntelligence(BOOL enabled, NSString **err) {
+    return bq_setMGCacheExtraKeys(@[@"rb2tKZxlj0Gm2tBmUQSLqQ"], enabled, err);
+}
 
 // NeoSpring from Gester, with UIKit and WebKit accessed dynamically on watchOS.
 static id gRespringWebView;
@@ -1926,1086 +1884,5 @@ void BQRespring(void) {
             gRespringWebView = webView;
             BQLog(@"respring: NeoSpring started");
         });
-    });
-}
-
-// ===== RO23_AUTORUN_DIAGNOSTIC_V1 =====
-// Watch6,18 / watchOS 23U95
-// READ ONLY: no system cache writes, no MCM escape, no rebuild.
-
-#import <mach-o/dyld.h>
-#import <mach-o/loader.h>
-#import <dlfcn.h>
-#import <sys/sysctl.h>
-#import <stdint.h>
-#import <string.h>
-
-typedef struct {
-    const uint8_t *base;
-    size_t length;
-    char segment[17];
-    char section[17];
-} RO23ASection;
-
-static void RO23AInspect(NSData *cache,
-                         NSUInteger index,
-                         NSUInteger slots) {
-    if (index >= slots || cache.length != slots * 9) return;
-
-    const uint8_t *p = cache.bytes;
-    NSUInteger valueOffset = index * 8;
-    NSUInteger presenceOffset = slots * 8 + index;
-
-    uint32_t value = 0;
-    memcpy(&value, p + valueOffset, sizeof(value));
-
-    BQLog(@"RO23 SLOT index=%lu valueOffset=0x%lX "
-          @"presenceOffset=0x%lX raw32=%u present=%u "
-          @"(candidate only)",
-          (unsigned long)index,
-          (unsigned long)valueOffset,
-          (unsigned long)presenceOffset,
-          (unsigned int)value,
-          (unsigned int)p[presenceOffset]);
-}
-
-static void RO23ARun(void) {
-    char build[128] = {0};
-    size_t buildSize = sizeof(build);
-
-    if (sysctlbyname("kern.osversion",
-                     build, &buildSize, NULL, 0) != 0) {
-        BQLog(@"RO23 ERROR cannot read OS build");
-        return;
-    }
-
-    BQLog(@"RO23 BEGIN build=%s pointerSize=%lu "
-          @"READONLY=YES",
-          build, (unsigned long)sizeof(void *));
-
-    if (strcmp(build, "23U95") != 0 || sizeof(void *) != 4) {
-        BQLog(@"RO23 SKIP unsupported build or architecture");
-        return;
-    }
-
-    NSString *path =
-        @"/private/var/containers/Shared/SystemGroup/"
-         "systemgroup.com.apple.mobilegestaltcache/"
-         "Library/Caches/com.apple.MobileGestalt.plist";
-
-    NSData *plistData = [NSData dataWithContentsOfFile:path];
-
-    if (plistData) {
-        NSError *error = nil;
-        id parsed =
-          [NSPropertyListSerialization
-              propertyListWithData:plistData
-              options:NSPropertyListImmutable
-              format:NULL
-              error:&error];
-
-        if ([parsed isKindOfClass:[NSDictionary class]]) {
-            NSDictionary *dict = (NSDictionary *)parsed;
-            NSData *cache = dict[@"CacheData"];
-
-            BQLog(@"RO23 CACHE uuid=%@ plistBytes=%lu",
-                  dict[@"CacheUUID"],
-                  (unsigned long)plistData.length);
-
-            if ([cache isKindOfClass:[NSData class]] &&
-                cache.length % 9 == 0) {
-                NSUInteger slots = cache.length / 9;
-
-                BQLog(@"RO23 CACHE dataLength=%lu slots=%lu",
-                      (unsigned long)cache.length,
-                      (unsigned long)slots);
-
-                RO23AInspect(cache, 103, slots);
-                RO23AInspect(cache, 206, slots);
-            }
-
-            NSDictionary *extra = dict[@"CacheExtra"];
-            if ([extra isKindOfClass:[NSDictionary class]]) {
-                BQLog(@"RO23 CACHE DeviceBrandExtra=%@",
-                      extra[@"fuKL2rMywRgQF1wowOA/cg"]
-                      ? @"YES" : @"NO");
-            }
-        } else {
-            BQLog(@"RO23 CACHE parse error=%@",
-                  error.localizedDescription);
-        }
-    } else {
-        BQLog(@"RO23 CACHE direct read unavailable");
-    }
-
-    // Load the library in this process, without modifying it.
-    (void)dlopen("/usr/lib/libMobileGestalt.dylib",
-                 RTLD_LAZY | RTLD_LOCAL);
-
-    const struct mach_header *header = NULL;
-    intptr_t slide = 0;
-
-    for (uint32_t i = 0; i < _dyld_image_count(); i++) {
-        const char *name = _dyld_get_image_name(i);
-        if (name && strstr(name, "libMobileGestalt")) {
-            header = _dyld_get_image_header(i);
-            slide = _dyld_get_image_vmaddr_slide(i);
-            BQLog(@"RO23 IMAGE %s", name);
-            break;
-        }
-    }
-
-    if (!header || header->magic != MH_MAGIC ||
-        header->ncmds > 8192 ||
-        header->sizeofcmds > 8388608) {
-        BQLog(@"RO23 IMAGE unavailable or unsupported");
-        return;
-    }
-
-    RO23ASection sections[192] = {0};
-    size_t count = 0;
-
-    const uint8_t *cursor = (const uint8_t *)(header + 1);
-    const uint8_t *end = cursor + header->sizeofcmds;
-
-    for (uint32_t i = 0; i < header->ncmds; i++) {
-        if (cursor > end ||
-            (size_t)(end - cursor) < sizeof(struct load_command))
-            break;
-
-        const struct load_command *lc =
-            (const struct load_command *)cursor;
-
-        if (lc->cmdsize < sizeof(*lc) ||
-            lc->cmdsize > (size_t)(end - cursor))
-            break;
-
-        if (lc->cmd == LC_SEGMENT &&
-            lc->cmdsize >= sizeof(struct segment_command)) {
-            const struct segment_command *seg =
-                (const struct segment_command *)cursor;
-
-            if (seg->nsects <=
-                (lc->cmdsize - sizeof(*seg)) / sizeof(struct section)) {
-                const struct section *s =
-                    (const struct section *)(seg + 1);
-
-                for (uint32_t j = 0; j < seg->nsects; j++) {
-                    if (count >= 192) break;
-                    if (!s[j].size ||
-                        s[j].size > 64 * 1024 * 1024) continue;
-
-                    uint32_t kind = s[j].flags & SECTION_TYPE;
-                    if (kind == S_ZEROFILL ||
-                        kind == S_GB_ZEROFILL ||
-                        kind == S_THREAD_LOCAL_ZEROFILL) continue;
-
-                    RO23ASection *r = &sections[count++];
-                    r->base = (const uint8_t *)
-                        ((intptr_t)s[j].addr + slide);
-                    r->length = s[j].size;
-
-                    memcpy(r->segment, s[j].segname, 16);
-                    memcpy(r->section, s[j].sectname, 16);
-                }
-            }
-        }
-
-        cursor += lc->cmdsize;
-    }
-
-    const char key[] = "fuKL2rMywRgQF1wowOA/cg";
-    uint32_t keyAddress[12] = {0};
-    size_t keyCount = 0;
-
-    for (size_t i = 0; i < count; i++) {
-        RO23ASection *s = &sections[i];
-
-        if (strcmp(s->segment, "__TEXT") != 0)
-            continue;
-
-        if (strcmp(s->section, "__cstring") != 0 &&
-            strcmp(s->section, "__const") != 0)
-            continue;
-
-        if (s->length < sizeof(key)) continue;
-
-        for (size_t j = 0;
-             j <= s->length - sizeof(key); j++) {
-            if ((j == 0 || s->base[j - 1] == 0) &&
-                memcmp(s->base + j, key, sizeof(key)) == 0) {
-                if (keyCount < 12)
-                    keyAddress[keyCount++] =
-                        (uint32_t)(uintptr_t)(s->base + j);
-            }
-        }
-    }
-
-    BQLog(@"RO23 KEY exactMatches=%lu",
-          (unsigned long)keyCount);
-
-    NSUInteger references = 0;
-
-    for (size_t i = 0; i < count; i++) {
-        RO23ASection *s = &sections[i];
-
-        if (strcmp(s->segment, "__DATA") != 0 &&
-            strcmp(s->segment, "__DATA_CONST") != 0 &&
-            strcmp(s->segment, "__AUTH") != 0 &&
-            strcmp(s->segment, "__AUTH_CONST") != 0)
-            continue;
-
-        if (s->length < 4) continue;
-
-        for (size_t j = 0; j <= s->length - 4; j += 4) {
-            uint32_t pointer = 0;
-            memcpy(&pointer, s->base + j, 4);
-
-            BOOL match = NO;
-            for (size_t k = 0; k < keyCount; k++) {
-                if (pointer == keyAddress[k]) {
-                    match = YES;
-                    break;
-                }
-            }
-
-            if (!match) continue;
-            references++;
-
-            // RO23_RECORD_V3: strictly read-only descriptor inspection.
-            if (strcmp(s->section, "__const") == 0) {
-                BQLog(@"RO23 V3 BEGIN keyRef=0x%lX",
-                      (unsigned long)j);
-
-                // Candidate strides only. Not verified layouts.
-                for (size_t stride = 16;
-                     stride <= 176;
-                     stride += 4) {
-
-                    if (j > s->length ||
-                        s->length - j < stride + 4)
-                        continue;
-
-                    const uint8_t *tail =
-                        s->base + j + stride - 8;
-
-                    uint16_t slot = 0;
-                    uint32_t type = 0;
-                    uint32_t nextPointer = 0;
-
-                    memcpy(&slot, tail + 2, 2);
-                    memcpy(&type, tail + 4, 4);
-                    memcpy(&nextPointer,
-                           s->base + j + stride, 4);
-
-                    BOOL nextInCString = NO;
-
-                    for (size_t t = 0; t < count; t++) {
-                        RO23ASection *cs = &sections[t];
-
-                        if (strcmp(cs->segment, "__TEXT") ||
-                            strcmp(cs->section, "__cstring"))
-                            continue;
-
-                        uintptr_t start =
-                            (uintptr_t)cs->base;
-                        uintptr_t target =
-                            (uintptr_t)nextPointer;
-
-                        if (target >= start &&
-                            target - start < cs->length) {
-                            nextInCString = YES;
-                            break;
-                        }
-                    }
-
-                    if (nextInCString ||
-                        (slot == 103 && type == 5) ||
-                        stride == 32 ||
-                        stride == 64 ||
-                        stride == 80 ||
-                        stride == 160) {
-
-                        BQLog(
-                          @"RO23 V3 STRIDE=%lu "
-                           "flags=%u index=%u type=%u "
-                           "nextKey=0x%08X "
-                           "nextCString=%d "
-                           "HYPOTHESIS_ONLY",
-                          (unsigned long)stride,
-                          (unsigned int)tail[0],
-                          (unsigned int)slot,
-                          (unsigned int)type,
-                          (unsigned int)nextPointer,
-                          nextInCString);
-                    }
-                }
-
-                // Hex window surrounding the DeviceBrand key pointer.
-                for (int rel = -32; rel <= 176; rel += 16) {
-                    int64_t off = (int64_t)j + rel;
-
-                    if (off < 0 ||
-                        (uint64_t)off + 16 > s->length)
-                        continue;
-
-                    NSMutableString *hex =
-                        [NSMutableString string];
-
-                    for (int k = 0; k < 16; k++) {
-                        [hex appendFormat:@"%02X ",
-                          s->base[off + k]];
-                    }
-
-                    BQLog(@"RO23 V3 HEX rel=%+d %@",
-                          rel, hex);
-                }
-
-                BQLog(@"RO23 V3 END noSystemWrites=YES");
-            }
-
-            if (references <= 12) {
-                size_t start = j > 24 ? j - 24 : 0;
-                size_t finish =
-                    j + 48 < s->length ? j + 48 : s->length;
-
-                NSMutableString *hex = [NSMutableString string];
-
-                for (size_t k = start; k < finish; k++)
-                    [hex appendFormat:@"%02X ", s->base[k]];
-
-                BQLog(@"RO23 REF section=%s,%s "
-                      @"offset=0x%lX context=%@",
-                      s->segment, s->section,
-                      (unsigned long)j, hex);
-            }
-        }
-    }
-
-    BQLog(@"RO23 END keyReferences=%lu "
-          @"indexNotYetVerified=YES systemWrites=NO",
-          (unsigned long)references);
-}
-
-// Runs once after the watch app launches.
-// No new button or Swift changes required.
-// RO23: RO23AAutoRun automatic startup removed (explicit opt-in only).
-
-
-// ===== END RO23_AUTORUN_DIAGNOSTIC_V1 =====
-
-// ===== RO23_TYPE_CHECK_V2 =====
-// Read-only: MGCopyAnswer only. Never modifies system cache.
-
-typedef CFTypeRef (*RO23CopyAnswerFn)(CFStringRef, CFDictionaryRef);
-
-static void RO23PrintAnswer(RO23CopyAnswerFn fn,
-                            CFStringRef key,
-                            NSString *label) {
-    CFTypeRef value = fn(key, NULL);
-
-    if (!value) {
-        BQLog(@"RO23 TYPE %@ result=NULL", label);
-        return;
-    }
-
-    CFTypeID type = CFGetTypeID(value);
-
-    if (type == CFBooleanGetTypeID()) {
-        BQLog(@"RO23 TYPE %@ kind=CFBoolean value=%d",
-              label, CFBooleanGetValue((CFBooleanRef)value));
-    } else if (type == CFNumberGetTypeID()) {
-        int32_t number = 0;
-        BOOL ok = CFNumberGetValue((CFNumberRef)value,
-                                    kCFNumberSInt32Type,
-                                    &number);
-        BQLog(@"RO23 TYPE %@ kind=CFNumber value=%d "
-              @"conversionOK=%d cfNumberType=%d byteSize=%ld",
-              label, number, ok,
-              (int)CFNumberGetType((CFNumberRef)value),
-              (long)CFNumberGetByteSize((CFNumberRef)value));
-    } else {
-        BQLog(@"RO23 TYPE %@ kind=OTHER cfTypeID=%lu",
-              label, (unsigned long)type);
-    }
-
-    CFRelease(value);
-}
-
-static void RO23TypeCheck(void) {
-    char build[128] = {0};
-    size_t length = sizeof(build);
-
-    if (sysctlbyname("kern.osversion",
-                     build, &length, NULL, 0) != 0 ||
-        strcmp(build, "23U95") != 0 ||
-        sizeof(void *) != 4) {
-        BQLog(@"RO23 TYPE skipped: unsupported environment");
-        return;
-    }
-
-    void *lib = dlopen("/usr/lib/libMobileGestalt.dylib",
-                        RTLD_LAZY | RTLD_LOCAL);
-
-    RO23CopyAnswerFn fn = lib
-        ? (RO23CopyAnswerFn)dlsym(lib, "MGCopyAnswer")
-        : NULL;
-
-    if (!fn) {
-        BQLog(@"RO23 TYPE MGCopyAnswer unavailable");
-        return;
-    }
-
-    BQLog(@"RO23 TYPE BEGIN readOnly=YES");
-
-    RO23PrintAnswer(fn, CFSTR("DeviceBrand"), @"plain");
-    RO23PrintAnswer(fn,
-        CFSTR("fuKL2rMywRgQF1wowOA/cg"), @"hashed");
-
-    BQLog(@"RO23 TYPE END systemWrites=NO");
-}
-
-// RO23: RO23TypeCheckStart automatic startup removed (explicit opt-in only).
-
-
-// ===== END RO23_TYPE_CHECK_V2 =====
-
-
-// ===== RO23_SANDBOX_V4 =====
-// Read-only authorization diagnostic for watchOS 23U95.
-// Never opens the MobileGestalt cache for writing.
-
-typedef int (*RO23SandboxCheckFn)(
-    pid_t, const char *, int, ...);
-
-static RO23SandboxCheckFn RO23GetSandboxCheck(void) {
-    void *symbol = dlsym(RTLD_DEFAULT, "sandbox_check");
-
-    if (!symbol) {
-        void *lib = dlopen(
-            "/usr/lib/libsandbox.1.dylib",
-            RTLD_LAZY | RTLD_LOCAL
-        );
-        if (lib) symbol = dlsym(lib, "sandbox_check");
-    }
-
-    return (RO23SandboxCheckFn)symbol;
-}
-
-static void RO23CheckPermission(
-    RO23SandboxCheckFn check,
-    NSString *label,
-    NSString *path
-) {
-    if (!check || !path.length) {
-        BQLog(@"RO23 V4 %@ sandbox_check unavailable",
-              label);
-        return;
-    }
-
-    const char *ops[] = {
-        "file-read-data",
-        "file-write-data",
-        "file-write-create",
-        "file-write-metadata"
-    };
-
-    for (int i = 0; i < 4; i++) {
-        // 1 = SANDBOX_FILTER_PATH
-        // This checks policy only; no file operations.
-        int result = check(
-            getpid(),
-            ops[i],
-            1,
-            path.fileSystemRepresentation
-        );
-
-        BQLog(@"RO23 V4 %@ op=%s rc=%d %@",
-              label,
-              ops[i],
-              result,
-              result == 0 ? @"ALLOW" :
-              result > 0 ? @"DENY" : @"ERROR");
-    }
-}
-
-static void RO23CheckEntitlements(void) {
-    typedef CFTypeRef (*TaskCreate)(CFAllocatorRef);
-    typedef CFTypeRef (*TaskCopy)(
-        CFTypeRef, CFStringRef, CFErrorRef *);
-
-    void *security = dlopen(
-        "/System/Library/Frameworks/Security.framework/Security",
-        RTLD_LAZY | RTLD_LOCAL
-    );
-
-    if (!security) {
-        BQLog(@"RO23 V4 entitlements unavailable");
-        return;
-    }
-
-    TaskCreate create =
-        (TaskCreate)dlsym(security, "SecTaskCreateFromSelf");
-
-    TaskCopy copy =
-        (TaskCopy)dlsym(
-            security,
-            "SecTaskCopyValueForEntitlement"
-        );
-
-    if (!create || !copy) {
-        BQLog(@"RO23 V4 entitlement APIs unavailable");
-        return;
-    }
-
-    CFTypeRef task = create(kCFAllocatorDefault);
-    if (!task) return;
-
-    NSArray<NSString *> *names = @[
-        @"com.apple.security.application-groups",
-        @"com.apple.security.system-groups",
-        @"com.apple.security.system-group-containers"
-    ];
-
-    for (NSString *name in names) {
-        CFTypeRef value = copy(
-            task,
-            (__bridge CFStringRef)name,
-            NULL
-        );
-
-        BQLog(@"RO23 V4 entitlement %@ present=%d",
-              name, value != NULL);
-
-        if (value) CFRelease(value);
-    }
-
-    CFRelease(task);
-}
-
-static void RO23SandboxRun(void) {
-    char build[128] = {0};
-    size_t length = sizeof(build);
-
-    if (sysctlbyname("kern.osversion",
-                     build, &length, NULL, 0) != 0 ||
-        strcmp(build, "23U95") != 0) {
-        BQLog(@"RO23 V4 unsupported build");
-        return;
-    }
-
-    BQLog(@"RO23 V4 BEGIN build=%s READONLY=YES", build);
-
-    BQCoreInit();
-    RO23CheckEntitlements();
-
-    RO23SandboxCheckFn check = RO23GetSandboxCheck();
-
-    NSString *target =
-      @"/private/var/containers/Shared/SystemGroup/"
-       "systemgroup.com.apple.mobilegestaltcache/"
-       "Library/Caches/com.apple.MobileGestalt.plist";
-
-    NSString *control = BQLogPath();
-
-    RO23CheckPermission(check, @"MG_BEFORE", target);
-    RO23CheckPermission(check, @"APP_CONTROL", control);
-
-    bq_load_mcm();
-
-    // Direct Class 13 query for the existing system group.
-    // No path traversal, symlink, or system-file mutation.
-    int64_t handle = bq_query_escape(
-        13,
-        @"systemgroup.com.apple.mobilegestaltcache",
-        YES,
-        3,
-        @"",
-        0x0800000000ULL,
-        @"RO23-class13-direct-26flags",
-        NULL
-    );
-
-    BQLog(@"RO23 V4 CLASS13 tokenConsumed=%d handle=%lld",
-          handle >= 0, (long long)handle);
-
-    RO23CheckPermission(check, @"MG_AFTER", target);
-
-    if (handle >= 0 && g.release) {
-        g.release(handle);
-    }
-
-    BQLog(@"RO23 V4 END systemWrites=NO");
-}
-
-// RO23: RO23SandboxStart automatic startup removed (explicit opt-in only).
-
-
-// ===== END RO23_SANDBOX_V4 =====
-
-
-// ===== RO23_HELPER_V5 =====
-// Watch6,18 / watchOS 23U95
-// No XPC messages, no system writes, no rebuild.
-
-#import <mach/mach.h>
-#import <dlfcn.h>
-#import <sys/sysctl.h>
-
-typedef kern_return_t (*RO23TaskSpecialPortFn)(
-    mach_port_t,
-    int,
-    mach_port_t *
-);
-
-typedef kern_return_t (*RO23BootstrapLookupFn)(
-    mach_port_t,
-    const char *,
-    mach_port_t *
-);
-
-static void RO23HelperProbe(void) {
-    char build[128] = {0};
-    size_t length = sizeof(build);
-
-    if (sysctlbyname(
-            "kern.osversion",
-            build, &length, NULL, 0) != 0 ||
-        strcmp(build, "23U95") != 0) {
-        BQLog(@"RO23 V5 unsupported build");
-        return;
-    }
-
-    BQLog(@"RO23 V5 BEGIN readOnly=YES build=%s", build);
-
-    RO23TaskSpecialPortFn getPort =
-        (RO23TaskSpecialPortFn)
-        dlsym(RTLD_DEFAULT, "task_get_special_port");
-
-    RO23BootstrapLookupFn lookup =
-        (RO23BootstrapLookupFn)
-        dlsym(RTLD_DEFAULT, "bootstrap_look_up");
-
-    BQLog(@"RO23 V5 symbols taskPort=%d lookup=%d",
-          getPort != NULL, lookup != NULL);
-
-    if (!getPort || !lookup) {
-        BQLog(@"RO23 V5 UNAVAILABLE: required symbols missing");
-        BQLog(@"RO23 V5 END noSystemWrites=YES");
-        return;
-    }
-
-    mach_port_t bootstrap = MACH_PORT_NULL;
-
-    // TASK_BOOTSTRAP_PORT = 4
-    kern_return_t kr = getPort(
-        mach_task_self(),
-        4,
-        &bootstrap
-    );
-
-    BQLog(@"RO23 V5 bootstrap kr=%d valid=%d",
-          kr, MACH_PORT_VALID(bootstrap));
-
-    if (kr != KERN_SUCCESS ||
-        !MACH_PORT_VALID(bootstrap)) {
-        BQLog(@"RO23 V5 END noSystemWrites=YES");
-        return;
-    }
-
-    const char *serviceName =
-        "com.apple.mobilegestalt.xpc";
-
-    mach_port_t service = MACH_PORT_NULL;
-
-    // Lookup only. No service method is invoked.
-    kern_return_t result = lookup(
-        bootstrap,
-        serviceName,
-        &service
-    );
-
-    BQLog(@"RO23 V5 service=%s lookupKR=%d valid=%d",
-          serviceName,
-          result,
-          MACH_PORT_VALID(service));
-
-    if (MACH_PORT_VALID(service)) {
-        mach_port_deallocate(mach_task_self(), service);
-    }
-
-    mach_port_deallocate(mach_task_self(), bootstrap);
-
-    BQLog(@"RO23 V5 END messagesSentToHelper=0 "
-          @"systemWrites=NO rebuild=NO");
-}
-
-// RO23: RO23HelperStart automatic startup removed (explicit opt-in only).
-
-
-// ===== END RO23_HELPER_V5 =====
-
-
-// ===== RO23_V6_XPC_QUERY =====
-// A single read-only XPC request. No cache management calls.
-
-#import <objc/runtime.h>
-#import <objc/message.h>
-
-@protocol RO23MGReadOnlyProtocol
-- (void)getServerAnswerForQuestion:(NSString *)question
-                             reply:(void (^)(NSDictionary *answer))reply;
-@end
-
-static void RO23V6Run(void) {
-    char build[128] = {0};
-    size_t length = sizeof(build);
-
-    if (sysctlbyname("kern.osversion",
-                     build, &length, NULL, 0) != 0 ||
-        strcmp(build, "23U95") != 0) {
-        BQLog(@"RO23 V6 SKIP unsupported build");
-        return;
-    }
-
-    BQLog(@"RO23 V6 BEGIN query=DeviceBrand "
-          @"systemWrites=NO");
-
-    Class connClass = NSClassFromString(@"NSXPCConnection");
-    Class ifaceClass = NSClassFromString(@"NSXPCInterface");
-
-    BQLog(@"RO23 V6 runtime connection=%d interface=%d",
-          connClass != Nil, ifaceClass != Nil);
-
-    if (!connClass || !ifaceClass) {
-        BQLog(@"RO23 V6 UNAVAILABLE XPC classes missing");
-        return;
-    }
-
-    SEL initSEL =
-        NSSelectorFromString(@"initWithMachServiceName:options:");
-    SEL interfaceSEL =
-        NSSelectorFromString(@"interfaceWithProtocol:");
-    SEL setInterfaceSEL =
-        NSSelectorFromString(@"setRemoteObjectInterface:");
-    SEL resumeSEL = NSSelectorFromString(@"resume");
-    SEL proxySEL =
-        NSSelectorFromString(@"remoteObjectProxyWithErrorHandler:");
-
-    if (![connClass instancesRespondToSelector:initSEL] ||
-        ![connClass instancesRespondToSelector:setInterfaceSEL] ||
-        ![connClass instancesRespondToSelector:resumeSEL] ||
-        ![connClass instancesRespondToSelector:proxySEL] ||
-        ![ifaceClass respondsToSelector:interfaceSEL]) {
-        BQLog(@"RO23 V6 UNAVAILABLE required XPC selectors missing");
-        return;
-    }
-
-    id connection = ((id (*)(id, SEL, NSString *, NSUInteger))
-        objc_msgSend)(
-            [connClass alloc],
-            initSEL,
-            @"com.apple.mobilegestalt.xpc",
-            0
-        );
-
-    if (!connection) {
-        BQLog(@"RO23 V6 ERROR connection allocation failed");
-        return;
-    }
-
-    id remoteInterface = ((id (*)(id, SEL, Protocol *))
-        objc_msgSend)(
-            ifaceClass,
-            interfaceSEL,
-            @protocol(RO23MGReadOnlyProtocol)
-        );
-
-    if (!remoteInterface) {
-        BQLog(@"RO23 V6 ERROR interface creation failed");
-        return;
-    }
-
-    ((void (*)(id, SEL, id))objc_msgSend)(
-        connection, setInterfaceSEL, remoteInterface
-    );
-
-    ((void (*)(id, SEL))objc_msgSend)(
-        connection, resumeSEL
-    );
-
-    id errorHandler = ^(NSError *error) {
-        BQLog(@"RO23 V6 XPC ERROR code=%ld domain=%@",
-              (long)error.code,
-              error.domain);
-    };
-
-    id proxy = ((id (*)(id, SEL, id))objc_msgSend)(
-        connection, proxySEL, errorHandler
-    );
-
-    if (!proxy) {
-        BQLog(@"RO23 V6 ERROR remote proxy unavailable");
-        ((void (*)(id, SEL))objc_msgSend)(
-            connection, NSSelectorFromString(@"invalidate")
-        );
-        return;
-    }
-
-    BQLog(@"RO23 V6 sending read-only DeviceBrand query");
-
-    void (^replyHandler)(NSDictionary *) =
-    ^(NSDictionary *reply) {
-        if (![reply isKindOfClass:[NSDictionary class]]) {
-            BQLog(@"RO23 V6 REPLY unexpected response class=%@",
-                  reply ? NSStringFromClass([reply class]) : @"nil");
-            return;
-        }
-
-        id answer = reply[@"answer"];
-        id error = reply[@"error"];
-
-        BQLog(@"RO23 V6 REPLY received=YES error=%@ "
-              @"answerClass=%@",
-              error ?: @"(none)",
-              answer ? NSStringFromClass([answer class]) : @"nil");
-
-        if ([answer isKindOfClass:[NSNumber class]]) {
-            BQLog(@"RO23 V6 DeviceBrand=%@",
-                  answer);
-        }
-    };
-
-    ((void (*)(id, SEL, NSString *, id))objc_msgSend)(
-        proxy,
-        NSSelectorFromString(@"getServerAnswerForQuestion:reply:"),
-        @"DeviceBrand",
-        replyHandler
-    );
-
-    // Bounded observation window. Prevents an indefinite wait.
-    dispatch_after(
-        dispatch_time(DISPATCH_TIME_NOW,
-                      (int64_t)(10 * NSEC_PER_SEC)),
-        dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
-        ^{
-            BQLog(@"RO23 V6 END observationWindowClosed=YES "
-                  @"cacheRebuild=NO");
-            ((void (*)(id, SEL))objc_msgSend)(
-                connection,
-                NSSelectorFromString(@"invalidate")
-            );
-        }
-    );
-}
-
-// RO23: RO23V6Start automatic startup removed (explicit opt-in only).
-
-
-// ===== END RO23_V6_XPC_QUERY =====
-
-
-// ===== RO23_V7_XPC_COMPARE =====
-// Four read-only queries, compared with local MGCopyAnswer.
-
-static void RO23V7Run(void) {
-    char build[128] = {0};
-    size_t length = sizeof(build);
-
-    if (sysctlbyname("kern.osversion",
-                     build, &length, NULL, 0) != 0 ||
-        strcmp(build, "23U95") != 0) {
-        BQLog(@"RO23 V7 SKIP build mismatch");
-        return;
-    }
-
-    BQLog(@"RO23 V7 BEGIN noSystemWrites=YES");
-
-    NSArray<NSDictionary *> *questions = @[
-        @{@"label": @"DeviceBrand-plain",
-          @"key": @"DeviceBrand"},
-        @{@"label": @"DeviceBrand-hash",
-          @"key": @"fuKL2rMywRgQF1wowOA/cg"},
-        @{@"label": @"BuildVersion",
-          @"key": @"BuildVersion"},
-        @{@"label": @"ProductType",
-          @"key": @"ProductType"}
-    ];
-
-    void *mg = dlopen(
-        "/usr/lib/libMobileGestalt.dylib",
-        RTLD_NOW | RTLD_LOCAL
-    );
-
-    CFTypeRef (*copyAnswer)(CFStringRef, CFDictionaryRef) =
-        mg ? dlsym(mg, "MGCopyAnswer") : NULL;
-
-    for (NSDictionary *item in questions) {
-        NSString *label = item[@"label"];
-        NSString *key = item[@"key"];
-
-        CFTypeRef result = copyAnswer ?
-            copyAnswer((__bridge CFStringRef)key, NULL) : NULL;
-
-        NSString *type = result ?
-            NSStringFromClass([(__bridge id)result class]) :
-            @"nil";
-
-        if (result &&
-            CFGetTypeID(result) == CFNumberGetTypeID()) {
-            int32_t value = 0;
-            CFNumberGetValue(
-                (CFNumberRef)result,
-                kCFNumberSInt32Type,
-                &value
-            );
-            BQLog(@"RO23 V7 LOCAL %@ class=%@ number=%d",
-                  label, type, value);
-        } else {
-            BQLog(@"RO23 V7 LOCAL %@ class=%@",
-                  label, type);
-        }
-
-        if (result) CFRelease(result);
-    }
-
-    if (mg) dlclose(mg);
-
-    Class connClass = NSClassFromString(@"NSXPCConnection");
-    Class ifaceClass = NSClassFromString(@"NSXPCInterface");
-
-    if (!connClass || !ifaceClass) {
-        BQLog(@"RO23 V7 XPC unavailable");
-        return;
-    }
-
-    id connection = ((id (*)(id, SEL, NSString *, NSUInteger))
-        objc_msgSend)(
-            [connClass alloc],
-            NSSelectorFromString(@"initWithMachServiceName:options:"),
-            @"com.apple.mobilegestalt.xpc",
-            0
-        );
-
-    if (!connection) {
-        BQLog(@"RO23 V7 connection creation failed");
-        return;
-    }
-
-    id iface = ((id (*)(id, SEL, Protocol *))
-        objc_msgSend)(
-            ifaceClass,
-            NSSelectorFromString(@"interfaceWithProtocol:"),
-            @protocol(RO23MGReadOnlyProtocol)
-        );
-
-    ((void (*)(id, SEL, id))objc_msgSend)(
-        connection,
-        NSSelectorFromString(@"setRemoteObjectInterface:"),
-        iface
-    );
-
-    ((void (*)(id, SEL))objc_msgSend)(
-        connection,
-        NSSelectorFromString(@"resume")
-    );
-
-    id handler = ^(NSError *error) {
-        BQLog(@"RO23 V7 XPC TRANSPORT ERROR domain=%@ code=%ld",
-              error.domain, (long)error.code);
-    };
-
-    id proxy = ((id (*)(id, SEL, id))objc_msgSend)(
-        connection,
-        NSSelectorFromString(@"remoteObjectProxyWithErrorHandler:"),
-        handler
-    );
-
-    if (!proxy) {
-        BQLog(@"RO23 V7 no remote proxy");
-        ((void (*)(id, SEL))objc_msgSend)(
-            connection, NSSelectorFromString(@"invalidate")
-        );
-        return;
-    }
-
-    for (NSDictionary *item in questions) {
-        NSString *label = item[@"label"];
-        NSString *key = item[@"key"];
-
-        BQLog(@"RO23 V7 SEND %@", label);
-
-        void (^reply)(NSDictionary *) =
-        ^(NSDictionary *response) {
-            if (![response isKindOfClass:[NSDictionary class]]) {
-                BQLog(@"RO23 V7 REPLY %@ invalidResponse",
-                      label);
-                return;
-            }
-
-            id err = response[@"error"];
-            id answer = response[@"answer"];
-
-            BQLog(@"RO23 V7 DETAIL %@ keys=%@ logString=%@",
-                  label,
-                  [response allKeys],
-                  response[@"logString"] ?: @"(nil)");
-
-            NSString *type = answer ?
-                NSStringFromClass([answer class]) : @"nil";
-
-            BQLog(@"RO23 V7 REPLY %@ error=%@ class=%@",
-                  label, err ?: @"(none)", type);
-
-            if ([answer isKindOfClass:[NSNumber class]]) {
-                BQLog(@"RO23 V7 REPLY %@ number=%@",
-                      label, answer);
-            }
-        };
-
-        ((void (*)(id, SEL, NSString *, id))objc_msgSend)(
-            proxy,
-            NSSelectorFromString(
-                @"getServerAnswerForQuestion:reply:"
-            ),
-            key,
-            reply
-        );
-    }
-
-    dispatch_after(
-        dispatch_time(DISPATCH_TIME_NOW,
-                      (int64_t)(15 * NSEC_PER_SEC)),
-        dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
-        ^{
-            BQLog(@"RO23 V7 END noSystemWrites=YES");
-            ((void (*)(id, SEL))objc_msgSend)(
-                connection,
-                NSSelectorFromString(@"invalidate")
-            );
-        }
-    );
-}
-
-// RO23: RO23V7Start automatic startup removed (explicit opt-in only).
-
-
-// ===== END RO23_V7_XPC_COMPARE =====
-
-// RO23 PUBLIC RESEARCH BUILD: runs in response to an explicit UI button.
-// These tests may write logs/backups inside the app sandbox but do NOT request
-// writes to the protected system MobileGestalt cache. V4 consumes a sandbox
-// token only to compare permissions and releases it afterward.
-void BQRunRO23Diagnostics(void) {
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        BQLog(@"RO23 OPT-IN: begin V1-V7 research diagnostics");
-        dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
-        dispatch_async(queue, ^{ RO23ARun(); });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), queue, ^{ RO23TypeCheck(); });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4 * NSEC_PER_SEC)), queue, ^{ RO23SandboxRun(); });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(6 * NSEC_PER_SEC)), queue, ^{ RO23HelperProbe(); });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)), queue, ^{ RO23V6Run(); });
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(24 * NSEC_PER_SEC)), queue, ^{ RO23V7Run(); });
     });
 }

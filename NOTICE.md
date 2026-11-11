@@ -33,3 +33,6 @@ The upstream software's MIT License does **not** grant redistribution rights to 
 - [Gester](https://github.com/sasobhabha/Gester)
 
 A contribution to this derivative should preserve appropriate upstream attribution and license notices for all code reused.
+
+
+RO23 addition: HermesEnabler 2 original developer Jinwoo Kim (@pookjw); RO23 watchOS 26.6.1 research and device logs by ZhuoXuan-MY with AI-assisted analysis. Non-official. Preserve upstream MIT and Gester notices. No stock Ultra 1 unlock is claimed.

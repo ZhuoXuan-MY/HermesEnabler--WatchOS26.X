@@ -25,3 +25,10 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Old index 206 and `0x670` belong to a different descriptor; never reuse them for writing.
 - SystemGroup writes returned `EPERM`; genuine Hermès face activation remains unverified.
 - See [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) and README for the V1–V12 evidence trail.
+
+
+## RO23 V14.2 · 2026-11-11
+- Integrated upstream UI, localizations, iPhone Companion and Xcode project.
+- Added isolated RO23 V13/V14.1/cache read-only probes and 23U95 UI write controls hide.
+- Corrected deviceBrand object return type and preserved upstream credits.
+- Native Hermès unlock is not achieved; Xcode physical build not yet verified.

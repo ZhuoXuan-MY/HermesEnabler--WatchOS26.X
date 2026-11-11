@@ -3,6 +3,7 @@
 
 
 extern NSString * const BQErrorDomain;
+extern NSString * const BQNoSandboxTokenError;
 
 // ---- logging / paths -------------------------------------------------------
 void BQLog(NSString *fmt, ...);
@@ -38,9 +39,11 @@ NSMutableDictionary *BQLoadGestalt(NSString **err);
 BOOL BQSaveGestalt(NSDictionary *dict, NSString **err);
 BOOL BQRestoreGestalt(NSString **err);
 BOOL BQBackupExists(void);
-// watchOS 26 compatibility diagnostics (safe): validate the backup data.
-BOOL BQBackupVerified(void);
 NSString *BQBackupPath(void);
+NSString *BQCreateGestaltBackup(BOOL initial, NSString **err);
+NSArray<NSDictionary *> *BQListGestaltBackups(void);
+BOOL BQRestoreGestaltBackup(NSString *identifier, NSString **err);
+BOOL BQDeleteGestaltBackup(NSString *identifier, NSString **err);
 BOOL BQInPlaceWrite(void);
 void BQSetInPlaceWrite(BOOL on);
 NSString *BQMobileGestaltPath(void);
@@ -58,21 +61,70 @@ void BQRespring(void);
 
 // Writes DeviceBrand into the verified CacheData layout, retaining the original backup.
 BOOL BQEnableHermes(NSString **err);
-// Read-only OS/build/App Group/backup diagnostic; does not attempt sandbox escape.
-NSString *BQCompatibilitySummary(void);
+BOOL BQSetHermesEnabled(BOOL enabled, NSString **err);
+BOOL BQGetHermesEnabled(BOOL *enabled, NSString **err);
+BOOL BQSetUltraFacesEnabled(BOOL enabled, NSString **err);
+BOOL BQGetUltraFacesEnabled(BOOL *enabled, NSString **err);
 
-// Adds the verified 27.3 beta 1 AOD capability overrides to CacheExtra.
-BOOL BQEnableAODSupport(NSString **err);
+// Reads whether the respective capability overrides are recorded as enabled.
+BOOL BQGetAODSupport(BOOL *enabled, NSString **err);
+BOOL BQGetAODSecondsSupport(BOOL *enabled, NSString **err);
+BOOL BQGetActionButton(BOOL *enabled, NSString **err);
+BOOL BQGetDoubleTap(BOOL *enabled, NSString **err);
+BOOL BQGetDepthCapability(BOOL *enabled, NSString **err);
+BOOL BQGetAbsoluteAltimeter(BOOL *enabled, NSString **err);
+BOOL BQGetAlwaysOnCompass(BOOL *enabled, NSString **err);
+BOOL BQGetAODVibrancy(BOOL *enabled, NSString **err);
+BOOL BQGetWatchKeyboard(BOOL *enabled, NSString **err);
+BOOL BQGetPeriodicALSUpdates(BOOL *enabled, NSString **err);
+BOOL BQGetRaiseToSpeak(BOOL *enabled, NSString **err);
+BOOL BQGetContinuousHeartRate(BOOL *enabled, NSString **err);
+BOOL BQGetCompassOrienteering(BOOL *enabled, NSString **err);
+BOOL BQGetEnvironmentalDosimetry(BOOL *enabled, NSString **err);
+BOOL BQGetBatteryInformation(BOOL *enabled, NSString **err);
+BOOL BQGetAlwaysListening(BOOL *enabled, NSString **err);
+BOOL BQGetRotateToWake(BOOL *enabled, NSString **err);
+BOOL BQGetSwimmingWorkouts(BOOL *enabled, NSString **err);
 
-// Adds the verified 27.3 beta 1 AOD flipbook capability override to CacheExtra.
-BOOL BQEnableAODSecondsSupport(NSString **err);
+// Updates the corresponding CacheExtra capability overrides.
+BOOL BQSetAODSupport(BOOL enabled, NSString **err);
+BOOL BQSetAODSecondsSupport(BOOL enabled, NSString **err);
+BOOL BQSetActionButton(BOOL enabled, NSString **err);
+BOOL BQSetDoubleTap(BOOL enabled, NSString **err);
+BOOL BQSetDepthCapability(BOOL enabled, NSString **err);
+BOOL BQSetAbsoluteAltimeter(BOOL enabled, NSString **err);
+BOOL BQSetAlwaysOnCompass(BOOL enabled, NSString **err);
+BOOL BQSetAODVibrancy(BOOL enabled, NSString **err);
+BOOL BQSetWatchKeyboard(BOOL enabled, NSString **err);
+BOOL BQSetPeriodicALSUpdates(BOOL enabled, NSString **err);
+BOOL BQSetRaiseToSpeak(BOOL enabled, NSString **err);
+BOOL BQSetContinuousHeartRate(BOOL enabled, NSString **err);
+BOOL BQSetCompassOrienteering(BOOL enabled, NSString **err);
+BOOL BQSetEnvironmentalDosimetry(BOOL enabled, NSString **err);
+BOOL BQSetBatteryInformation(BOOL enabled, NSString **err);
+BOOL BQSetAlwaysListening(BOOL enabled, NSString **err);
+BOOL BQSetRotateToWake(BOOL enabled, NSString **err);
+BOOL BQSetSwimmingWorkouts(BOOL enabled, NSString **err);
 
-// Adds the Action Button capability override to CacheExtra.
-BOOL BQEnableActionButton(NSString **err);
+// watchOS Intelligence / regional override fields. These fields are stored in
+// CacheExtra and are intentionally separate from the existing watch hardware
+// capability switches. Their effect depends on the watchOS build and services.
+BOOL BQGetAppleIntelligence(BOOL *enabled, NSString **err);
+BOOL BQGetOnDeviceSiri(BOOL *enabled, NSString **err);
+BOOL BQGetAudioIntelligence(BOOL *enabled, NSString **err);
+BOOL BQSetAppleIntelligence(BOOL enabled, NSString **err);
+BOOL BQSetOnDeviceSiri(BOOL enabled, NSString **err);
+BOOL BQSetAudioIntelligence(BOOL enabled, NSString **err);
+// RegionCode is independent from the sales-region suffix. Passing a supported
+// value updates only that field; sales-region writes update the existing
+// suffix field(s), or create the current suffix field when neither is present.
+NSString *BQGetRegionCode(NSString **err);
+NSString *BQGetSalesRegion(NSString **err);
+BOOL BQSetRegionCode(NSString *code, NSString **err);
+BOOL BQSetSalesRegion(NSString *suffix, NSString **err);
 
+// Reported main-screen pixel dimensions in CacheExtra. Passing zero for both
+// dimensions restores the original values (including absent fields) from backup.
+BOOL BQGetScreenResolution(NSInteger *width, NSInteger *height, BOOL *overridden, NSString **err);
+BOOL BQSetScreenResolution(NSInteger width, NSInteger height, NSString **err);
 
-// Class 7 read-only permission diagnostic.
-NSString *BQProbeClass7Flags23U95(void);
-
-// Explicit read-only RO23 V1-V7 diagnostics. No constructor auto-run.
-void BQRunRO23Diagnostics(void);

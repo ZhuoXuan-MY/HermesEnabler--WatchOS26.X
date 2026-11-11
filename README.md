@@ -2,7 +2,7 @@
 
 *Apple Watch Ultra (1st generation) · watchOS 26.6.1 · build 23U95*
 
-[Original HermesEnabler](https://github.com/pookjw/HermesEnabler) · [Research discussion — Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
+[简体中文](README.zh-CN.md) · [Original HermesEnabler](https://github.com/pookjw/HermesEnabler) · [Research discussion — Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
 
 > **Work in progress — this does not unlock Hermès watch faces on watchOS 26.6.1.**
 >

@@ -1,4 +1,4 @@
-# RO23 研究进度：Ultra 1 / watchOS 26.6.1（23U95）
+# HermesEnabler · watchOS 26.x — 研究状态（Ultra 1 / 23U95）
 
 **当前正式状态：`BLOCKED`（当前解锁路线受阻，暂停无效版本迭代；2026-11-11 23:43，北京时间）。** 适用目标：Apple Watch Ultra 第一代（`Watch6,18 / n199ap`）/ watchOS 26.6.1（`23U95`）。**原生 Hermès 表盘没有成功解锁。** 本文下方早期“后续”或“待执行”段落只作为**历史记录**，不是当前建议继续运行的步骤。完整变更见 [CHANGELOG](../CHANGELOG.md) 和 [README](../README.zh-CN.md)。
 

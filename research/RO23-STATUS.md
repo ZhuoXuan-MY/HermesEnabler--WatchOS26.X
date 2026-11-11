@@ -89,3 +89,8 @@ Analyzed **the actual uploaded 23U95 Zeus and ClockKit Mach-O binaries**, not a 
 ## RO23 V26 — watchOS sandbox-escape feasibility and version/signing mismatch (2026-11-11)
 
 Reviewed upstream `forcequitOS/worse_query` and the newer watchOS `LogicSense1/WatchRegion`. The latter **claims** a successful MobileGestalt sales-region edit on Ultra 4/watchOS 27.3 beta and actually targets watchOS 27.0 or later with a dedicated App Group entitlement. Our Ultra 1 remains on **26.6.1/23U95** and the public RO23 watch entitlement plist is empty. Historical 23U95 protected writes returned `EPERM`. The upstream iOS-only PoC does not prove 23U95 watchOS compatibility. **Research this nonstandard access primitive by offline capability/signing inspection; do not install WatchRegion unchanged or write live MG.** No watch app source changes or unlock. [V26 compatibility audit](RO23-V26-WatchOS-Sandbox-Feasibility.md).
+
+
+## RO23 V27 — offline tracing of FaceBundleManager's separate restricted-face exception (2026-11-11, Beijing Time)
+
+Instead of retesting the fully mapped normal Poodle gate, added a bounded, read-only `ipsw` shared-cache tracer at `scripts/ro23-v27-exception-stub-trace.sh` for the distinct 23U95 NanoTimeKit stubs `0x55CE73DC` (restricted bundle lookup exception) and `0x55CE731C` (internal-build related). It checks containing function, cache offset and 12 instructions at each address; output capped at 80 lines per command. This was not run on the owner's Mac and is not an unlock. [V27 report](RO23-V27-Exception-Stub-Trace.md).

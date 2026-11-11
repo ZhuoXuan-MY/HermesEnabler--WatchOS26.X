@@ -107,3 +107,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V26：watchOS 沙箱逃逸是否适用于 Ultra 1（2026-11-11，北京时间）
 
 已审阅 `forcequitOS/worse_query` 原版与真正面向 watchOS 的 `LogicSense1/WatchRegion`。后者作者声称在 Ultra 4 / watchOS 27.3 beta 使用 `worse_query` 修改过 MobileGestalt 销售地区缓存，但工程**最低 watchOS 27.0**、依赖独立 App Group 签名；本项目 Ultra 1 为 **26.6.1/23U95**，公开 RO23 entitlement plist 是空 `<dict/>`，历史受保护缓存写入仍为 `EPERM`。因此这是值得继续离线核实的**非普通资格路径**，但不能把跨机型、跨系统的演示视为目前已可写入；原样安装、修改系统缓存、改类别或重启均不作为本轮试验。**V26 没有修改手表代码、没有运行漏洞、没有解锁。** 详见 [V26 沙箱可行性审计](RO23-V26-WatchOS-Sandbox-Feasibility.md)。
+
+
+## RO23 V27：单独追踪受限表盘管理器的特殊例外（2026-11-11，北京时间）
+
+已完成的 Poodle 正常资格路径无需重跑。本次在原仓库新增只读 `scripts/ro23-v27-exception-stub-trace.sh`，专门检查已有 23U95 dyld 缓存里的 `0x55CE73DC`（FaceBundleManager 受限表盘例外）及 `0x55CE731C`（内部版本相关）两个不同跳板。使用已核对参数的 `ipsw dyld a2f`、`a2o` 和 `disass --vaddr --count 12 --quiet`，单步输出最多 80 行；不再重复已失败的 a2s 符号查询，也不增加手表按钮或更动系统。**脚本尚未在用户 Mac 上运行，跳板的真实函数身份仍未确认；原生 Hermès 未解锁。** [V27 报告](RO23-V27-Exception-Stub-Trace.md)。

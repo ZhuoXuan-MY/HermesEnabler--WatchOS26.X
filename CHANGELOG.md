@@ -164,3 +164,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Inspected forcequitOS/worse_query (iOS-only documented range) and LogicSense1/WatchRegion (watchOS target 27.0, claimed Ultra4/27.3 beta MobileGestalt region write, App Group required).
 - Checked current RO23 entitlements remain empty and earlier 23U95 EPERM write failure. Upstream PoC alone does not prove a watchOS 26 privilege/write primitive.
 - Isolated an offline feasibility path; did not copy GPL exploit code, run it on a device, change Apple firmware, or attempt Hermès activation.
+
+
+### RO23 V27 — bounded offline exception-stub tracer (2026-11-11, Beijing Time)
+- Preserved V26 watchOS sandbox feasibility analysis; no GPL source copied or unsafe watchOS 26 exploit test attempted.
+- Added `scripts/ro23-v27-exception-stub-trace.sh`, checking `a2f`, `a2o`, and bounded `disass --vaddr` for two separate 23U95 NanoTimeKit stub addresses without giant logs.
+- Actual cache disassembly/bind identity not yet received. No protected data writes or native Hermès unlock.

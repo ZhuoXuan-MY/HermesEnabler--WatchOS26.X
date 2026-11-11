@@ -27,3 +27,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## V16：明确内部构建版本前置条件（2026-11-11）
 
 在 23U95 配套 NanoTimeKit 中，`_NTKInternalBuild`（`0x54601310`）直接跳到 `0x55CE731C`，而 `_NTKShowHardwareSpecificFaces`（`0x546014EC`）调用的也是**同一个目标**，返回零时立即跳到返回 `false` 的路径。这说明硬件专属表盘开关有内部构建版本的前置门槛。新增 **V16 · Internal-build gate** 只读按钮，读取 `NTKInternalBuild`、`NTKShowHardwareSpecificFaces`、`NTKShowInternalFaces`，不修改偏好设置、MG 或表盘。**V16 的真机数值还没有收到**，不能提前宣称结果。详见 [V16 报告](RO23-V16-InternalBuild-Gate.md)。
+
+
+## V16.1：修正手表按钮入口
+
+此前 V16 只显示在 Read-only diagnostics 二级页面，不在首页。已将 V16 · Internal-build gate 直接放在手表首页，并显示 RO23 V16.1 installed · read-only 版本标识和实际运行结果。此修改只涉及 UI，不修改 MobileGestalt 或安装表盘。用户需要从 GitHub 同步并在 Xcode 重新编译部署，旧版应用不会自动更新。

@@ -50,3 +50,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Matched the private NanoTimeKit `_NTKInternalBuild` thunk at `0x54601310` to the exact external target called by `_NTKShowHardwareSpecificFaces`.
 - Reviewed the Zeus Poodle/Bellona restrictions: under the observed Ultra collectionType=9 and hardware-face flag=false, neither supplies a demonstrated unrestricted path.
 - Added a single on-demand, read-only V16 button to measure exported internal-build gate and control predicates. Real watch output not yet obtained. No unlock or protected writes.
+
+
+### RO23 V16.1 — expose V16 on watch main screen (2026-11-11)
+- Put the V16 read-only test directly on the main screen with a visible V16.1 marker and inline result.
+- Preserve other diagnostics in a secondary screen; no system writes or face installation.
+- Requires pull + fresh Xcode watch installation to appear on the device.

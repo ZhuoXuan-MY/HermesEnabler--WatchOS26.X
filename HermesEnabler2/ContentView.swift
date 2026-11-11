@@ -3,13 +3,26 @@ import SwiftUI
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var model = ContentModel()
+    @State private var v16Result = ""
 
     var body: some View {
         NavigationStack {
             List {
                 Section("RO23 · Ultra 1 research") {
+                    Text("RO23 V16.1 installed · read-only")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        v16Result = RO23V16InternalBuildReport()
+                    } label: {
+                        Label("V16 · Internal-build gate", systemImage: "checkmark.shield")
+                    }
+                    if !v16Result.isEmpty {
+                        Text(v16Result)
+                            .font(.system(.caption2, design: .monospaced))
+                    }
                     NavigationLink { RO23ResearchView() } label: {
-                        Label("Read-only diagnostics", systemImage: "waveform.path.ecg")
+                        Label("Other read-only diagnostics", systemImage: "waveform.path.ecg")
                     }
                     if RO23IsTargetBuild() {
                         Text("23U95 research mode. Native Hermès faces are NOT unlocked. Protected writes are disabled in this UI.")

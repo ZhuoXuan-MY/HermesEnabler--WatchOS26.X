@@ -42,3 +42,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V17：原生 FaceBundle 加载及加入表盘库的独立限制（2026-11-11）
 
 对 23U95 匹配的 NanoTimeKit 反汇编确认：`NTKFaceBundleManager` 在**枚举表盘**、**根据 Bundle ID 查找**以及**按旧 Style 查找**时，均有 `isRestrictedForDevice:` 检查；而 `_NTKCanAddWatchFace` 还独立验证配置是否合法、设备能否使用该描述符、表盘类是否受限制。发现未解析的额外判断地址 `0x55CE73DC`，**不可与 V16 的 `0x55CE731C` 视为同一个函数**。系统内部 `forMigration:` 分支不能当作正常添加表盘的成功方案。此轮无需新增实机按钮、无需重新编译，也没有解锁原生 Hermès。详见 [V17 完整研究报告](RO23-V17-FaceBundle-Loading-Chain.md)。
+
+
+## RO23 V18：系统级研究获授权，特殊判断仍待符号映射（2026-11-11）
+
+设备所有者明确允许进一步评估其自有 Ultra 1 的越狱、系统级访问及写入可行性；但授权本身不会生成 Apple 私有 entitlement，也不代表聊天助手可以直接控制手表。离线反汇编再次确认，`0x55CE73DC` 只在两个 FaceBundle 查找路径中被直接调用，且都发生在 `isRestrictedForDevice:` 判断受限制之后。其真实函数名**尚未确认**；与 V16 的 `0x55CE731C` 不是同一地址。下一步使用 Mac 上已提取的完整 dyld cache 执行只读地址→符号映射，无需重新下载 OTA。没有实施越狱、系统写入或解锁。详见 [V18 研究报告](RO23-V18-Restricted-Face-Exception.md)。

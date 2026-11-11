@@ -67,3 +67,8 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Traced actual NanoTimeKit FaceBundle enumeration, bundle-ID and legacy-style lookups, and _NTKCanAddWatchFace checks, with function/branch addresses.
 - Identified additional unresolved restricted-face exception predicate at 0x55CE73DC (distinct from the V16 internal-build target 0x55CE731C).
 - Distinguished migration-only special path from supported normal face addition. Documents only; no new Xcode code, device tests, or unlock.
+
+
+### RO23 V18 — restricted-face predicate symbol investigation (2026-11-11)
+- Verified two call sites to 0x55CE73DC in matching 23U95 NanoTimeKit; function identity not yet established.
+- Documented safe, read-only address-to-symbol lookup in the already-extracted dyld shared cache. No new Xcode UI, installation, jailbreak or system writes.

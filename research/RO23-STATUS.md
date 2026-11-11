@@ -39,3 +39,8 @@ The owner's Watch6,18/23U95 log now confirms **`NTKInternalBuild=false`, `NTKSho
 ## RO23 V17 — Native FaceBundle manager and add-to-library gates (2026-11-11)
 
 Offline disassembly of matching NanoTimeKit confirms that `NTKFaceBundleManager` filters `isRestrictedForDevice:` both when **enumerating** bundles and when **looking up by bundle ID or legacy style**. Separately, `_NTKCanAddWatchFace` checks configuration validity, descriptor availability and the face class restriction before other library checks. An extra unresolved native predicate is called at `0x55CE73DC`; it is **not** the same address as the V16 internal-build call. The special `forMigration:` branch is not a demonstrated ordinary add flow. No watch-side test needed and no native Hermès unlock. [Complete V17 disassembly analysis](RO23-V17-FaceBundle-Loading-Chain.md).
+
+
+## RO23 V18 — system-level methods now in scope, predicate still unresolved (2026-11-11)
+
+With the device owner's explicit authorization, system-level read/write and jailbreak compatibility **may be researched**, but no privileges or remote watch access are acquired by that declaration. Local disassembly verifies two direct calls to `0x55CE73DC` after `isRestrictedForDevice:` rejects a face. The call remains unidentified; it is distinct from V16's `0x55CE731C`. Full symbol mapping requires the already-extracted Watch6,18/23U95 shared cache still on the owner's Mac. No watch writes or unlock performed. [V18 report](RO23-V18-Restricted-Face-Exception.md).

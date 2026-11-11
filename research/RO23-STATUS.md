@@ -69,3 +69,8 @@ The owner already uploaded the authentic 249,760-byte `Hermès Circulaire(1).wat
 ## RO23 V21 — Poodle-specific restrictions with actual Circulaire target (2026-11-11)
 
 Cross-referenced the real `NTKPoodleFaceBundle` face.json against the owner's original V14 Zeus firmware research and V16 disassembly. **Poodle's earlier known category-1 exclusion must not be conflated with Hermes2025's separate {2,3,5} whitelist**; the owner has category 4, which does not hit the single known Poodle category-1 test. But given collectionType=9 and NTKShowHardwareSpecificFaces=false, the previously disassembled Poodle fallback evaluates restricted **if that branch is reached**. Added a SHA-256-gated, read-only offline Poodle disassembly script to inspect the still-unknown early path from the already-extracted 23U95 binary. No new watch install or unlock. [V21 details](RO23-V21-Poodle-Gate-Mapping.md).
+
+
+## RO23 V22.2 — V22 real watch result recorded (2026-11-11)
+
+Device owner successfully ran V22 on first-gen Ultra / 23U95. The on-watch output confirms `deviceCategory=4`, `collectionType=9`, `NTKInternalBuild=false`, `NTKShowHardwareSpecificFaces=false`, `NTKPoodleFace registered in this process=false`. The Poodle conditional fallback reports RESTRICTED **as a static model**, but `NTKPoodleFace.isRestrictedForDevice` could not be called, since the class is not registered in the diagnostic process. This does **not** establish that the class is absent from watchOS or that native Hermès faces are available. Next: offline full early Poodle disassembly, **not** another same-value watch button. [Verbatim V22.2 log and analysis](RO23-V22-Poodle-Runtime-Gate.md).

@@ -87,3 +87,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V21：针对真实 Hermès Circulaire / Poodle 的独立限制分支（2026-11-11）
 
 对照用户已上传的原始表盘（`com.apple.NTKPoodleFaceBundle`）、V14 Zeus 原生固件研究及 V16 反汇编，确认 **Poodle 是 `NTKZeusFaceBundle` 共享可执行文件内的表盘类及次级标识**，不能直接沿用 Hermes2025 的 `{2,3,5}` 类别白名单。Poodle 已知的早期类别排除是类别 `1`，而 Ultra 1 为 `4`，所以不能认定类别 4 是此表盘的直接阻断条件。真正已证明的后续分支：如果执行到 `collectionType != 5` 判断，实机 `collectionType=9` 且 `NTKShowHardwareSpecificFaces=false`，该分支会计算 Restricted=true；前置完整路径仍待进一步反汇编。新增只读离线脚本 `scripts/ro23-v21-poodle-disasm.sh`，对已有固件执行 SHA-256 匹配后只打印 Poodle 相关指令，不改变手表、手机或 Xcode。**尚未解锁**。见 [V21 报告](RO23-V21-Poodle-Gate-Mapping.md)。
+
+
+## RO23 V22.2：V22 真机测试成功，Poodle 类未在诊断进程注册（2026-11-11）
+
+设备所有者已成功在 Ultra 1 / 23U95 上运行 V22，真实数值：`deviceCategory=4`、`collectionType=9`、`NTKInternalBuild=false`、`NTKShowHardwareSpecificFaces=false`。Poodle 的单一 `category==1` 前置排除**未命中**；已知 collection/hardware 分支若被执行会计算 `RESTRICTED`，但属于**条件静态模型**。`NTKPoodleFace registered in this process=false`，所以实际 `isRestrictedForDevice:` 方法没有运行、返回值为 `unavailable`；不能当成表盘不存在于固件的证据，也不能说已成功解锁。下一步集中已提取 23U95 Zeus 的前置分支离线分析，无需重复增加 V13/V16/V22 检测按钮。详见 [V22.2 实机日志](RO23-V22-Poodle-Runtime-Gate.md)。

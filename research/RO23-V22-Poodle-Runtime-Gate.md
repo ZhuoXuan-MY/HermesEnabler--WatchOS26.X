@@ -49,3 +49,43 @@ No Apple Watch was available in the remote GitHub editing environment. **Compila
 To verify the correct source is open, inspect the main Watch App `ContentView.swift` for `RO23 V22 · read-only diagnostics` and `V22 · Poodle eligibility` before building. Do not create or clone additional projects.
 
 [Upstream HermesEnabler](https://github.com/pookjw/HermesEnabler) · [V20.1 archive](RO23-V20-Watchface-Archive-Import.md) · [V21 conditional branch](RO23-V21-Poodle-Gate-Mapping.md).
+
+
+## V22.2 — Actual Ultra 1 on-device result (owner supplied, 2026-11-11)
+
+The owner **successfully compiled, installed and ran the V22 diagnostic on the watch**. Full app log (verbatim values, no estimated return from an unregistered class):
+
+```text
+[bqtool] RO23 RO23 V22 — Hermès Circulaire / Poodle (read only)
+Build=23U95
+ArchiveBundleID=com.apple.NTKPoodleFaceBundle (V20.1 uploaded archive)
+deviceCategory=4
+collectionType=9
+NTKInternalBuild=false
+NTKShowHardwareSpecificFaces=false
+Poodle known category==1 exclusion=NOT MATCHED (other early tests unresolved)
+Poodle known fallback if reached=RESTRICTED (static model, not direct face result)
+NTKPoodleFace registered in this process=false
+NTKPoodleFace.isRestrictedForDevice=unavailable (class/method not registered)
+A missing class here is not proof that firmware lacks the bundle.
+No face installed; no protected writes; no system settings changed.
+RO23 V22 END systemWrites=NO
+```
+
+### Measured versus inferred
+
+| Item | Evidence | Precise conclusion |
+|---|---|---|
+| Build, device category, collection type | Live ClockKit/watchOS getter | 23U95, category 4, collection 9 |
+| Internal build/hardware-face predicates | Live NanoTimeKit exports | Both return false |
+| Poodle category==1 branch | Static function + measured category | This *one* exclusion does not match 4 |
+| Poodle collection/hardware fallback | Static function + measured collection and predicate | Returns **RESTRICTED only if execution reaches this path** |
+| `NTKPoodleFace` runtime class registration | Live `NSClassFromString` | **False in diagnostic app's process** |
+| Original `isRestrictedForDevice:` actual result | Not measured; no class registered | **Unavailable**, not `false`, not `true` |
+| Import result / activation | Not attempted | No evidence of native Hermès unlock |
+
+This confirms V22's home UI and executable test were successfully deployed. **It does not prove the native Poodle bundle is absent from firmware:** the earlier matching OTA evidence locates its class in the shared `NTKZeusFaceBundle`, which this app intentionally does not force-load.
+
+**Next investigation should NOT be another button with the same inputs.** The remaining high-value evidence is the *complete early control-flow* of `+[NTKPoodleFace isRestrictedForDevice:]` in the owner's already extracted **23U95** Zeus binary (address `0x13B4` through the conditional branch at `0x13F0`). The existing `scripts/ro23-v21-poodle-disasm.sh` performs this analysis offline after validating the exact binary SHA-256. Resolve the unknown `0x55CE73DC` stub separately using cache bind metadata. We have not run either on the user's Mac and must not invent their results.
+
+No new runtime changes, private hooks, face installation, or system-file mutations were performed by this log.

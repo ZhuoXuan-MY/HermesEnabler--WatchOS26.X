@@ -133,3 +133,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Reordered ContentView so `V22 · Poodle eligibility` appears directly under a visible `RO23 V22.1 installed` marker, **before** the lengthy V16 diagnostic result.
 - Fixes discoverability when prior V16 output pushes later rows below the watch viewport. No changes to signing, entitlements, protected writes, or Poodle runtime logic.
 - Requires the actual open Xcode checkout and watch target to be synchronized and redeployed; a GitHub commit does not remotely install a new build.
+
+
+### RO23 V22.2 — first successful V22 physical-watch run (2026-11-11)
+- Owner-provided live output: 23U95, category=4, collectionType=9, NTKInternalBuild=false, NTKShowHardwareSpecificFaces=false.
+- Poodle category==1 check does not match; known later fallback evaluates restricted if reached; dynamic NTKPoodleFace class was unregistered in diagnostic process so actual restriction return remains unavailable.
+- Recorded literal observed log without guessing. No new executable code, system writes, face activation, or installer modification. Next meaningful step: complete early Poodle disassembly in already-extracted 23U95 Zeus binary.

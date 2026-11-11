@@ -54,13 +54,14 @@
 
 ## 完整开发记录
 
-我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**可以展开查看全部 52 条历史记录**，无需在首页首屏阅读所有日志。新增工作也会继续接到这里。
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**可以展开查看全部 53 条历史记录**，无需在首页首屏阅读所有日志。新增工作也会继续接到这里。
 
 <details>
-<summary><strong>展开：V14.2–V30 与项目状态变更（GitHub 提交时间，新 → 旧）</strong></summary>
+<summary><strong>展开：V14.2–V30 与后续文档更新（GitHub 提交时间，新 → 旧）</strong></summary>
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
+| **23:54** | **项目首页重构（文档维护）** | 对外统一名称为 **HermesEnabler · watchOS 26.x 兼容性研究**，取消以不明内部代号命名的首页；将状态、成果、阻碍与文档导航置于顶部，把全部历史折叠展示。旧版中英 README 已完整归档，同时清理其他语言的过时安装说明。**仅文档修改，手表状态不变。** | [`37db667`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/37db667e79727dbc74ec0568708a5e0483cdf7b0) |
 | **23:43** | **项目状态正式调整为 BLOCKED** | 依据 Ultra 1 / `23U95` 已验证的受保护 MobileGestalt 写入 `EPERM`、Class 13 令牌不赋予写权限，以及独立的 Hermès 表盘资格限制，决定**当前路线暂停**。保留 V0–V30 全部研究、源码、日志和 Git 历史，**不删除/归档仓库、不发布假解锁版本**。仅在同型号同固件取得可复现权限与原生表盘成功证据后恢复。此轮仅修改文档，没有对手表采取行动。 | [`fbaa159`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/fbaa1593b44df447b7fdccab8fb839b14a2494d5) |
 | **23:28** | **V30：EscapeOS v0.3.2 验证** | 针对我提出的新候选方案检查发布版、`Info.plist`、`AppGroupListing.swift`、`SandboxEscape.swift`、`worse_query.m` 与签名 entitlement。确认它是 **iPhone / iOS 26 App 数据与普通 App Groups 工具**；没有 watchOS 目标，普通 `group.` 容器 ≠ Watch `systemgroup.com.apple.mobilegestaltcache`；未获取 23U95 系统写权限。**无设备试写、无 Hermès 解锁**。[完整核验](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md)。 | [`db4d4d5`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/db4d4d5e7799c551804ee60fc0938a931e74060b) |
 | **23:23** | **V14.2 以前历史重建／文档补录** | 核对 [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17) 原帖及10条评论、早期本仓库诊断记录，补齐 V0、V1–V14.1 各阶段的真实动作与结果；将 Issue 评论的**发布时间**和真实操作时间分开，保留错误 index206→正确 index103 的更正，新增 [前史完整报告](research/RO23-PRE-V14.2-HISTORY.md)。**本次只是补写文档，不是重新运行旧实验。** | [`dddba1a`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/dddba1a65df9000018eed3263598b2636a7b4e1d) |

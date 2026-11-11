@@ -1,11 +1,11 @@
 # RO23 V25 — Definitive Poodle capability selector and ClockKit return
 
 **Date:** 2026-11-11 · **Target:** Watch6,18 / watchOS 26.6.1 / 23U95  
-**Finding:** The previously unresolved Poodle call at **0x469C0** is exactly the Objective-C selector **\`supportsPDRCapability:\`**. The matching ClockKit implementation **always returns true**. The complete Poodle restriction method therefore evaluates **restricted=true** for the owner's observed Ultra 1 values. This is **verified offline evidence**, not an observed live call or native Hermès unlock.
+**Finding:** The previously unresolved Poodle call at **0x469C0** is exactly the Objective-C selector **\`supportsPDRCapability:\`**. The matching ClockKit implementation **always returns true**. The complete Poodle restriction method therefore evaluates **restricted=true** for my observed Ultra 1 values. This is **verified offline evidence**, not an observed live call or native Hermès unlock.
 
 ## Source provenance and exact file identity
 
-The user previously uploaded the original extracted firmware archives **RO23-V14-Zeus.zip** and **RO23-V12-ClockKit.zip**. These have now been inspected directly in the analysis runtime, not inferred from a truncated console transcript.
+I previously uploaded the original extracted firmware archives **RO23-V14-Zeus.zip** and **RO23-V12-ClockKit.zip**. These have now been inspected directly in the analysis runtime, not inferred from a truncated console transcript.
 
 | Mach-O | Size | SHA-256 |
 |---|---:|---|
@@ -63,9 +63,9 @@ The names come from decoded selector pointers, **not heuristic matching** agains
 
 For this exact ClockKit implementation, the method ignores its capability argument and **returns true for every value**, including Poodle's observed \`0xD5DDA3E7\`. This does not claim every future watchOS build behaves this way.
 
-## 3. Complete method outcome on owner's Ultra 1
+## 3. Complete method outcome on my Ultra 1
 
-From the device owner's V22 actual watch log: \`deviceCategory=4\`, \`collectionType=9\`, \`NTKShowHardwareSpecificFaces=false\`. In matching 23U95 firmware:
+From my V22 actual watch log: \`deviceCategory=4\`, \`collectionType=9\`, \`NTKShowHardwareSpecificFaces=false\`. In matching 23U95 firmware:
 
 \`\`\`c
 bool PoodleIsRestricted(CLKDevice *device) {

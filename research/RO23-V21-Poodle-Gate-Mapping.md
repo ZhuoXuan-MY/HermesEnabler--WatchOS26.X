@@ -5,6 +5,9 @@
 
 **Credit:** HermesEnabler by Jinwoo Kim (@pookjw), RO23 owner @ZhuoXuan-MY. See [V14 Zeus research](https://github.com/pookjw/HermesEnabler/issues/17), [V16](RO23-V16-InternalBuild-Gate.md), [V17](RO23-V17-FaceBundle-Loading-Chain.md) and [V20.1](RO23-V20-Watchface-Archive-Import.md).
 
+
+> **Updated by V24 (2026-11-11):** The owner has now supplied the full 23U95 Zeus disassembly. The entire Poodle restriction function was reconstructed, and its outcome for observed Ultra 1 values is **RESTRICTED regardless of the unknown capability-call result**. The V21 conditional-only interpretation below is historical. See [V24 full gate analysis](RO23-V24-Poodle-Full-Gate.md).
+
 ## A. Important target-identity correction: secondary FaceBundle IDs
 
 The owner's **actual uploaded** `Hermès Circulaire(1).watchface` was validated in V20.1 (249,760 bytes, SHA-256 `d8364f574fbfcbf16a46d7ae07fbdf74267621a7f6ec2e7525e8018d2659fb03`). Its parsed `face.json` includes:

@@ -145,3 +145,9 @@ Based on the device owner's uploaded `HermesEnabler(1).zip`, with upstream attri
 - Verified from owner's run that the already-extracted NTKZeusFaceBundle SHA-256 matched; analysis halted only because llvm-objdump was unavailable.
 - Updated the same V21 script to auto-detect llvm-objdump including Xcode, otherwise fall back to Xcode otool (arm64_32, -tvV) filtered to the Poodle instruction address interval.
 - No installations, source cloning, watch firmware modifications, or new diagnostic buttons. Await actual V23 disassembly output.
+
+
+### RO23 V24 — complete real Poodle disassembly and fixed oversized LLVM output (2026-11-11)
+- Analyzed owner-supplied 23U95 Zeus output, matching SHA-256, 51,891 log lines; reconstructed all 29 instructions of +[NTKPoodleFace isRestrictedForDevice:] 0x13B4–0x1424.
+- Complete static decision: category==1 -> restricted; capability call 0x469C0 false -> restricted; if true, collectionType==5 -> unrestricted else !NTKShowHardwareSpecificFaces. Given actual Ultra1 category4/collection9/hardwarefalse, both capability outcomes yield restricted.
+- Updated V21 script to filter actual instruction PCs for both LLVM and otool; 29 lines instead of 50k+. No app/UI changes, device writes, or native Hermès unlock.

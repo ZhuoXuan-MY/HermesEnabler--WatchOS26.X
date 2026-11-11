@@ -92,3 +92,8 @@ V15 对应 NanoTimeKit 静态反汇编已证明 `NTKShowHardwareSpecificFaces` �
 ## RO23 V22.2：V22 真机测试成功，Poodle 类未在诊断进程注册（2026-11-11）
 
 设备所有者已成功在 Ultra 1 / 23U95 上运行 V22，真实数值：`deviceCategory=4`、`collectionType=9`、`NTKInternalBuild=false`、`NTKShowHardwareSpecificFaces=false`。Poodle 的单一 `category==1` 前置排除**未命中**；已知 collection/hardware 分支若被执行会计算 `RESTRICTED`，但属于**条件静态模型**。`NTKPoodleFace registered in this process=false`，所以实际 `isRestrictedForDevice:` 方法没有运行、返回值为 `unavailable`；不能当成表盘不存在于固件的证据，也不能说已成功解锁。下一步集中已提取 23U95 Zeus 的前置分支离线分析，无需重复增加 V13/V16/V22 检测按钮。详见 [V22.2 实机日志](RO23-V22-Poodle-Runtime-Gate.md)。
+
+
+## RO23 V24：已取得 Poodle 完整前置分支并确认静态资格结果（2026-11-11）
+
+用户成功运行 Xcode LLVM，确认 23U95 `NTKZeusFaceBundle` SHA-256 完全匹配并上传完整反汇编。已从约 51,891 行中定位 `0x13B4–0x1424` 的**29 条 Poodle 函数指令**。完整逻辑：类别 `1` 直接受限；额外能力判断 `0x469C0`（常量 `0xD5DDA3E7`）返回 0 直接受限；否则 `collectionType==5` 才直接允许；其他类型最终取反 `NTKShowHardwareSpecificFaces`。结合实机类别 `4`、collection `9`、hardware flag `false`，**无论额外能力判断返回什么，整个静态方法都计算受限**。这比 V22 的条件分支结论更进一步，但**尚未在手表进程中实际调用 Poodle 类方法，也未解锁 Hermès**。已修复脚本在 LLVM 下输出整份 5 万多行汇编的问题，改为 LLVM/otool 均只输出 29 条指令。详见 [V24 完整报告](RO23-V24-Poodle-Full-Gate.md)。

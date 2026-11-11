@@ -74,3 +74,8 @@ Cross-referenced the real `NTKPoodleFaceBundle` face.json against the owner's or
 ## RO23 V22.2 — V22 real watch result recorded (2026-11-11)
 
 Device owner successfully ran V22 on first-gen Ultra / 23U95. The on-watch output confirms `deviceCategory=4`, `collectionType=9`, `NTKInternalBuild=false`, `NTKShowHardwareSpecificFaces=false`, `NTKPoodleFace registered in this process=false`. The Poodle conditional fallback reports RESTRICTED **as a static model**, but `NTKPoodleFace.isRestrictedForDevice` could not be called, since the class is not registered in the diagnostic process. This does **not** establish that the class is absent from watchOS or that native Hermès faces are available. Next: offline full early Poodle disassembly, **not** another same-value watch button. [Verbatim V22.2 log and analysis](RO23-V22-Poodle-Runtime-Gate.md).
+
+
+## RO23 V24 — Full Poodle eligibility function reconstructed (2026-11-11)
+
+Owner's actual V23 Mac dump verifies the matching SHA-256 `2b34d3…` and supplies the entire 29-instruction Poodle function at `0x13B4–0x1424`. Its early test is `deviceCategory==1`; an unresolved capability call `0x469C0` with constant `0xD5DDA3E7` rejects on zero. If this call succeeds, the watch's `collectionType=9` and `NTKShowHardwareSpecificFaces=false` still force **restricted=true**. Therefore the **complete static function**, with the known on-watch values, rejects Poodle regardless of the unknown capability outcome; no direct dynamic Poodle method call or unlock was performed. Fixed the offline script that printed ~51,891 lines: it now emits only the relevant 29 instructions under LLVM or otool. [V24 full analysis](RO23-V24-Poodle-Full-Gate.md).

@@ -4,6 +4,9 @@
 
 **Goal:** Turn earlier V16/V21 inferences into a clearly classified, one-tap, Poodle-specific watch report. Actual V22 watch measurements are **not yet received**. Native Hermès faces remain **not unlocked**.
 
+
+> **Updated by V24 (2026-11-11):** The owner has now supplied the full 23U95 Zeus disassembly. The entire Poodle restriction function was reconstructed, and its outcome for observed Ultra 1 values is **RESTRICTED regardless of the unknown capability-call result**. The V21 conditional-only interpretation below is historical. See [V24 full gate analysis](RO23-V24-Poodle-Full-Gate.md).
+
 ## What changed in the existing watch app
 
 - `RO23Diagnostics.m/.h` now implement/expose `RO23V22PoodleReport()`.

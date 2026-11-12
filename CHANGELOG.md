@@ -1,5 +1,13 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-12 — Upstream HermesEnabler v1.5 evaluated (no 23U95 unlock)
+
+- Reviewed the official [HermesEnabler 1.5](https://github.com/pookjw/HermesEnabler/releases/tag/1.5) release (published 2026-11-12 09:38 Beijing Time) and its changes: watchOS 27.2 beta 1 (`24S5112a`), Ultra face layout choices, backup library and Watch/iPhone transfer, byte-level post-write verification/rollback, and interface translations.
+- The upstream `MGOffsets.plist` does **not** include `23U95`. Its `BQCore.m` still calls `open(O_RDWR | O_CLOEXEC | O_NOFOLLOW)` to write the protected plist; the new readback/rollback checks **do not grant write access**. [Upstream PR #51](https://github.com/pookjw/HermesEnabler/pull/51) explicitly says the MobileGestalt modification mechanism was **not changed**.
+- [PR #52](https://github.com/pookjw/HermesEnabler/pull/52) reports Hermès activation on a **Series 10 (Watch7,9), 24S5112a**, not the target Ultra 1 `Watch6,18 / 23U95`. The upstream README still says **watchOS 27.0–27.3 beta 1 only**.
+- Decision: preserve this watchOS 26 research fork and its safety guards; **do not automatically merge** upstream v1.5's unrelated watchOS 27 code. No install, firmware write, privilege escalation, or native Hermès activation was attempted. **Status remains BLOCKED**.
+- Full [version-specific source and compatibility audit](research/Upstream-HermesEnabler-v1.5-Compatibility.md).
+
 ## 2026-11-11 — Project status changed to BLOCKED (not permanently abandoned)
 
 **Scope:** First-generation Apple Watch Ultra (`Watch6,18 / n199ap`), watchOS 26.6.1 build `23U95`. **Native Hermès unlock remains unsuccessful.**

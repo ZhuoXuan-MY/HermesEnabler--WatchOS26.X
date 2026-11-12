@@ -1,5 +1,13 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-12 — Original upstream HermesEnabler 1.5 Simulator test and isolated UI patch
+
+- I ran the **original author's HermesEnabler 1.5**, not this fork, in Xcode's **Apple Watch Ultra 3 / watchOS 27.0 Simulator**. The app presented a MobileGestalt access error; the debug console showed `[bqtool] escape: all strategies failed (last=-5)` targeting the watchOS protected MobileGestalt SystemGroup. This **does not establish failure on a supported physical watch**.
+- I initially applied Simulator-specific changes to this fork's `HermesEnabler2/ContentModel.swift` and `ContentView.swift` by mistake. These were **fully reverted** in [`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88) and [`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4); the original Ultra 1 research source remains intact.
+- I then prepared and uploaded a version-specific [upstream 1.5 one-file patch](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch) and [complete patched `ContentView.swift`](patches/upstream-1.5/ContentView.swift). They add a **Simulator-only preview** with browsable UI and disabled controls, with no protected MobileGestalt operations; the physical-watch code remains in the compile-time `#else` branch.
+- The patch input was verified against upstream **tag `1.5`** `ContentView.swift` Git blob `951eb9aeb56f4860a0e52b5221770a2763f6d0a9`; patch line counts and conditional compilation guards were checked. **No Xcode compilation or Simulator execution of the patch has yet been observed.** The user's original Simulator failure, the patch creation, and a working Simulator result are **three distinct pieces of evidence**, not interchangeable.
+- Full first-person development and reproducibility record: [Upstream HermesEnabler 1.5 Simulator report](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md). This does **not** change the project's `Watch6,18/23U95` **BLOCKED / NOT UNLOCKED** status.
+
 ## 2026-11-12 — Upstream HermesEnabler v1.5 evaluated (no 23U95 unlock)
 
 - Reviewed the official [HermesEnabler 1.5](https://github.com/pookjw/HermesEnabler/releases/tag/1.5) release (published 2026-11-12 09:38 Beijing Time) and its changes: watchOS 27.2 beta 1 (`24S5112a`), Ultra face layout choices, backup library and Watch/iPhone transfer, byte-level post-write verification/rollback, and interface translations.

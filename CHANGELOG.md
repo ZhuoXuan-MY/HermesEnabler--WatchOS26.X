@@ -1,5 +1,12 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-12 17:09 CST — Independently validated WorstGestalt and WatchRegion source paths
+
+- I inspected the latest source blobs for WorstGestalt `BQCore.swift`, my watchOS 26 `BQCore.m`, WatchRegion `RegionCache.swift`, and WQFiles documentation and ran **10 source checks: 8 YES, 2 NO**. The two NO results mean (1) my current fork does **not** have the same file-targeted `bad_query` strategy, and (2) no successful `Watch6,18/23U95` runtime write has been established. Neither is a claim that the new strategy was executed on my watch.
+- The WorstGestalt method is materially different from my existing generic Class-13 call: it probes a specific MobileGestalt file and checks a writable file descriptor after acquiring a token. My previous Class-13 token success / `EPERM` write failure does not constitute a runtime test of that new variant.
+- I also read public WatchRegion Issues: [#4](https://github.com/LogicSense1/WatchRegion/issues/4) reports **Ultra 2 / watchOS 27.2 `24S118`** region modification, adding to the prior Ultra 4 / watchOS 27.3 beta evidence. [#1](https://github.com/LogicSense1/WatchRegion/issues/1) asks about Ultra 1 but currently has no successful report. **None verifies watchOS 26.6.1 `23U95`.**
+- **No physical Watch session, sandbox-escape runtime, protected-file modification, or native Hermès activation.** Remain `BLOCKED`. [Full source validation and evidence table](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md).
+
 ## 2026-11-12 16:22 CST — Recent watchOS vulnerabilities and Filza / MobileGestalt tool audit
 
 - I reviewed the official **Filza 5.0.1 beta build 3** (November 9), GitHub **WorstGestalt v1.0.0**, **WQFiles v0.9.3**, **EscapeOS v0.3.2**, **WatchRegion v0.4.0**, Erosion, `worse_query`, and upstream **HermesEnabler v1.5.1** (November 12), scoped strictly to **Watch6,18 / watchOS 26.6.1 / 23U95**.

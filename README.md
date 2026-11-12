@@ -60,9 +60,17 @@ I reviewed the [official v1.5 release](https://github.com/pookjw/HermesEnabler/r
 
 I have documented the comparison **without merging v1.5 or installing an IPA**. Native Hermès remains **BLOCKED** on the target device. See [source-level comparison](research/Upstream-HermesEnabler-v1.5-Compatibility.md).
 
+## Original HermesEnabler 1.5: Xcode simulator investigation (November 12, 2026)
+
+I ran the **original author's HermesEnabler 1.5** on the **Apple Watch Ultra 3 / watchOS 27.0 Simulator** in Xcode. The app displayed a MobileGestalt access alert, while the console recorded `escape: all strategies failed (last=-5)` targeting the protected `systemgroup.com.apple.mobilegestaltcache`. This is a **simulator observation**, not evidence that upstream 1.5 fails on supported physical watches.
+
+Earlier, simulator-preview changes were mistakenly committed to this Ultra 1 research fork's `ContentModel.swift` and `ContentView.swift`; both original files were subsequently restored ([`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88), [`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4)). After confirming the correct source repository, I published a **separate, upstream-1.5-specific simulator UI preview patch**: [git patch](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch), [complete replacement `ContentView.swift`](patches/upstream-1.5/ContentView.swift), and [detailed development/test history](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md).
+
+**Validation:** The patch matches the original upstream 1.5 file, but **has not been built or run in Xcode**. Simulator screens are read-only previews with disabled controls; the original physical-watch code is preserved. This is **not a native Hermès unlock or a merger of upstream v1.5 into the watchOS 26 fork**.
+
 ## Development history
 
-**All 54 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
+**All 55 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
 
 ### V14.2–V30 and subsequent documentation changes
 
@@ -70,6 +78,7 @@ Timestamps in this table are **actual GitHub commit times converted to Beijing T
 
 | Beijing time / evidence time | Version / event | Work performed and observed result | Commit / primary evidence |
 |---|---|---|---|
+| **11/12 12:17** | **Upstream 1.5 Simulator failure and patch archived** | I ran upstream HermesEnabler 1.5 in an **Ultra 3 / watchOS 27.0 Simulator**, saw the MobileGestalt alert and `MCM escape last=-5`. Two edits mistakenly applied to the watchOS 26 fork were **reverted** ([`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88), [`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4)). Published a separate [upstream 1.5 patch](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch), [patched Swift source](patches/upstream-1.5/ContentView.swift) and [full investigation](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md). **Original-source match verified; no Xcode build or Simulator test of the patch yet. No watchOS 26 unlock.** | [`4ee5b70`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/4ee5b70d65c8474ba45cd4dc8993f2a606f754b2) |
 | **11/12 11:02** | **Upstream HermesEnabler v1.5 audit** | Reviewed v1.5, [PR #51](https://github.com/pookjw/HermesEnabler/pull/51) and [PR #52](https://github.com/pookjw/HermesEnabler/pull/52). Added `24S5112a`, Ultra layouts, and backup verification; **no `23U95` layout and the same protected `open(O_RDWR)` write primitive**, so the actual `EPERM` blocker remains. Documentation-only; no IPA installation or merge. [Full report](research/Upstream-HermesEnabler-v1.5-Compatibility.md). | [`32dc725`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/32dc72580729d5557bf952b424e48677872f4a26) |
 | **23:54** | **Public documentation redesign** | Renamed the public-facing documentation to **HermesEnabler — watchOS 26.x Compatibility Research**, moved the verified status and findings above the logs, and retained the full chronological history and archival copies. Documentation-only; no watch modifications. | [`37db667`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/37db667e79727dbc74ec0568708a5e0483cdf7b0) |
 | **23:43** | **Project formally marked BLOCKED** | Real Ultra 1 / `23U95` protected MobileGestalt `EPERM` and independent native Hermès face restrictions block the current unlock route. **Paused unproductive attempts while preserving V0–V30 code/history**. No fake unlock, device modification, repository deletion or archive. Resume only after evidence on the exact firmware. Documentation-only. | [`fbaa159`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/fbaa1593b44df447b7fdccab8fb839b14a2494d5) |

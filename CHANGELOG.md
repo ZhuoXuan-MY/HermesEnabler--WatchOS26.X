@@ -1,5 +1,13 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-12 16:22 CST — Recent watchOS vulnerabilities and Filza / MobileGestalt tool audit
+
+- I reviewed the official **Filza 5.0.1 beta build 3** (November 9), GitHub **WorstGestalt v1.0.0**, **WQFiles v0.9.3**, **EscapeOS v0.3.2**, **WatchRegion v0.4.0**, Erosion, `worse_query`, and upstream **HermesEnabler v1.5.1** (November 12), scoped strictly to **Watch6,18 / watchOS 26.6.1 / 23U95**.
+- **Only unverified technical lead:** WorstGestalt documents a `bad_query` **file-targeted Class-13** mechanism used for **iOS 26 MobileGestalt editing**. Its `Sources/WorseGestalt/BQCore.swift` contains a file-form attempt and slightly different query setup from the existing Watch research `HermesEnabler2/BQCore.m`. This does **not** establish watchOS compatibility, and earlier Watch tests already demonstrated that a consumed Class-13 token can still lack file-write permission.
+- **Other tools are not 23U95 writers:** WQFiles expressly says its iOS-26 `worse_query` implementation cannot access SystemGroup; Filza is an iPhone/iPad/iPod touch file manager; EscapeOS is iPhoneOS; WatchRegion's packaged v0.4.0 targets watchOS 27+, and HermesEnabler 1.5.1 remains watchOS 27 only.
+- Apple's [watchOS 26.6 advisory](https://support.apple.com/en-us/128068) contains root/sandbox/kernel issues **fixed in 26.6** (e.g. MediaRemote `CVE-2026-43723`, AVEVideoEncoder `CVE-2026-64747`, libc `CVE-2026-28973`). The [November 9 watchOS 26.6.1 advisory](https://support.apple.com/en-us/149723) describes additional fixed pairing/Bluetooth/network issues. These are **not verified exploits against the already-updated 23U95**.
+- **Evidence level: public release and code review only.** No Watch connection, exploit execution, protected-cache write, or native Hermès unlock attempted. **Status remains `BLOCKED`.** [Full dated audit](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md).
+
 ## 2026-11-12 — Original upstream HermesEnabler 1.5 Simulator test and isolated UI patch
 
 - I ran the **original author's HermesEnabler 1.5**, not this fork, in Xcode's **Apple Watch Ultra 3 / watchOS 27.0 Simulator**. The app presented a MobileGestalt access error; the debug console showed `[bqtool] escape: all strategies failed (last=-5)` targeting the watchOS protected MobileGestalt SystemGroup. This **does not establish failure on a supported physical watch**.

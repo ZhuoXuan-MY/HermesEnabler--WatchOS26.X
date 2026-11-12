@@ -60,14 +60,23 @@
 
 因此我仅保留这次源码审查结果，**没有直接合并 1.5、安装 IPA 或修改手表**，项目仍为 **BLOCKED**。详见 [完整对比报告](research/Upstream-HermesEnabler-v1.5-Compatibility.md)。
 
+## 原作者 HermesEnabler 1.5：Xcode 模拟器修复记录（2026-11-12）
+
+我实际在 Xcode 中启动了**原作者的 HermesEnabler 1.5**，目标是 **Apple Watch Ultra 3 模拟器 / watchOS 27.0**。应用显示 MobileGestalt 访问失败，随后 Xcode 日志记录到 `escape: all strategies failed (last=-5)`，目标为受保护的 `systemgroup.com.apple.mobilegestaltcache`。**这是模拟器中的问题，不能由此推断上游 1.5 在受支持真机上不可用。**
+
+之前曾误将模拟器界面防护加到本仓库的 Ultra 1 研究工程（`ContentModel.swift` 和 `ContentView.swift`），已在 [`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88) 和 [`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4) 两次提交中**恢复原文件**。确认真实项目后，现已针对上游 **1.5 标签**准备模拟器专用、**只用于 UI 浏览**的改动，独立上传了 [补丁文件](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch)、[完整修改后 `ContentView.swift`](patches/upstream-1.5/ContentView.swift) 和 [全过程与使用说明](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md)。
+
+**测试边界：** 已核对补丁的原始文件与上游 1.5 完全匹配，**尚未在 Xcode 编译或运行修改版**。模拟器预览不访问受保护系统缓存、不建立备份、不写入、不重启 Carousel；正常真机编译路径保持原样。这个修复**不会解锁原生 Hermès 表盘**，也没有把上游 1.5 合并到本仓库的 Ultra 1 研究代码中。
+
 ## 完整开发记录
 
-我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 54 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 55 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
 
 ### V14.2–V30 及后续文档更新（GitHub 提交时间，新 → 旧）
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
+| **11/12 12:17** | **上游 1.5 模拟器问题与补丁入库** | 我在 **Ultra 3 / watchOS 27.0 模拟器**运行原作者 1.5，遇到 MobileGestalt 弹窗及 `MCM escape last=-5`。起初误修改本仓库两个 Swift 文件，随后**分别恢复**（[`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88)、[`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4)）。重新基于上游 **1.5** 制作了[模拟器 UI 补丁](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch)和[完整 Swift 文件](patches/upstream-1.5/ContentView.swift)，并记录[全过程](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md)。**仅与上游原文件匹配核对，未完成 Xcode 实测；没有改动真机写入逻辑或解锁表盘。** | [`4ee5b70`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/4ee5b70d65c8474ba45cd4dc8993f2a606f754b2) |
 | **11/12 11:02** | **上游 HermesEnabler 1.5 更新核查** | 检查最新 1.5 发布、[PR #51](https://github.com/pookjw/HermesEnabler/pull/51) 与 [PR #52](https://github.com/pookjw/HermesEnabler/pull/52)。确认新增 `24S5112a`、Ultra 布局及更安全的 MobileGestalt 备份/校验，**但没有 `23U95` 布局，仍使用 `open(O_RDWR)`，并未解决实机 `EPERM`**。只记录源码对比，未合并上游或安装 IPA；状态继续 **BLOCKED**。[完整审查](research/Upstream-HermesEnabler-v1.5-Compatibility.md)。 | [`32dc725`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/32dc72580729d5557bf952b424e48677872f4a26) |
 | **23:54** | **项目首页重构（文档维护）** | 对外统一名称为 **HermesEnabler · watchOS 26.x 兼容性研究**，取消以不明内部代号命名的首页；将状态、成果、阻碍与文档导航置于顶部，把全部历史折叠展示。旧版中英 README 已完整归档，同时清理其他语言的过时安装说明。**仅文档修改，手表状态不变。** | [`37db667`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/37db667e79727dbc74ec0568708a5e0483cdf7b0) |
 | **23:43** | **项目状态正式调整为 BLOCKED** | 依据 Ultra 1 / `23U95` 已验证的受保护 MobileGestalt 写入 `EPERM`、Class 13 令牌不赋予写权限，以及独立的 Hermès 表盘资格限制，决定**当前路线暂停**。保留 V0–V30 全部研究、源码、日志和 Git 历史，**不删除/归档仓库、不发布假解锁版本**。仅在同型号同固件取得可复现权限与原生表盘成功证据后恢复。此轮仅修改文档，没有对手表采取行动。 | [`fbaa159`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/fbaa1593b44df447b7fdccab8fb839b14a2494d5) |

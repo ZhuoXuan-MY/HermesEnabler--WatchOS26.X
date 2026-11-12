@@ -46,7 +46,7 @@
 | **V0–V14.1 早期实机操作** | [Issue #17 原始证据及完整复盘](research/RO23-PRE-V14.2-HISTORY.md) |
 | **现状、限制与复现边界** | [中文研究状态](research/RO23-STATUS.zh-CN.md) · [English status](research/RO23-STATUS.md) |
 | **关键技术研究** | [Poodle 完整资格检查](research/RO23-V24-Poodle-Full-Gate.md) · [ClockKit 能力确认](research/RO23-V25-Poodle-Selector-ClockKit.md) · [受保护写入可行性](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) |
-| **外部方案核验** | [EscapeOS v0.3.2](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md) |
+| **外部方案与最新漏洞** | [Filza / WorstGestalt / WQFiles / watchOS CVE（11 月 12 日核查）](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md) · [EscapeOS v0.3.2](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md) |
 | **构建与历史改动** | [BUILDING](BUILDING.md) · [CHANGELOG](CHANGELOG.md) |
 | **原始、未删减的旧版首页** | [旧 README 完整快照](research/ARCHIVE-Full-README-2026-11-11.md) · [旧中文 README](research/ARCHIVE-Full-README.zh-CN-2026-11-11.md) |
 
@@ -70,12 +70,13 @@
 
 ## 完整开发记录
 
-我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 55 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 56 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
 
 ### V14.2–V30 及后续文档更新（GitHub 提交时间，新 → 旧）
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
+| **11/12 16:22** | **最新 Filza、Gestalt 工具及 watchOS 漏洞核查** | 我核对了官方 **Filza 5.0.1 b3**、**WorstGestalt 1.0.0**、**WQFiles 0.9.3**、WatchRegion 0.4.0、EscapeOS、Erosion、原作者 HermesEnabler **1.5.1**，以及 Apple watchOS 26.6/26.6.1 CVE。最有价值的线索是 WorstGestalt 在 **iOS 26** 使用的 `bad_query` 文件级 Class 13 路径，与既有手表研究代码的调用细节不同；**watchOS 23U95 未验证可写，已公布的 root/sandbox CVE 也已被对应系统更新修复**。本轮仅源码/公告比对、没有运行漏洞或修改手表，继续 BLOCKED。[完整报告](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md)。 | [`48cc58e`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/48cc58ed2dc1e7150a2d97fae63c63e41feccba7) |
 | **11/12 12:17** | **上游 1.5 模拟器问题与补丁入库** | 我在 **Ultra 3 / watchOS 27.0 模拟器**运行原作者 1.5，遇到 MobileGestalt 弹窗及 `MCM escape last=-5`。起初误修改本仓库两个 Swift 文件，随后**分别恢复**（[`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88)、[`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4)）。重新基于上游 **1.5** 制作了[模拟器 UI 补丁](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch)和[完整 Swift 文件](patches/upstream-1.5/ContentView.swift)，并记录[全过程](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md)。**仅与上游原文件匹配核对，未完成 Xcode 实测；没有改动真机写入逻辑或解锁表盘。** | [`4ee5b70`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/4ee5b70d65c8474ba45cd4dc8993f2a606f754b2) |
 | **11/12 11:02** | **上游 HermesEnabler 1.5 更新核查** | 检查最新 1.5 发布、[PR #51](https://github.com/pookjw/HermesEnabler/pull/51) 与 [PR #52](https://github.com/pookjw/HermesEnabler/pull/52)。确认新增 `24S5112a`、Ultra 布局及更安全的 MobileGestalt 备份/校验，**但没有 `23U95` 布局，仍使用 `open(O_RDWR)`，并未解决实机 `EPERM`**。只记录源码对比，未合并上游或安装 IPA；状态继续 **BLOCKED**。[完整审查](research/Upstream-HermesEnabler-v1.5-Compatibility.md)。 | [`32dc725`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/32dc72580729d5557bf952b424e48677872f4a26) |
 | **23:54** | **项目首页重构（文档维护）** | 对外统一名称为 **HermesEnabler · watchOS 26.x 兼容性研究**，取消以不明内部代号命名的首页；将状态、成果、阻碍与文档导航置于顶部，把全部历史折叠展示。旧版中英 README 已完整归档，同时清理其他语言的过时安装说明。**仅文档修改，手表状态不变。** | [`37db667`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/37db667e79727dbc74ec0568708a5e0483cdf7b0) |

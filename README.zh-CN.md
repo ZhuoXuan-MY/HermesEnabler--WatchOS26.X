@@ -71,12 +71,13 @@
 
 ## 完整开发记录
 
-我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 57 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 58 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
 
 ### V14.2–V30 及后续文档更新（GitHub 提交时间，新 → 旧）
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
+| **11/12 17:14** | **Ultra 1 / 23U95 新漏洞与解锁路线每小时监控** | 我启用了独立的**每小时**公开资料监控：追踪 HermesEnabler、WatchRegion、Filza、WorstGestalt、bad_query/worse_query、WQFiles、EscapeOS，以及任何新越狱、非越狱方法、SystemGroup 权限、路径穿透、CVE、PoC、代码提交及真机实测。**仅有新的相关增量才通知**，每条注明来源日期、适用设备／固件及证据等级，分别核查 `EPERM` 写入障碍和原生 Hermès 表盘资格。此轮无新手表测试、无漏洞执行、无系统写入；项目仍 BLOCKED。 | [`11b5cf0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/11b5cf0fc1b2f7c5f5eb96d4f35a40fa5fabd20d) |
 | **11/12 17:09** | **WorstGestalt 与 WatchRegion 源码独立验证** | 我对比了 **WorstGestalt 文件级 Class 13**、本仓库原有 Class 13 和 WatchRegion 的源码，完成**10 项静态断言（8 项符合、2 项不符合）**：确认新分支与原有路径不同，且会检查目标文件能否实际取得写权限，但**未曾在 Ultra 1 / 23U95 实机执行**。另核实 WatchRegion [Issue #4](https://github.com/LogicSense1/WatchRegion/issues/4) 报告 Ultra 2 / 27.2 成功；[Issue #1](https://github.com/LogicSense1/WatchRegion/issues/1) 的 Ultra 1 询问仍无成功证据。继续 BLOCKED。[完整独立验证报告](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md)。 | [`b229b09`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/b229b09866da4c8c076d4d18edbbf0ca9cdac0fe) |
 | **11/12 16:22** | **最新 Filza、Gestalt 工具及 watchOS 漏洞核查** | 我核对了官方 **Filza 5.0.1 b3**、**WorstGestalt 1.0.0**、**WQFiles 0.9.3**、WatchRegion 0.4.0、EscapeOS、Erosion、原作者 HermesEnabler **1.5.1**，以及 Apple watchOS 26.6/26.6.1 CVE。最有价值的线索是 WorstGestalt 在 **iOS 26** 使用的 `bad_query` 文件级 Class 13 路径，与既有手表研究代码的调用细节不同；**watchOS 23U95 未验证可写，已公布的 root/sandbox CVE 也已被对应系统更新修复**。本轮仅源码/公告比对、没有运行漏洞或修改手表，继续 BLOCKED。[完整报告](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md)。 | [`48cc58e`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/48cc58ed2dc1e7150a2d97fae63c63e41feccba7) |
 | **11/12 12:17** | **上游 1.5 模拟器问题与补丁入库** | 我在 **Ultra 3 / watchOS 27.0 模拟器**运行原作者 1.5，遇到 MobileGestalt 弹窗及 `MCM escape last=-5`。起初误修改本仓库两个 Swift 文件，随后**分别恢复**（[`0cb47be`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/0cb47be30332ae8d4c9e15ae4dbd6bfa121e9f88)、[`314ff4d`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/314ff4d8c57398bea77d254ac2da4ef623b29cf4)）。重新基于上游 **1.5** 制作了[模拟器 UI 补丁](patches/HermesEnabler-1.5-watchOS-Simulator-UI-Preview.patch)和[完整 Swift 文件](patches/upstream-1.5/ContentView.swift)，并记录[全过程](research/Upstream-HermesEnabler-v1.5-Simulator-Preview.md)。**仅与上游原文件匹配核对，未完成 Xcode 实测；没有改动真机写入逻辑或解锁表盘。** | [`4ee5b70`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/4ee5b70d65c8474ba45cd4dc8993f2a606f754b2) |

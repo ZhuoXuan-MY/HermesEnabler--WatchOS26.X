@@ -9,38 +9,6 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             List {
-                #if targetEnvironment(simulator)
-                // The Simulator is useful for browsing SwiftUI screens, not for
-                // requesting the physical Watch's protected MobileGestalt cache.
-                Section("Simulator · UI preview") {
-                    Label("Preview only", systemImage: "eye")
-                    Text("This is an Apple Watch simulator. The protected MobileGestalt cache, SystemGroup permissions, backups, and Hermès activation cannot be tested here.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Text("Select the connected Ultra 1 running 23U95 in Xcode to collect actual device diagnostics.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Section("Browse screens · read only") {
-                    NavigationLink { WatchFacesView(model: model) } label: {
-                        Label("Watch Faces", systemImage: "clock")
-                    }
-                    NavigationLink { DisplayAndControlsView(model: model) } label: {
-                        Label("Display & Controls", systemImage: "switch.2")
-                    }
-                    NavigationLink { SensorsAndWorkoutsView(model: model) } label: {
-                        Label("Sensors & Workouts", systemImage: "heart")
-                    }
-                    NavigationLink { IntelligenceView(model: model) } label: {
-                        Label("Siri & Intelligence", systemImage: "sparkles")
-                    }
-                }
-                Section("Status") {
-                    Text("Simulator preview: all switches are disabled. No system query, backup, write, or respring is attempted.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                #else
                 Section("RO23 · Ultra 1 research") {
                     Text("RO23 V22.1 installed · Poodle test first")
                         .font(.caption2)
@@ -112,17 +80,14 @@ struct ContentView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
-                #endif
             }
-            .navigationTitle("HermesEnabler")
+            .navigationTitle("HermesEnabler RO23")
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
-            #if !targetEnvironment(simulator)
             if phase == .active {
                 model.refreshBackups()
                 if model.hasBackup && !RO23IsTargetBuild() { model.refreshCapabilityStates() }
             }
-            #endif
         }
         .confirmationDialog("Restore this backup?", isPresented: $model.showRestoreConfirmation) {
             Button("Restore MG", role: .destructive) { model.perform(.restoreBackup(model.selectedBackupID)) }

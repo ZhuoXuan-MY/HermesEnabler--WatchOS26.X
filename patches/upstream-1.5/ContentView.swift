@@ -1,0 +1,173 @@
+import SwiftUI
+
+struct ContentView: View {
+    #if !targetEnvironment(simulator)
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var model = ContentModel()
+    #endif
+
+    var body: some View {
+        #if targetEnvironment(simulator)
+        HermesEnablerSimulatorPreview()
+        #else
+        NavigationStack {
+            if !model.hasBackup {
+                BackupView(model: model)
+            } else {
+                List {
+                    Section("Features") {
+                        NavigationLink { WatchFacesView(model: model) } label: {
+                            Label("Watch Faces", systemImage: "clock")
+                        }
+                        NavigationLink { DisplayAndControlsView(model: model) } label: {
+                            Label("Display & Controls", systemImage: "switch.2")
+                        }
+                        NavigationLink { SensorsAndWorkoutsView(model: model) } label: {
+                            Label("Sensors & Workouts", systemImage: "heart")
+                        }
+                        NavigationLink { IntelligenceView(model: model) } label: {
+                            Label("Siri & Intelligence", systemImage: "sparkles")
+                        }
+                    }
+                    Section("Utilities") {
+                        NavigationLink { BackupView(model: model) } label: {
+                            Label("MG Backups", systemImage: "archivebox")
+                        }
+                    }
+                    Section("Status") {
+                        Text(LocalizedStringKey(model.message))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .navigationTitle("HermesEnabler")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            model.message = "Starting respring. View the app log if nothing happens."
+                            BQRespring()
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .accessibilityLabel("Restart Carousel")
+                    }
+                }
+            }
+        }
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            if phase == .active {
+                model.refreshBackups()
+                model.refreshCapabilityStates()
+            }
+        }
+        .confirmationDialog("Restore this backup?", isPresented: $model.showRestoreConfirmation) {
+            Button("Restore MG", role: .destructive) { model.perform(.restoreBackup(model.selectedBackupID)) }
+        } message: {
+            Text("The current MG will be backed up automatically first. Restart the watch after restoring.")
+        }
+        .alert("MobileGestalt Access Failed", isPresented: $model.showAccessAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("An App Group ID may be missing, or this watchOS version may be incompatible. Check the app's App Group configuration and watchOS version.")
+        }
+        .alert("Could Not Change Setting", isPresented: Binding(
+            get: { model.toggleError != nil },
+            set: { if !$0 { model.toggleError = nil } }
+        ), presenting: model.toggleError) { _ in
+            Button("OK", role: .cancel) { }
+        } message: { error in
+            Text(error.message)
+        }
+        #endif
+    }
+}
+
+#if targetEnvironment(simulator)
+// This view is compiled ONLY into a watchOS Simulator build.
+// None of these screens instantiate ContentModel, request MCM tokens,
+// read protected MobileGestalt data, restore backups, or perform writes.
+private struct HermesEnablerSimulatorPreview: View {
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Simulator Preview") {
+                    Label("HermesEnabler 1.5", systemImage: "eye")
+                    Text("UI preview only. The watchOS Simulator cannot verify access to a physical watch's protected MobileGestalt cache.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Features") {
+                    NavigationLink {
+                        SimulatorPreviewOptions(title: "Watch Faces",
+                            options: ["Hermès", "Ultra Faces", "Ultra Face Layout"])
+                    } label: {
+                        Label("Watch Faces", systemImage: "clock")
+                    }
+                    NavigationLink {
+                        SimulatorPreviewOptions(title: "Display & Controls",
+                            options: ["Always-On Display", "AOD 1 Hz", "Action Button",
+                                      "Double Tap", "On-Screen Keyboard", "Raise Wrist to Wake"])
+                    } label: {
+                        Label("Display & Controls", systemImage: "switch.2")
+                    }
+                    NavigationLink {
+                        SimulatorPreviewOptions(title: "Sensors & Workouts",
+                            options: ["Depth Sensor", "Absolute Altimeter", "Always-On Compass",
+                                      "Continuous Heart Rate", "Noise Exposure", "Swimming Workouts"])
+                    } label: {
+                        Label("Sensors & Workouts", systemImage: "heart")
+                    }
+                    NavigationLink {
+                        SimulatorPreviewOptions(title: "Siri & Intelligence",
+                            options: ["Region Code", "Sales Region", "Apple Intelligence / Siri AI",
+                                      "On-Device Siri", "Audio Intelligence"])
+                    } label: {
+                        Label("Siri & Intelligence", systemImage: "sparkles")
+                    }
+                }
+                Section("Utilities") {
+                    NavigationLink {
+                        List {
+                            Section("MobileGestalt Backups") {
+                                Text("Backup and restore are unavailable in Simulator preview.")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .navigationTitle("MG Backups")
+                    } label: {
+                        Label("MG Backups", systemImage: "archivebox")
+                    }
+                }
+                Section("Status") {
+                    Text("No protected file access, backup, write or respring is attempted.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("HermesEnabler")
+        }
+    }
+}
+
+private struct SimulatorPreviewOptions: View {
+    let title: String
+    let options: [String]
+
+    var body: some View {
+        List {
+            Section {
+                Text("UI preview only — controls are disabled in Simulator.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Options") {
+                ForEach(options, id: \.self) { option in
+                    Toggle(option, isOn: .constant(false))
+                        .disabled(true)
+                }
+            }
+        }
+        .navigationTitle(title)
+    }
+}
+#endif

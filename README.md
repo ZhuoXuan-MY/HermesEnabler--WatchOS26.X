@@ -52,9 +52,17 @@ I will only reconsider this route with reproducible evidence **on Watch6,18 / 23
 
 Older source paths and diagnostic identifiers may contain **`RO23`**, a legacy internal research prefix. It is **not** a device model, OS version, or public project title. Those filenames remain unchanged to preserve links and reproducibility.
 
+## Upstream HermesEnabler v1.5 review (November 12, 2026)
+
+I reviewed the [official v1.5 release](https://github.com/pookjw/HermesEnabler/releases/tag/1.5), published **09:38 Beijing Time on November 12, 2026**. It adds watchOS **27.2 beta 1 (`24S5112a`)**, Ultra face layout choices, Watch/iPhone backup transfer, backup management, and post-write verification with rollback attempts.
+
+**This does not resolve the Watch6,18 / 23U95 permission failure.** The latest upstream `BQCore.m` still attempts `open(O_RDWR | O_CLOEXEC | O_NOFOLLOW)` on the protected cache, and verification runs only after that write path succeeds. [PR #51](https://github.com/pookjw/HermesEnabler/pull/51) expressly says the MobileGestalt modification mechanism is unchanged. The upstream supported-build table excludes `23U95`; [PR #52](https://github.com/pookjw/HermesEnabler/pull/52) reports a Hermès success on **Series 10 / Watch7,9**, not Ultra 1.
+
+I have documented the comparison **without merging v1.5 or installing an IPA**. Native Hermès remains **BLOCKED** on the target device. See [source-level comparison](research/Upstream-HermesEnabler-v1.5-Compatibility.md).
+
 ## Development history
 
-**All 53 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
+**All 54 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
 
 ### V14.2–V30 and subsequent documentation changes
 
@@ -62,6 +70,7 @@ Timestamps in this table are **actual GitHub commit times converted to Beijing T
 
 | Beijing time / evidence time | Version / event | Work performed and observed result | Commit / primary evidence |
 |---|---|---|---|
+| **11/12 11:02** | **Upstream HermesEnabler v1.5 audit** | Reviewed v1.5, [PR #51](https://github.com/pookjw/HermesEnabler/pull/51) and [PR #52](https://github.com/pookjw/HermesEnabler/pull/52). Added `24S5112a`, Ultra layouts, and backup verification; **no `23U95` layout and the same protected `open(O_RDWR)` write primitive**, so the actual `EPERM` blocker remains. Documentation-only; no IPA installation or merge. [Full report](research/Upstream-HermesEnabler-v1.5-Compatibility.md). | [`32dc725`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/32dc72580729d5557bf952b424e48677872f4a26) |
 | **23:54** | **Public documentation redesign** | Renamed the public-facing documentation to **HermesEnabler — watchOS 26.x Compatibility Research**, moved the verified status and findings above the logs, and retained the full chronological history and archival copies. Documentation-only; no watch modifications. | [`37db667`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/37db667e79727dbc74ec0568708a5e0483cdf7b0) |
 | **23:43** | **Project formally marked BLOCKED** | Real Ultra 1 / `23U95` protected MobileGestalt `EPERM` and independent native Hermès face restrictions block the current unlock route. **Paused unproductive attempts while preserving V0–V30 code/history**. No fake unlock, device modification, repository deletion or archive. Resume only after evidence on the exact firmware. Documentation-only. | [`fbaa159`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/fbaa1593b44df447b7fdccab8fb839b14a2494d5) |
 | **23:28** | **V30: EscapeOS v0.3.2 capability audit** | Verified the tagged release, iPhoneOS platform plist, ordinary `group.` AppGroupListing, class-7 worse_query and signing entitlements. **It browses iPhone user-app data and app groups, not the Watch's protected `systemgroup.com.apple.mobilegestaltcache`.** No watchOS target, validated `23U95` write privilege or Hermès unlock. [Full audit](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md). | [`db4d4d5`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/db4d4d5e7799c551804ee60fc0938a931e74060b) |

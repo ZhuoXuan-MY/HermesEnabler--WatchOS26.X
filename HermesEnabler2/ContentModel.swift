@@ -3,15 +3,8 @@ import Observation
 
 @Observable
 final class ContentModel {
-    // Simulators cannot validate a real watchOS protected MobileGestalt cache.
-    // Do not probe sandbox tokens or imply there is a writable system backup.
-    #if targetEnvironment(simulator)
-    var message = "Simulator UI preview only — MobileGestalt access is unavailable."
-    var hasBackup = false
-    #else
     var message = BQBackupExists() ? "Backup ready." : "Back up MobileGestalt before making changes."
     var hasBackup = BQBackupExists()
-    #endif
     var showAccessAlert = false
     var toggleError: ToggleError?
 
@@ -93,17 +86,11 @@ final class ContentModel {
     ]
 
     func refreshBackups() {
-        #if targetEnvironment(simulator)
-        hasBackup = false
-        backups = []
-        return
-        #else
         hasBackup = BQBackupExists()
         backups = BQListGestaltBackups().compactMap { record in
             guard let id = record["id"] as? String, let date = record["date"] as? Date else { return nil }
             return BackupItem(id: id, date: date, kind: (record["kind"] as? String) ?? "Initial")
         }
-        #endif
     }
 
     var selectedRegionCodeTitle: String {
@@ -129,11 +116,6 @@ final class ContentModel {
     }
 
     func perform(_ action: Action) {
-        #if targetEnvironment(simulator)
-        // Explicit safeguard even if a preview screen accidentally calls perform.
-        message = "Simulator UI preview only — no MobileGestalt operations were attempted."
-        return
-        #else
         var error: NSString?
         var result: String
         var toggleFailed = false
@@ -320,13 +302,9 @@ final class ContentModel {
             showAccessAlert = true
         }
         if hasBackup { refreshCapabilityStates() }
-        #endif
     }
 
     func refreshCapabilityStates() {
-        #if targetEnvironment(simulator)
-        return
-        #else
         var error: NSString?
         var value = ObjCBool(false)
         hermesEnabled = BQGetHermesEnabled(&value, &error) && value.boolValue
@@ -401,6 +379,5 @@ final class ContentModel {
             screenHeight = 0
             resolutionOverridden = false
         }
-        #endif
     }
 }

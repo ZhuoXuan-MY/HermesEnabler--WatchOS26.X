@@ -1,5 +1,12 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-12 — Started a separate hourly watchOS 26 research-update monitor
+
+- I enabled a **separate, recurring hourly alert task** focused on the first-generation Apple Watch Ultra (`Watch6,18 / n199ap`) and watchOS 26.6.1 (`23U95`). It is distinct from any other recurring tasks.
+- The monitor covers upstream HermesEnabler and Issue #17, WatchRegion, WorstGestalt, `bad_query` / `worse_query`, WQFiles, EscapeOS, Filza, Erosion, MobileGestalt editors, jailbreaks, non-jailbreak access methods, SystemGroup sandbox escape/path traversal, newly disclosed CVEs, security advisories, and newly found projects, commits, releases, PRs, issues, PoCs, or actual physical-Watch results.
+- It sends **Chinese notifications only for newly observed relevant changes**, citing dated primary sources. Every alert must distinguish **the target `23U95` device** from other watchOS hardware, iOS-only results, static research, and unverified claims. It must assess the existing `open(O_RDWR) → EPERM` privilege barrier and native Hermès face eligibility separately.
+- The schedule monitors public information; **this is not a continuous live background process, a GitHub Actions workflow, or an automatic source-code merge**. No exploitation, physical-Watch access, system-cache writes, or unlock were performed or promised. **Project status remains BLOCKED**.
+
 ## 2026-11-12 17:09 CST — Independently validated WorstGestalt and WatchRegion source paths
 
 - I inspected the latest source blobs for WorstGestalt `BQCore.swift`, my watchOS 26 `BQCore.m`, WatchRegion `RegionCache.swift`, and WQFiles documentation and ran **10 source checks: 8 YES, 2 NO**. The two NO results mean (1) my current fork does **not** have the same file-targeted `bad_query` strategy, and (2) no successful `Watch6,18/23U95` runtime write has been established. Neither is a claim that the new strategy was executed on my watch.

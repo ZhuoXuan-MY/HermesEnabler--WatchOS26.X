@@ -46,6 +46,7 @@ I will only reconsider this route with reproducible evidence **on Watch6,18 / 23
 | **Initial V0–V14.1 investigations** | [Issue #17 evidence and historical reconstruction](research/RO23-PRE-V14.2-HISTORY.md) |
 | **Current state and limitations** | [English research status](research/RO23-STATUS.md) · [简体中文](research/RO23-STATUS.zh-CN.md) |
 | **Native face eligibility** | [Poodle complete gate](research/RO23-V24-Poodle-Full-Gate.md) · [ClockKit validation](research/RO23-V25-Poodle-Selector-ClockKit.md) |
+| **Comprehensive 37-tool review (Nov 14)** | [Tool-by-tool compatibility matrix, CVEs and recommendations](research/2026-11-14-watchOS26-Complete-Tool-and-Escape-Route-Audit.md) |
 | **GestaltX v1.1.1 source review** | [Device self-pairing / path discovery compatibility audit](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md) |
 | **Latest source validation** | [WorstGestalt / WatchRegion: independent code checks](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md) |
 | **System-write and recent exploit/tool audit** | [Sandbox feasibility](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) · [Filza / WorstGestalt / watchOS CVEs (Nov 12)](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md) · [EscapeOS v0.3.2](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md) |
@@ -76,9 +77,57 @@ I reviewed the [GestaltX v1.1.1 release](https://github.com/huamidev/GestaltX/re
 
 **For my Ultra 1 / `23U95`:** I found no Apple Watch protected SystemGroup writer, new sandbox escape, or resolution of the previous `open(O_RDWR) → EPERM` failure. **Pairing an iPhone and discovering file paths do not confer write access on the Watch.** This is a GitHub release and source-code audit only: **no IPA installation, Xcode build, physical Watch pairing or modification**. Native Hermès remains **BLOCKED**. [Full bilingual audit and primary-source references](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md).
 
+## Audit of 37 public tools, jailbreaks and sandbox routes (November 14, 2026)
+
+I checked current primary releases and source repositories alongside Apple's security advisories and my **Ultra 1 / watchOS 26.6.1 (`23U95`)** observations, including the real `open(O_RDWR) → EPERM` denial. The table covers **37 publicly discoverable tools/components reviewed in this pass**, not every unpublished exploit. **A** means a research priority, **not proven success**; **B** means technical inspiration without Watch6,18/23U95 evidence; **C** means diagnostic/deployment assistance only; **D** means incompatible platform or patch level.
+
+| Tool / primary source | Scope and what I verified | Value for this Watch |
+|---|---|---|
+| [HermesEnabler 1.5.4](https://github.com/pookjw/HermesEnabler) | watchOS 27; v1.5.4 mainly localization; no 23U95 support | **A · research priority** |
+| [WatchRegion 0.4.0](https://github.com/LogicSense1/WatchRegion) | WatchOS 27 write reports on other Watches; no Ultra 1/26.6.1 success | **A · research priority** |
+| [WatchBridge](https://github.com/AdminZachary/WatchBridge) | Watch pairing/developer mode/sideloading; not protected file privileges | **C · diagnostic/deployment** |
+| [iloader-for-windows](https://github.com/AdminZachary/iloader-for-windows) | Windows/macOS Watch installation helper; not a jailbreak | **C · diagnostic/deployment** |
+| [PairBack](https://github.com/RomashkaTea/apple-pairback) | WatchOS 26 cross-version pairing evidence; iPhone-side access, not Watch sandbox escape | **B · technical reference** |
+| [jelbrekTime](https://github.com/tihmstar/jelbrekTime) | Historic Series 3/watchOS 4.1 jailbreak; not Ultra 1 compatible | **D · not applicable** |
+| [OverCl0ck](https://github.com/PsychoTea/OverCl0ck) | Old watchOS 3 jailbreak prototype; firmware mismatch | **D · not applicable** |
+| [WorstGestalt 1.0.0](https://github.com/GoldenNugget-Team/worstgestalt) | iOS 26 file-targeted Class 13 variant merits code review; no watchOS 26 proof | **B · technical reference** |
+| [bad_query](https://github.com/forcequitOS/bad_query) | iOS MCM sandbox research; 23U95 write capability unverified | **B · technical reference** |
+| [worse_query](https://github.com/forcequitOS/worse_query) | Upstream lists SystemGroup access for iOS 27; not watchOS 26 | **B · technical reference** |
+| [Geod-MCM-PoC](https://github.com/0xjohnnydev/Geod-MCM-PoC) | iOS geod traversal study; prior Watch tests did not yield write access | **B · technical reference** |
+| [WQFiles 0.9.6](https://github.com/kolbicz/WQFiles) | v0.9.6 improves browsing; iOS 26 SystemGroup unsupported | **C · diagnostic/deployment** |
+| [Erosion 0.3.1](https://github.com/jailbreakdotparty/Erosion) | pathleak helps enumerate containers; no iOS 26 MG tweaks | **B · technical reference** |
+| [EscapeOS 0.3.2](https://github.com/pwnapplehat/EscapeOS) | iPhone app/App Group browsing, not protected Watch container access | **C · diagnostic/deployment** |
+| [GestaltX 1.1.1](https://github.com/huamidev/GestaltX) | iPhone self-pairing and log/path discovery; no Watch system write | **C · diagnostic/deployment** |
+| [Filza 5.0.1](https://www.tigisoftware.com/default/?p=439) | iPhone/iPad file manager; no verified watchOS 26 SystemGroup access | **C · diagnostic/deployment** |
+| [Gester（上游引用）](https://github.com/pookjw/HermesEnabler) | Credited upstream component; no independently verified 23U95 build | **B · technical reference** |
+| [Dopamine 3.0.13](https://github.com/opa334/Dopamine) | iOS 26.0–26.0.1 jailbreak on selected A12/A13 devices, not watchOS | **D · not applicable** |
+| [palera1n](https://github.com/palera1n/palera1n) | checkm8 legacy targets; no Ultra 1 boot-chain support | **D · not applicable** |
+| [TrollStore](https://github.com/opa334/TrollStore) | Older iOS CoreTrust installer; cannot grant Watch system entitlements | **D · not applicable** |
+| [DarkSword（公开研究）](https://cloud.google.com/blog/topics/threat-intelligence/darksword-ios-exploit-chain) | iOS 18 exploit chain worth studying; not verified on 23U95 | **B · technical reference** |
+| [PureKFD](https://github.com/Lrdsnow/PureKFD) | Legacy iOS KFD/MDC/SparseRestore; not watchOS 26 | **D · not applicable** |
+| [Cowabunga](https://github.com/leminlimez/Cowabunga) | Legacy iOS MacDirtyCow utility; incompatible firmware | **D · not applicable** |
+| [misaka](https://github.com/straight-tamago/misaka) | Legacy iOS/tvOS KFD/MDC, not a watchOS 26 route | **D · not applicable** |
+| [misakaX](https://github.com/straight-tamago/misakaX) | iOS 16–18 restore-based tweaks; no Watch privilege path | **D · not applicable** |
+| [Nugget](https://github.com/leminlimez/Nugget) | iPhone partial-backup/restore editing; not Watch MG access | **D · not applicable** |
+| [nugget-iOS](https://github.com/MNS82/nugget-iOS) | README excludes iOS 26.2+ MG tweaks; not watchOS | **D · not applicable** |
+| [SparseBox](https://github.com/khanhduytran0/SparseBox) | iOS SparseRestore/BookRestore/AFC; backup research only | **B · technical reference** |
+| [bookrestore](https://github.com/jailbreakdotparty/bookrestore) | Archived iOS PoC; README says its old implementation does not work | **D · not applicable** |
+| [blacktop/ipsw](https://github.com/blacktop/ipsw) | Useful for matching 23U95 OTA/dyld/Mach-O; no privilege change | **A · research priority** |
+| [PoomSmart/MGKeys](https://github.com/PoomSmart/MGKeys) | Useful for MG key/hash analysis, not write access | **A · research priority** |
+| [pymobiledevice3](https://github.com/doronz88/pymobiledevice3) | Pairing and authorized diagnostics; connection is not root | **C · diagnostic/deployment** |
+| [libimobiledevice](https://github.com/libimobiledevice/libimobiledevice) | iOS connection protocol library; no new Watch entitlement | **C · diagnostic/deployment** |
+| [idevicerestore](https://github.com/libimobiledevice/idevicerestore) | iOS firmware restore tool, not a Watch cache writer/downgrade | **C · diagnostic/deployment** |
+| [iPASide](https://github.com/pwnapplehat/iPASide) | iPhone sideloading tool; does not cross Watch sandbox | **C · diagnostic/deployment** |
+| [PongoOS](https://github.com/checkra1n/PongoOS) | Legacy boot-chain research; no Ultra 1 compatibility evidence | **D · not applicable** |
+| [Xcode / watchOS SDK](https://developer.apple.com/watchos/) | Best for authorized read-only Watch testing; normal app sandbox still applies | **A · research priority** |
+
+The key missing proof is **safe writable access to the Watch's own protected cache on the exact device/build**, followed independently by normal Hermès face eligibility and add-to-library validation. None of these 37 tool reviews establishes both. New version changes include **HermesEnabler 1.5.4, WQFiles 0.9.6, Erosion 0.3.1**; PairBack and WatchBridge are pairing/deployment research, **not watchOS sandbox escape evidence**.
+
+[**Full 37-tool audit, evidence, Apple CVEs and research priorities**](research/2026-11-14-watchOS26-Complete-Tool-and-Escape-Route-Audit.md). **This was public-source/source-code research only; no Watch connection, exploit, protected write, jailbreak or successful native Hermès activation. Status remains BLOCKED.**
+
 ## Development history
 
-**All 59 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
+**All 60 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
 
 ### V14.2–V30 and subsequent documentation changes
 
@@ -86,6 +135,7 @@ Timestamps in this table are **actual GitHub commit times converted to Beijing T
 
 | Beijing time / evidence time | Version / event | Work performed and observed result | Commit / primary evidence |
 |---|---|---|---|
+| **11/14 18:09** | **Comprehensive 37-tool jailbreak and sandbox-route audit** | I reviewed **37 tools/components** across watchOS-native utilities, MG/SystemGroup, iOS jailbreak/backup and device/firmware analysis. Newly noted **HermesEnabler 1.5.4, WQFiles 0.9.6, Erosion 0.3.1 pathleak, WatchBridge and PairBack**. **None establishes writable protected MG on Watch6,18/23U95 or native Hermès activation**. Public release/source and advisory review only; no Watch test or write. [Full evidence](research/2026-11-14-watchOS26-Complete-Tool-and-Escape-Route-Audit.md). | [`a60b1d6`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/a60b1d6878d9b1deac207c0150334933043b6ce8) |
 | **11/14 17:58** | **GestaltX v1.1.1 device-pairing and path audit** | I reviewed [v1.1.1](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1) and its Swift/Rust source. Its new **“Pair this iPhone once”** self-pairing and RSD/Lockdown + LocalDevVPN connection discover **iPhone notification-sound paths**, **not** a watchOS protected SystemGroup writer. No proof of `Watch6,18 / 23U95` access or `EPERM` resolution. Release/source audit only, **no IPA/Xcode/Watch test**, status **BLOCKED**. [Complete audit](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md). | [`e6c76ea`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e6c76ea35a15b47a7e23bed900591a610d04eb7f) |
 | **11/12 17:14** | **Hourly Ultra 1 / 23U95 exploit and unlock research watch** | I enabled a separate **hourly** public-source monitor for HermesEnabler, WatchRegion, Filza, WorstGestalt, bad_query/worse_query, WQFiles, EscapeOS, and any newly published jailbreak, non-jailbreak route, sandbox/SystemGroup path traversal, CVE, PoC, commit, issue or real-Watch report. **Alert only on new relevant evidence**, with source/date, device/build, confidence and distinct `EPERM` versus native Hermès eligibility conclusions. No on-watch tests, exploit execution or protected writes; project remains BLOCKED. | [`11b5cf0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/11b5cf0fc1b2f7c5f5eb96d4f35a40fa5fabd20d) |
 | **11/12 17:09** | **Independent WorstGestalt / WatchRegion source validation** | Compared WorstGestalt's file-targeted Class-13 method with my existing HermesEnabler and WatchRegion code; **10 static checks (8 YES, 2 NO)** confirm a distinct implementation and a writable-fd success check, **not a tested Ultra 1/23U95 escape**. Newly verified [WatchRegion Issue #4](https://github.com/LogicSense1/WatchRegion/issues/4) reports Ultra 2/watchOS 27.2 success, while the [Ultra 1 question](https://github.com/LogicSense1/WatchRegion/issues/1) still has no success evidence. Status BLOCKED. [Full validation](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md). | [`b229b09`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/b229b09866da4c8c076d4d18edbbf0ca9cdac0fe) |

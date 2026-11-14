@@ -1,5 +1,12 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-14 17:58 CST — GestaltX v1.1.1 device self-pairing and file-path source audit
+
+- I reviewed the original [GestaltX v1.1.1 release](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1) (build `11140102`, published **2026-11-14 00:46 CST**) and the **tagged** Swift/Rust source. The release adds **Pairing & Device Connection** and **App Audio Library**, with fixes to pairing in side-loaded builds and pairing-file migration.
+- The UI explicitly says **“Pair this iPhone once”**. The native device-console implementation uses **iPhone self-pairing**, RSD/Lockdown, LocalDevVPN and `com.apple.syslog_relay` to discover notification-audio file paths. Its Rust source calls this **a connection path, not an Airlift exploit**. The console needs `GXDeviceConsole` + the `GXDEVICECONSOLE` build condition; source presence alone does not prove a particular signed IPA can connect.
+- The upstream README lists **iPhone/iPad iOS 27.x** for direct MobileGestalt access and explicitly says **iOS/iPadOS 26.x is unsupported** for that feature. I found **no watchOS 26.6.1 / `23U95` protected SystemGroup write mechanism** in the new connection modules. Pairing and learning a path do not overcome the target's real `open(O_RDWR) → EPERM`, nor the separate Hermès eligibility restrictions.
+- This was **GitHub release + static-source analysis only**. **I did not install GestaltX, compile/run it in Xcode, connect/pair my physical Watch, write protected caches, or enable a native Hermès face**. No application code was merged or replaced; **status remains BLOCKED / NOT UNLOCKED**. [Bilingual full audit](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md).
+
 ## 2026-11-12 — Started a separate hourly watchOS 26 research-update monitor
 
 - I enabled a **separate, recurring hourly alert task** focused on the first-generation Apple Watch Ultra (`Watch6,18 / n199ap`) and watchOS 26.6.1 (`23U95`). It is distinct from any other recurring tasks.

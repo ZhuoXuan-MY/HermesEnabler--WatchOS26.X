@@ -46,6 +46,7 @@
 | **V0–V14.1 早期实机操作** | [Issue #17 原始证据及完整复盘](research/RO23-PRE-V14.2-HISTORY.md) |
 | **现状、限制与复现边界** | [中文研究状态](research/RO23-STATUS.zh-CN.md) · [English status](research/RO23-STATUS.md) |
 | **关键技术研究** | [Poodle 完整资格检查](research/RO23-V24-Poodle-Full-Gate.md) · [ClockKit 能力确认](research/RO23-V25-Poodle-Selector-ClockKit.md) · [受保护写入可行性](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) |
+| **GestaltX 1.1.1 新增设备连接核验** | [配对与路径获取：Swift/Rust 源码、限制和结果](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md) |
 | **最新验证** | [WorstGestalt / WatchRegion：源码独立验证及 10 项检查](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md) |
 | **外部方案与最新漏洞** | [Filza / WorstGestalt / WQFiles / watchOS CVE（11 月 12 日核查）](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md) · [EscapeOS v0.3.2](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md) |
 | **构建与历史改动** | [BUILDING](BUILDING.md) · [CHANGELOG](CHANGELOG.md) |
@@ -69,14 +70,21 @@
 
 **测试边界：** 已核对补丁的原始文件与上游 1.5 完全匹配，**尚未在 Xcode 编译或运行修改版**。模拟器预览不访问受保护系统缓存、不建立备份、不写入、不重启 Carousel；正常真机编译路径保持原样。这个修复**不会解锁原生 Hermès 表盘**，也没有把上游 1.5 合并到本仓库的 Ultra 1 研究代码中。
 
+## GestaltX 1.1.1 配对与设备路径功能核查（2026-11-14）
+
+我检查了 [GestaltX v1.1.1](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1)（2026-11-14 00:46 北京时间发布，build `11140102`）的发布说明和 Swift/Rust 源码。此次新增 **Pairing & Device Connection** 和 **App Audio Library**：配对界面明确写着 **“Pair this iPhone once”**，通过 iPhone 本机远程配对、RSD/Lockdown、LocalDevVPN 和 `syslog_relay` 采集日志，以发现应用通知声音路径。原作者 README 仍限定 iPhone/iPad 的 MobileGestalt 本机访问为 **iOS/iPadOS 27.x**，而不是 watchOS 26.x。
+
+**对我的 Ultra 1 / `23U95`：** 我没有在新增模块中找到 Apple Watch 系统缓存写入、SystemGroup 穿透或 `EPERM` 解决证据。**配对 iPhone、读取日志、发现路径都不等于得到手表文件写权限**。本轮仅作 GitHub 发行版与源码静态核查，**没有安装、实机配对、Xcode 测试或修改手表**；原生 Hermès 表盘仍未解锁，状态继续 **BLOCKED**。完整依据见 [GestaltX 1.1.1 兼容性核查报告](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md)。
+
 ## 完整开发记录
 
-我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 58 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
+我将每次实际测试、代码修改、问题定位与结论保留在下方时间线。**下方直接展示全部 59 条历史记录，无需点击展开。** 新增工作也会继续按时间顺序接到这里。
 
 ### V14.2–V30 及后续文档更新（GitHub 提交时间，新 → 旧）
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
+| **11/14 17:58** | **GestaltX 1.1.1 配对、设备连接和文件路径核查** | 我核对上游 [v1.1.1](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1) 与 Swift/Rust 源码：新增 `Pair this iPhone once` 自配对、RSD/Lockdown + LocalDevVPN 的 iPhone 日志采集及通知声音路径发现。**没有 watchOS 26.6.1 的 SystemGroup 受保护写入或 `EPERM` 修复证据**；配对成功和路径已知不意味着手表写权限。只完成公开源码核查，**没有安装、Xcode 或 Watch 真机测试**，继续 **BLOCKED**。[完整报告](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md)。 | [`e6c76ea`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e6c76ea35a15b47a7e23bed900591a610d04eb7f) |
 | **11/12 17:14** | **Ultra 1 / 23U95 新漏洞与解锁路线每小时监控** | 我启用了独立的**每小时**公开资料监控：追踪 HermesEnabler、WatchRegion、Filza、WorstGestalt、bad_query/worse_query、WQFiles、EscapeOS，以及任何新越狱、非越狱方法、SystemGroup 权限、路径穿透、CVE、PoC、代码提交及真机实测。**仅有新的相关增量才通知**，每条注明来源日期、适用设备／固件及证据等级，分别核查 `EPERM` 写入障碍和原生 Hermès 表盘资格。此轮无新手表测试、无漏洞执行、无系统写入；项目仍 BLOCKED。 | [`11b5cf0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/11b5cf0fc1b2f7c5f5eb96d4f35a40fa5fabd20d) |
 | **11/12 17:09** | **WorstGestalt 与 WatchRegion 源码独立验证** | 我对比了 **WorstGestalt 文件级 Class 13**、本仓库原有 Class 13 和 WatchRegion 的源码，完成**10 项静态断言（8 项符合、2 项不符合）**：确认新分支与原有路径不同，且会检查目标文件能否实际取得写权限，但**未曾在 Ultra 1 / 23U95 实机执行**。另核实 WatchRegion [Issue #4](https://github.com/LogicSense1/WatchRegion/issues/4) 报告 Ultra 2 / 27.2 成功；[Issue #1](https://github.com/LogicSense1/WatchRegion/issues/1) 的 Ultra 1 询问仍无成功证据。继续 BLOCKED。[完整独立验证报告](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md)。 | [`b229b09`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/b229b09866da4c8c076d4d18edbbf0ca9cdac0fe) |
 | **11/12 16:22** | **最新 Filza、Gestalt 工具及 watchOS 漏洞核查** | 我核对了官方 **Filza 5.0.1 b3**、**WorstGestalt 1.0.0**、**WQFiles 0.9.3**、WatchRegion 0.4.0、EscapeOS、Erosion、原作者 HermesEnabler **1.5.1**，以及 Apple watchOS 26.6/26.6.1 CVE。最有价值的线索是 WorstGestalt 在 **iOS 26** 使用的 `bad_query` 文件级 Class 13 路径，与既有手表研究代码的调用细节不同；**watchOS 23U95 未验证可写，已公布的 root/sandbox CVE 也已被对应系统更新修复**。本轮仅源码/公告比对、没有运行漏洞或修改手表，继续 BLOCKED。[完整报告](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md)。 | [`48cc58e`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/48cc58ed2dc1e7150a2d97fae63c63e41feccba7) |

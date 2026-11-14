@@ -46,6 +46,7 @@ I will only reconsider this route with reproducible evidence **on Watch6,18 / 23
 | **Initial V0–V14.1 investigations** | [Issue #17 evidence and historical reconstruction](research/RO23-PRE-V14.2-HISTORY.md) |
 | **Current state and limitations** | [English research status](research/RO23-STATUS.md) · [简体中文](research/RO23-STATUS.zh-CN.md) |
 | **Native face eligibility** | [Poodle complete gate](research/RO23-V24-Poodle-Full-Gate.md) · [ClockKit validation](research/RO23-V25-Poodle-Selector-ClockKit.md) |
+| **GestaltX v1.1.1 source review** | [Device self-pairing / path discovery compatibility audit](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md) |
 | **Latest source validation** | [WorstGestalt / WatchRegion: independent code checks](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md) |
 | **System-write and recent exploit/tool audit** | [Sandbox feasibility](research/RO23-V26-WatchOS-Sandbox-Feasibility.md) · [Filza / WorstGestalt / watchOS CVEs (Nov 12)](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md) · [EscapeOS v0.3.2](research/RO23-V30-EscapeOS-v0.3.2-Compatibility.md) |
 | **Build instructions and change records** | [BUILDING.md](BUILDING.md) · [CHANGELOG.md](CHANGELOG.md) |
@@ -69,9 +70,15 @@ Earlier, simulator-preview changes were mistakenly committed to this Ultra 1 res
 
 **Validation:** The patch matches the original upstream 1.5 file, but **has not been built or run in Xcode**. Simulator screens are read-only previews with disabled controls; the original physical-watch code is preserved. This is **not a native Hermès unlock or a merger of upstream v1.5 into the watchOS 26 fork**.
 
+## GestaltX v1.1.1 pairing and path-discovery audit (November 14, 2026)
+
+I reviewed the [GestaltX v1.1.1 release](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1) (published **00:46 Beijing Time on November 14, 2026**, build `11140102`) and its version-tagged Swift/Rust source. The new **Pairing & Device Connection** feature explicitly says **“Pair this iPhone once”**: it performs iPhone self-pairing and uses RSD/Lockdown, LocalDevVPN and `syslog_relay` to discover application notification-sound paths. The upstream README still limits on-device MobileGestalt access to **iOS/iPadOS 27.x**, not watchOS 26.x.
+
+**For my Ultra 1 / `23U95`:** I found no Apple Watch protected SystemGroup writer, new sandbox escape, or resolution of the previous `open(O_RDWR) → EPERM` failure. **Pairing an iPhone and discovering file paths do not confer write access on the Watch.** This is a GitHub release and source-code audit only: **no IPA installation, Xcode build, physical Watch pairing or modification**. Native Hermès remains **BLOCKED**. [Full bilingual audit and primary-source references](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md).
+
 ## Development history
 
-**All 58 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
+**All 59 chronological entries appear directly below, without any collapsed sections or expand buttons.** Later work will be recorded at the beginning of the table.
 
 ### V14.2–V30 and subsequent documentation changes
 
@@ -79,6 +86,7 @@ Timestamps in this table are **actual GitHub commit times converted to Beijing T
 
 | Beijing time / evidence time | Version / event | Work performed and observed result | Commit / primary evidence |
 |---|---|---|---|
+| **11/14 17:58** | **GestaltX v1.1.1 device-pairing and path audit** | I reviewed [v1.1.1](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1) and its Swift/Rust source. Its new **“Pair this iPhone once”** self-pairing and RSD/Lockdown + LocalDevVPN connection discover **iPhone notification-sound paths**, **not** a watchOS protected SystemGroup writer. No proof of `Watch6,18 / 23U95` access or `EPERM` resolution. Release/source audit only, **no IPA/Xcode/Watch test**, status **BLOCKED**. [Complete audit](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md). | [`e6c76ea`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e6c76ea35a15b47a7e23bed900591a610d04eb7f) |
 | **11/12 17:14** | **Hourly Ultra 1 / 23U95 exploit and unlock research watch** | I enabled a separate **hourly** public-source monitor for HermesEnabler, WatchRegion, Filza, WorstGestalt, bad_query/worse_query, WQFiles, EscapeOS, and any newly published jailbreak, non-jailbreak route, sandbox/SystemGroup path traversal, CVE, PoC, commit, issue or real-Watch report. **Alert only on new relevant evidence**, with source/date, device/build, confidence and distinct `EPERM` versus native Hermès eligibility conclusions. No on-watch tests, exploit execution or protected writes; project remains BLOCKED. | [`11b5cf0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/11b5cf0fc1b2f7c5f5eb96d4f35a40fa5fabd20d) |
 | **11/12 17:09** | **Independent WorstGestalt / WatchRegion source validation** | Compared WorstGestalt's file-targeted Class-13 method with my existing HermesEnabler and WatchRegion code; **10 static checks (8 YES, 2 NO)** confirm a distinct implementation and a writable-fd success check, **not a tested Ultra 1/23U95 escape**. Newly verified [WatchRegion Issue #4](https://github.com/LogicSense1/WatchRegion/issues/4) reports Ultra 2/watchOS 27.2 success, while the [Ultra 1 question](https://github.com/LogicSense1/WatchRegion/issues/1) still has no success evidence. Status BLOCKED. [Full validation](research/2026-11-12-WorstGestalt-WatchRegion-Static-Validation.md). | [`b229b09`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/b229b09866da4c8c076d4d18edbbf0ca9cdac0fe) |
 | **11/12 16:22** | **Latest Filza, MobileGestalt tools and watchOS CVE audit** | I checked **Filza 5.0.1 b3**, **WorstGestalt 1.0.0**, **WQFiles 0.9.3**, WatchRegion 0.4.0, EscapeOS, Erosion, upstream HermesEnabler **1.5.1**, and Apple's watchOS 26.6/26.6.1 advisories. The noteworthy but **unverified** lead is WorstGestalt's iOS-26 `bad_query` per-file Class-13 variant, which differs from parts of the existing Watch research path; no evidence yet that it grants write access on **Watch6,18/23U95**. Publicly disclosed root/sandbox CVEs were patched in the target OS. Sources only; **no on-watch testing or write**, status BLOCKED. [Detailed audit](research/2026-11-12-watchOS26-Filza-Gestalt-Security-Audit.md). | [`48cc58e`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/48cc58ed2dc1e7150a2d97fae63c63e41feccba7) |

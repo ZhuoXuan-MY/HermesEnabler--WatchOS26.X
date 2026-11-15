@@ -6,6 +6,14 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [Development history](#development-history) · [Original HermesEnabler](https://github.com/pookjw/HermesEnabler) · [Upstream Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
 
+## ⚖️ Open-source copyright and third-party attribution review (2026-11-15)
+
+I am publicly documenting an **MIT license-attribution inquiry** involving user-supplied screenshots of the **“mono表盘”** Xiaohongshu account (public profile no. 1114639855) and a marketing page branded **“iiiphone”**. The [original HermesEnabler MIT license](https://github.com/pookjw/HermesEnabler/blob/main/LICENSE) states **Copyright (c) 2026 Jinwoo Kim**. MIT **permits commercial use** but requires preserving the original copyright and permission notice in copies or substantial portions.
+
+**Not an infringement finding:** I have **not verified** that the account and pictured site share an operator, were previously called “静静表盘”, redistributed HermesEnabler source, removed its copyright notice, or violated MIT. Similar features or marketing images alone do not establish copying.
+
+**[Evidence, source links and open verification questions](research/2026-11-15-third-party-license-attribution-review.md)** · [简体中文](research/2026-11-15-third-party-license-attribution-review.zh-CN.md). Corrections and primary-source evidence are welcome; no harassment is encouraged.
+
 ## About this project
 
 I built upon [pookjw/HermesEnabler](https://github.com/pookjw/HermesEnabler) to investigate whether **native Hermès watch faces** could be enabled on my **first-generation Apple Watch Ultra**, running **watchOS 26.6.1 (build 23U95)**. This public repository preserves on-device observations, matching-firmware analysis, related source code, unsuccessful attempts, and corrected findings. Parts of the code and documentation were AI-assisted.

@@ -1,5 +1,13 @@
 # HermesEnabler · watchOS 26.x — Research changelog
 
+## 2026-11-16 (UTC+8) — Upstream experimental watchOS 26 support; actual Ultra 1 / 23U95 failure
+
+- I independently verified [`7d84d97` at 01:41](https://github.com/pookjw/HermesEnabler/commit/7d84d97d96ee6e1690e5c3dcd76cbe2910a1508e) (experimental 23U95 layout, Class 7 and Class 13 query variants), [`cd9de45` at 06:32](https://github.com/pookjw/HermesEnabler/commit/cd9de454fe8d099ee28f0998080641fbe56c7a6d) (additional watchOS 26 build data), and [`a4feb90` at 06:46](https://github.com/pookjw/HermesEnabler/commit/a4feb9071c2475cb25b54953ec60b368c054cd26) (formal support headline restored to watchOS 27; watchOS 26 explicitly experimental).
+- **My own physical Watch6,18 / watchOS 26.6.1 (23U95) runtime**: upstream updated Watch app installed and launched with correct iPhone/Watch bundle prefixes. Xcode recognized `group.com.cd.zhuoxuan.uk`, its group container path, and initialized MCM. Multiple Class 13, Class 7, Class 2 and geod attempts failed to acquire a usable token (`token=NO`, `consume=-5`; `escape: all strategies failed (last=-5)`). Some Class 2 subpath queries returned `PART_SUBDIR_CREATION_FAILED` / `errno=2`.
+- **No evidence of a writable protected-cache descriptor, successful MG write/readback, usable backup, native Hermès eligibility, native face addition, or persistent display.** My older real `open(O_RDWR)→EPERM` observation is a different test; the new logs failed before a documented file-open result. I did **not** modify the Watch's protected files or claim a working unlock.
+- I added [a full Chinese/English source and field report](research/2026-11-16-HermesEnabler-watchOS26-Upstream-and-Ultra1-Real-Watch.md), and updated both README documents **without deleting any V0–V30 research history**. This is **documentation-only**, not an unreviewed import of upstream 1.6 or a fork-code upgrade.
+
+
 ## 2026-11-14 18:09 CST — 37-tool public jailbreak / watchOS sandbox feasibility review
 
 - I read both current project READMEs, the older real-device evidence and the latest public upstream READMEs/releases, then compared **37 named tools/components** in **watchOS-native, MobileGestalt/MCM, iOS jailbreak/backup, and device/firmware-analysis** categories. Full **Chinese and English matrices are now directly visible** in both READMEs, and the detailed [37-tool source audit](research/2026-11-14-watchOS26-Complete-Tool-and-Escape-Route-Audit.md) preserves supporting primary links and verification limits.

@@ -6,11 +6,19 @@
 
 [简体中文](README.zh-CN.md) · [English](README.md) · [完整开发记录](#完整开发记录) · [原作者项目](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
 
+## 2026-11-16：原作者新增 watchOS 26 实验性支持与我的 Ultra 1 实机测试
+
+我核对了原作者 [HermesEnabler](https://github.com/pookjw/HermesEnabler) 的三次关键提交：[**`7d84d97`（11 月 16 日 01:41，北京时间）**](https://github.com/pookjw/HermesEnabler/commit/7d84d97d96ee6e1690e5c3dcd76cbe2910a1508e) 为 **watchOS 26.6.1（`23U95`）** 加入实验性的 MobileGestalt 布局和 Class 7 / Class 13 访问分支；[**`cd9de45`（06:32）**](https://github.com/pookjw/HermesEnabler/commit/cd9de454fe8d099ee28f0998080641fbe56c7a6d) 扩展了更多 watchOS 26 系统构建的静态数据；[**`a4feb90`（06:46）**](https://github.com/pookjw/HermesEnabler/commit/a4feb9071c2475cb25b54953ec60b368c054cd26) 则重新明确 **watchOS 26 仅是实验性支持**，README 顶部正式列出的依然是 watchOS 27。
+
+我已经在**真实 Apple Watch Ultra 第一代（Watch6,18 / n199ap）、watchOS 26.6.1（`23U95`）** 上通过 Xcode 安装并启动上游更新版 Watch App。新日志确认设备版本、App Group 权限标识与容器路径、MCM 接口初始化，但手表仍出现 **“MobileGestalt Access Failed”**。Class 13、Class 7、Class 2、geod 等策略**均未取得可用 sandbox token**（`token=NO`、`consume=-5`；最终 `escape: all strategies failed (last=-5)`），部分 Class 2 子路径另有 `PART_SUBDIR_CREATION_FAILED` / `ENOENT`。**本次日志没有证明取得可写文件描述符或成功写入受保护 MG**；历史 `open(O_RDWR) → EPERM` 是独立的较早实测，不应混同。
+
+**当前结论：上游已有实验性 26 适配代码，我在 23U95 上能够启动 App，但 SystemGroup 访问仍然失败，原生 Hermès 表盘没有解锁。** [完整中英文上游源码/实机日志报告](research/2026-11-16-HermesEnabler-watchOS26-Upstream-and-Ultra1-Real-Watch.md)。本次只同步文档和证据，**没有自动合并上游 1.6 到独立研究分支，也没有对手表系统写入**。
+
 ## 项目简介
 
 我基于 [pookjw/HermesEnabler](https://github.com/pookjw/HermesEnabler)，研究在 **Apple Watch Ultra 第一代、watchOS 26.6.1（23U95）** 上启用原生 Hermès 表盘的可行性。仓库保存了我使用 Mac、Xcode、真实 Apple Watch 和匹配固件开展的测试、源码、分析与失败记录，部分代码及文档由 AI 辅助完成。
 
-**本仓库不是已验证可用的解锁工具，也不提供适用于该设备/固件的成功解锁 IPA。** 项目暂时保留为公开研究档案，而不是删除或宣称所有未来方案都不可能。
+**本仓库不是已验证可用的解锁工具，也不提供适用于该设备/固件的成功解锁 IPA。** 我在 11 月 16 日根据上游实验性 26 更新重新进行实机验证，仍未解锁；此前研究与完整历史均继续保留。
 
 | 范围 | 说明 |
 |---|---|
@@ -133,6 +141,7 @@
 
 | 北京时间／来源 | 版本或事项 | 实际工作与结果 | 原始提交／证据 |
 |---|---|---|---|
+| **11/16 06:46** | **上游 watchOS 26 实验性支持＋我在 Ultra 1 的真机日志** | 我核对 `7d84d97`、`cd9de45`、`a4feb90`，用 Xcode 在真实 Watch6,18 / 23U95 启动上游更新版，App Group 和 MCM 初始化成功，但所有策略均无 token（`-5`），没有可写 fd、没有原生 Hermès 解锁。**未合并到本研究仓库源码。** [完整报告](research/2026-11-16-HermesEnabler-watchOS26-Upstream-and-Ultra1-Real-Watch.md). | [适配提交](https://github.com/pookjw/HermesEnabler/commit/7d84d97d96ee6e1690e5c3dcd76cbe2910a1508e) · [实验性声明](https://github.com/pookjw/HermesEnabler/commit/a4feb9071c2475cb25b54953ec60b368c054cd26) |
 | **11/14 18:09** | **37 项工具与沙箱逃逸/越狱路线全类目核查** | 我按 **watchOS 原生工具、MG/SystemGroup、iOS 越狱与备份、设备部署/固件分析** 四类核查 **37 项**，逐一判断能否用于 Ultra 1 / `23U95`。新增发现：HermesEnabler **1.5.4**、WQFiles **0.9.6**、Erosion `pathleak` 0.3.1、WatchBridge 和 PairBack 设备配对案例；**没有一项验证可在本机写入 protected MG，原生 Hermès 仍 BLOCKED**。只做公开源码和公告核查，未对 Watch 试写。[完整分组与证据](research/2026-11-14-watchOS26-Complete-Tool-and-Escape-Route-Audit.md)。 | [`a60b1d6`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/a60b1d6878d9b1deac207c0150334933043b6ce8) |
 | **11/14 17:58** | **GestaltX 1.1.1 配对、设备连接和文件路径核查** | 我核对上游 [v1.1.1](https://github.com/huamidev/GestaltX/releases/tag/v1.1.1) 与 Swift/Rust 源码：新增 `Pair this iPhone once` 自配对、RSD/Lockdown + LocalDevVPN 的 iPhone 日志采集及通知声音路径发现。**没有 watchOS 26.6.1 的 SystemGroup 受保护写入或 `EPERM` 修复证据**；配对成功和路径已知不意味着手表写权限。只完成公开源码核查，**没有安装、Xcode 或 Watch 真机测试**，继续 **BLOCKED**。[完整报告](research/2026-11-14-GestaltX-v1.1.1-Device-Pairing-Compatibility.md)。 | [`e6c76ea`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/e6c76ea35a15b47a7e23bed900591a610d04eb7f) |
 | **11/12 17:14** | **Ultra 1 / 23U95 新漏洞与解锁路线每小时监控** | 我启用了独立的**每小时**公开资料监控：追踪 HermesEnabler、WatchRegion、Filza、WorstGestalt、bad_query/worse_query、WQFiles、EscapeOS，以及任何新越狱、非越狱方法、SystemGroup 权限、路径穿透、CVE、PoC、代码提交及真机实测。**仅有新的相关增量才通知**，每条注明来源日期、适用设备／固件及证据等级，分别核查 `EPERM` 写入障碍和原生 Hermès 表盘资格。此轮无新手表测试、无漏洞执行、无系统写入；项目仍 BLOCKED。 | [`11b5cf0`](https://github.com/ZhuoXuan-MY/HermesEnabler--WatchOS26.X/commit/11b5cf0fc1b2f7c5f5eb96d4f35a40fa5fabd20d) |

@@ -6,14 +6,6 @@
 
 [简体中文](README.zh-CN.md) · [English](README.md) · [完整开发记录](#完整开发记录) · [原作者项目](https://github.com/pookjw/HermesEnabler) · [Issue #17](https://github.com/pookjw/HermesEnabler/issues/17)
 
-## ⚖️ 开源版权与第三方宣传署名核查（2026-11-15）
-
-我公开记录了关于 **“mono表盘”（小红书号 1114639855）** 与截图所示 **“iiiphone”** 宣传页面的**来源及 MIT 版权署名核查**。原作者 [pookjw/HermesEnabler](https://github.com/pookjw/HermesEnabler) 的 [MIT LICENSE](https://github.com/pookjw/HermesEnabler/blob/main/LICENSE)载明 **Copyright (c) 2026 Jinwoo Kim**；MIT **允许商业使用**，但分发原软件副本或实质性部分时应保留原版权和许可声明。
-
-**重要区别：** 我目前**没有独立证据**确认上述账号和网站属于同一主体、曾从“静静表盘”更名、实际包含 HermesEnabler 源码、删除原作者版权声明或违反 MIT 许可证。不能仅凭功能或宣传截图将这些关切认定为侵权事实。
-
-**[查看公开证据与待核实事项（简体中文）](research/2026-11-15-third-party-license-attribution-review.zh-CN.md)** · [English record](research/2026-11-15-third-party-license-attribution-review.md)。欢迎当事方提供可复核的原始链接、安装包和更正资料；请勿骚扰任何人。
-
 ## 项目简介
 
 我基于 [pookjw/HermesEnabler](https://github.com/pookjw/HermesEnabler)，研究在 **Apple Watch Ultra 第一代、watchOS 26.6.1（23U95）** 上启用原生 Hermès 表盘的可行性。仓库保存了我使用 Mac、Xcode、真实 Apple Watch 和匹配固件开展的测试、源码、分析与失败记录，部分代码及文档由 AI 辅助完成。
